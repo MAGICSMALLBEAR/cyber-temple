@@ -71,6 +71,9 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 3.4 功德存檔匯出／匯入
+  if (window.templeSave) window.templeSave.init();
+
   // 3.5 每日修行（自動簽到需要 addMerit 與通知條，放在香火牆之後）
   if (window.dailyPractice) {
     window.dailyPractice.init({ getDeity: () => state.currentDeity });
@@ -1596,6 +1599,7 @@ function updateChiamHistoryAI(chiamId, userQuestion, aiText) {
 }
 
 function openPassportModal() {
+  window.templeSave?.renderStatus();
   const merit = state.meritCount;
   document.getElementById("statMeritTotal").innerText = merit.toLocaleString();
   document.getElementById("passportAvatarTitle").innerText = state.avatarConfig.title || "悠閒的信眾";

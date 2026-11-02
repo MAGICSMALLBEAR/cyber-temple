@@ -2061,3 +2061,12 @@ body.hud-hidden .hud-exit-btn { display: block; }
   background: var(--gold-primary);
   transition: width 0.3s;
 }
+
+/* 護照內功德存檔區 */
+.save-data-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px dashed rgba(245, 197, 66, 0.35);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}

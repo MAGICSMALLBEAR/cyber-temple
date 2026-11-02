@@ -575,6 +575,16 @@
         <!-- 動態渲染各頁內容 -->
       </div>
 
+      <div class="save-data-box">
+        <div class="daily-section-title">💾 功德存檔</div>
+        <div class="wall-footnote" id="saveDataStatus" style="margin-bottom: 8px;"></div>
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-dock-action" id="btnSaveExport" style="flex: 1; justify-content: center;">⬇️ 匯出存檔</button>
+          <button class="btn-dock-action" id="btnSaveImport" style="flex: 1; justify-content: center; background: #33150d;">⬆️ 匯入存檔</button>
+          <input type="file" id="saveImportInput" accept=".json,application/json" hidden>
+        </div>
+      </div>
+
       <div style="display: flex; gap: 10px;">
         <button class="btn-dock-action" id="btnExportCertificate" style="flex: 1; justify-content: center;">
           🧧 匯出修持功德榮譽狀 (PNG)
@@ -1986,6 +1996,7 @@
   <script src="libs/OrbitControls.js"></script>
   <script src="audio.js"></script>
   <script src="daily.js"></script>
+  <script src="save-data.js"></script>
   <script src="chiam-data.js"></script>
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>
