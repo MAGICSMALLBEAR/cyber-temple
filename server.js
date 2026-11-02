@@ -3,8 +3,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const PORT = 8080;
+const PORT = Number(process.env.PORT) || 8080;
 const sseClients = new Set();
+const MAX_BROADCAST_BYTES = 64 * 1024;
+// 伺服器端與重建殘留檔，不對外提供
+const BLOCKED_FILES = new Set([
+  'server.js', 'found_step.json', 'scratch_match.json',
+  'reconstructed_index.html', 'full_index_base.html'
+]);
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=UTF-8',
@@ -35,8 +41,16 @@ const server = http.createServer((req, res) => {
   // 2. 廣播分身與科儀訊息 API
   if (req.url === '/api/broadcast' && req.method === 'POST') {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > MAX_BROADCAST_BYTES) {
+        res.writeHead(413);
+        res.end();
+        req.destroy();
+      }
+    });
     req.on('end', () => {
+      if (res.writableEnded) return;
       sseClients.forEach(client => {
         try {
           client.write(`data: ${body}\n\n`);
@@ -51,7 +65,25 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  // 3. 靜態檔案：去掉 query、解碼，並限制只能讀專案資料夾內的檔案
+  let urlPath;
+  try {
+    urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'text/plain; charset=UTF-8' });
+    res.end('400 錯誤的請求');
+    return;
+  }
+  const filePath = path.resolve(__dirname, '.' + (urlPath === '/' ? '/index.html' : urlPath));
+  const relPath = path.relative(__dirname, filePath);
+  const blocked = relPath.startsWith('..') || path.isAbsolute(relPath) ||
+    relPath.split(path.sep).some(seg => seg.startsWith('.')) ||
+    BLOCKED_FILES.has(relPath);
+  if (blocked) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=UTF-8' });
+    res.end('403 禁止存取');
+    return;
+  }
   const ext = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 

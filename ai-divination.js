@@ -4,7 +4,8 @@
 class AIDivinationEngine {
   constructor() {
     this.apiKey = localStorage.getItem("temple_gemini_key") || "";
-    this.model = "gemini-1.5-flash";
+    // 可在 localStorage 的 temple_gemini_model 覆寫，模型下架時不必改程式
+    this.model = localStorage.getItem("temple_gemini_model") || "gemini-3.8-flash";
   }
 
   setApiKey(key) {
@@ -37,7 +38,7 @@ class AIDivinationEngine {
 
   // Google Gemini API 調用
   async _callGeminiAPI({ deity, chiam, userQuestion, userName, userAddress }) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
 
     const prompt = `
 你現在是台灣民間信仰中尊貴宏大的神明【${deity.name}】（尊稱：${deity.title}）的神靈化身。
@@ -71,12 +72,15 @@ ${chiam.poem.join("\n")}
 
     const response = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Key 放 header 而非網址，避免出現在瀏覽紀錄與伺服器日誌
+      headers: { "Content-Type": "application/json", "x-goog-api-key": this.apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 1200
+          // Gemini 3 系列的思考 token 也算在上限內，調低思考並放寬上限以免正文被截斷
+          maxOutputTokens: 4096,
+          thinkingConfig: { thinkingLevel: "low" }
         }
       })
     });
@@ -87,7 +91,10 @@ ${chiam.poem.join("\n")}
     }
 
     const data = await response.json();
-    const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = (data.candidates?.[0]?.content?.parts || [])
+      .filter(p => p.text && !p.thought)
+      .map(p => p.text)
+      .join("");
     if (!candidate) throw new Error("未能從 Gemini API 取得解籤結果");
 
     return {

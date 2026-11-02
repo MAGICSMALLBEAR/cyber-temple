@@ -1261,7 +1261,7 @@ function updateAIEngineBadge() {
   const badge = document.getElementById("aiEngineBadge");
   if (!badge) return;
   if (window.aiDivination.hasApiKey()) {
-    badge.innerText = "✨ Gemini 1.5 直連已就緒";
+    badge.innerText = "✨ Gemini 直連已就緒";
     badge.style.color = "#2e7d32";
   } else {
     badge.innerText = "✨ 神明推演引擎就緒 (免Key)";
