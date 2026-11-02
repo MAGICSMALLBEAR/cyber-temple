@@ -451,26 +451,37 @@
 
 ---
 
+### 🧱 第二十二階段：拆分大檔案 (v10.7.0，2026-11-02)
+
+- `app.js`（4127 行）拆成 `app/` 下 21 個功能檔；原本 960 行的 `bindEvents()` 拆成 29 個 `bindXxx()` 放回各功能檔，`app/core.js` 的 `bindEvents()` 依原順序呼叫，事件監聽器的註冊順序完全不變。
+- `temple3d.js`（4098 行）拆成 `scene/` 下 7 個檔：`core.js` 保留類別本體（建構子、燈光、鏡頭、點選、主迴圈），其餘方法以 mixin 類別寫在各區域檔，載入時由 `installTempleMixin()` 掛回 `Temple3DScene.prototype`（同名方法會直接報錯，避免互相覆蓋）。
+- 純搬移、行為不變：以腳本驗證原檔每一行恰好出現一次；Node 比對新舊類別 79 個方法名單與內容一致；所有自動化測試重跑通過。
+- **新增檔案時**：`index.html` 的 `<script>` 順序（`app/core.js`、`scene/core.js` 要在各自群組最前）與 `sw.js` 的 `APP_SHELL` 清單都要加上，並把 `CACHE_VERSION` 加一。
+
+---
+
 ## 📊 技術架構一覽表
 
-| 模組 | 檔案 | 技術核心 | 職責 |
-| :--- | :--- | :--- | :--- |
-| **3D 渲染** | `temple3d.js` | Three.js (r128), OrbitControls | 大殿、廟埕、天公爐、許願池錦鯉水生生態、金爐、鐘鼓樓、太歲殿、平溪天燈漂浮上升物理、神案五大供盤 3D 八大供品實體擺盤 |
-| **角色與萌寵** | `avatar3d.js` | 階層骨架動畫, 阻尼跟隨物理, 萌寵建模 | Q版分身、行走物理、金虎爺、九品金靈龜、廣寒玉兔、撫摸互動翻轉跳躍、法器、步步生蓮 |
-| **聲學引擎** | `audio.js` | Web Audio API, Web Speech API | 3D 空間音效、木魚、梵鐘、雷鼓、雙磬、收驚帝鐘、虎爺咕嚕聲、天燈熱氣流、4軌禪修環境混音器、搏杯和弦琶音、供品三獻韶樂、抄經墨韻 |
-| **搏杯擂台** | `app.js`, `temple3d.js`, `audio.js` | Three.js, Canvas 2D, Web Audio | 連得聖筊挑戰、開光黃金筊杯切換、全台名人堂排行榜、搏杯榮譽敕令 PNG 證書生成 |
-| **宮廟藏經閣** | `app.js`, `chiam-data.js` | Vanilla JS, 模糊搜尋演算法 | 六十甲子靈籤全集圖鑑、神尊列傳、宮廟拜拜科儀禮俗典故、研讀領悟功德結算 |
-| **御賜平安齋** | `app.js`, `temple3d.js`, `audio.js` | Three.js 幾何建模, Web Audio | 神案供品五槽位自由挑選、8 款 3D 食物擺盤渲染、三獻禮呈獻大典聲光特效 |
-| **線上抄經閣** | `app.js`, `audio.js` | Canvas 2D 貝茲曲線, Web Audio | 毛筆壓感運筆書法引擎、心經/清靜經/陰騭文淡墨描紅、心安即福硃砂印章、功德迴向與書法存檔 |
-| **賽博禪修堂** | `app.js`, `audio.js` | Canvas 2D, RequestAnimationFrame | 幾何曼陀羅呼吸引導儀、箱式/478呼吸法則、4軌即時混音調配、禪修功德存摺結算 |
-| **祈安天燈** | `app.js`, `temple3d.js` | Canvas 2D 紋理, 熱氣浮力模擬 | 親筆題寫四面天燈願詞、四色天燈款式、放流水燈、多人連線星空漫游 |
-| **太歲元辰** | `app.js`, `temple3d.js` | Canvas 2D, 流年生肖算法 | 十二生肖太歲沖煞推算、太歲長生斗燈點亮、安奉太歲植福文疏生成與下載 |
-| **拍立得明信片** | `app.js`, `temple3d.js` | Canvas 2D, WebGL 緩衝區 | 3D 畫面零延遲快照、古典明信片/賽博邊框、復古濾鏡、硃砂大印篆刻、PNG 下載與香火牆廣播 |
-| **梵音課誦** | `app.js`, `audio.js` | RequestAnimationFrame, Web Audio | 古卷節奏音軌遊戲、雙音符判定、打擊音效與索爾菲吉奧連擊琶音、功德結算倍率 |
-| **AI 解籤** | `ai-divination.js` | Google Gemini API + 本地心靈演繹引擎 | 針對個人煩惱輸出四段式神明深度諭示 |
-| **念珠冥想** | `beads.js` | SVG 動態繪製, 觸控滑動手勢 | 108 顆菩提念珠圓滿計數、觸感音效與禪機偈語 |
-| **行動搖桿** | `joystick.js` | Touch Events, 向量動態計算 | 手機與平板專屬觸控行走虛擬搖桿 |
-| **即時香火** | `live-wall.js` | BroadcastChannel, DOM 彈幕 | 跨分頁零延遲同步、飛天祈願彈幕、在線人數浮動 |
-| **靈籤全集** | `chiam-data.js` | 結構化六十甲子籤資料字典 (60首全集) | 詩文、卦頭、吉凶、分項指引、神明叮嚀 |
-| **主控中樞** | `app.js` | Vanilla JS (ES6+) | 狀態管理、DOM/3D橋接、萌寵護法小窩、祈安天燈盛典、賽博禪堂、拍立得、太歲殿、節奏法會、善信護照 |
-| **本地伺服** | `server.js` | Node.js 原生 http/fs (零依賴) | 靜態資源伺服器 (埠號 8080) + SSE/廣播即時伺服端 |
+| 模組 | 檔案 | 職責 |
+| :--- | :--- | :--- |
+| **3D 引擎核心** | `scene/core.js` | Three.js (r128) 場景、燈光、鏡頭跟隨與視角、滑鼠點選、接近觸發、主迴圈 |
+| **殿宇建築** | `scene/architecture.js` | 大殿、廟埕、御道、山門、石獅、燈道、宮燈、神案神像與法相切換、千佛燈塔 |
+| **氛圍與畫質** | `scene/atmosphere.js` | 時辰光影、星空、金塵、天候粒子、畫質分級套用 |
+| **大殿法器** | `scene/altar.js` | 香爐、筊杯、籤筒、木魚、神案供品與三獻禮 |
+| **廟埕** | `scene/courtyard.js` | 天公爐、許願池與錦鯉、八角金爐、天燈與水燈 |
+| **偏殿** | `scene/halls.js` | 祈願木牌閣、文昌閣、月老閣、財神殿、太歲殿、收驚特效 |
+| **鐘鼓遶境** | `scene/festival.js` | 東天鐘樓、西暮鼓樓、神轎出巡、鞭炮、鑽轎腳 |
+| **角色與萌寵** | `avatar3d.js` | Q 版分身、行走與動作、多人同行分身、萌寵、法器、步步生蓮 |
+| **主控中樞** | `app/core.js` | 神尊與狀態設定、初始化、`bindEvents()` 總表、功德與狀態列 |
+| **介面與操控** | `app/controls.js` | 視角、神尊切換、分身動作、時辰天候、快捷鍵、換裝、頂部列面板、收納式 HUD |
+| **大殿參拜** | `app/rituals.js` | 點香、擲筊、求籤、木魚與掛機、投幣化寶、鐘鼓遶境、點燈、祈願彈幕 |
+| **靈籤與 AI 解籤** | `app/chiam.js`, `ai-divination.js`, `chiam-data.js` | 籤詩彈窗、Gemini／本地解籤、語音開示、結緣卡匯出、60 首籤詩資料 |
+| **各功能** | `app/ema.js`、`passport.js`、`side-halls.js`、`amulet.js`、`shoujing.js`、`relic-shop.js`、`photo.js`、`taisui.js`、`rhythm.js`、`pet.js`、`sky-lantern.js`、`zen.js`、`bwa-competition.js`、`lore.js`、`feast.js`、`sutra.js` | 木牌、護照、偏殿、靈符、收驚、法器、拍立得、太歲、課誦、萌寵、天燈、禪修、搏杯擂台、藏經閣、供品、抄經 |
+| **PWA** | `app/pwa.js`, `sw.js`, `manifest.webmanifest` | Service Worker 註冊、安裝按鈕、離線快取 |
+| **每日修行** | `daily.js` | 每日簽到、每日功課、農曆節慶（聽 `temple:ritual` 事件） |
+| **功德存檔** | `save-data.js` | 進度匯出／匯入 |
+| **畫質設定** | `quality.js` | 自動／高／中／低、FPS 量測與自動降級 |
+| **即時香火** | `live-wall.js` | 香火牆統計、跨分頁與跨裝置祈願同步、彈幕 |
+| **聲學引擎** | `audio.js` | Web Audio 合成音效、3D 空間音、禪修混音、語音 |
+| **念珠／搖桿** | `beads.js`, `joystick.js` | 108 念珠、手機虛擬搖桿 |
+| **本地伺服** | `server.js` | 靜態檔案（限專案資料夾）＋ SSE 多人廣播，埠號 8080（可用 PORT 指定） |

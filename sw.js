@@ -1,6 +1,6 @@
 // sw.js - 離線快取：安裝時預存整座神殿，之後同源檔案「網路優先、離線用快取」，字型「快取優先」
 // 修改 APP_SHELL 清單或想強制所有人更新時，把 CACHE_VERSION 加一
-const CACHE_VERSION = "v6";
+const CACHE_VERSION = "v7";
 const CACHE_NAME = `temple-${CACHE_VERSION}`;
 const FONT_CACHE = "temple-fonts";
 const NETWORK_TIMEOUT_MS = 3000;
@@ -20,7 +20,13 @@ const APP_SHELL = [
   "ai-divination.js",
   "live-wall.js",
   "avatar3d.js",
-  "temple3d.js",
+  "scene/core.js",
+  "scene/architecture.js",
+  "scene/atmosphere.js",
+  "scene/altar.js",
+  "scene/courtyard.js",
+  "scene/halls.js",
+  "scene/festival.js",
   "beads.js",
   "joystick.js",
   "app/core.js",

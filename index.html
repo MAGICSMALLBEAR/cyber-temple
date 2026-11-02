@@ -2014,7 +2014,14 @@
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>
   <script src="avatar3d.js"></script>
-  <script src="temple3d.js"></script>
+  <!-- 3D 場景引擎：core 必須最先，其餘檔案把方法掛回 Temple3DScene -->
+  <script src="scene/core.js"></script>
+  <script src="scene/architecture.js"></script>
+  <script src="scene/atmosphere.js"></script>
+  <script src="scene/altar.js"></script>
+  <script src="scene/courtyard.js"></script>
+  <script src="scene/halls.js"></script>
+  <script src="scene/festival.js"></script>
   <script src="beads.js"></script>
   <script src="joystick.js"></script>
   <!-- 主控程式：依序載入，core 必須最先 -->
