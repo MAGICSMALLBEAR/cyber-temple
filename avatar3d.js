@@ -1184,9 +1184,10 @@ class TempleAvatarSystem {
       }
 
       // 動作快捷鍵
-      if (e.code === "KeyB") this.triggerAction("bow");      // 鞠躬禮
-      if (e.code === "KeyK") this.triggerAction("kneel");    // 跪拜
-      if (e.code === "KeyP") this.triggerAction("pray");     // 合掌
+      // 玩家親自行禮才算每日功課；科儀附帶的鞠躬動畫不算
+      if (e.code === "KeyB") { this.triggerAction("bow"); window.emitRitual?.("bow"); }      // 鞠躬禮
+      if (e.code === "KeyK") { this.triggerAction("kneel"); window.emitRitual?.("bow"); }    // 跪拜
+      if (e.code === "KeyP") { this.triggerAction("pray"); window.emitRitual?.("bow"); }     // 合掌
       if (e.code === "KeyM") this.triggerAction("meditate"); // 打坐
     });
 

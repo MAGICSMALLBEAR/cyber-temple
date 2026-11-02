@@ -90,6 +90,7 @@
       <button class="btn-header" id="btnToggleBGM" title="禪音背景音開關">🎵 禪音</button>
       <button class="btn-header" id="btnToggleMute" title="音效開關">🔊 音效</button>
       <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
+      <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶">🗓️ 功課 <span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
       <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態">🏮 香火 <span class="hud-online-pill" id="hudOnlineCount">1</span></button>
       <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
       <button class="btn-header" id="btnOpenSettings" title="AI 神諭與系統設定">⚙️ 設定</button>
@@ -451,6 +452,36 @@
   </div>
 
   <!-- 善信功德修持護照彈窗 (Passport Modal) -->
+  <!-- 每日修行 -->
+  <div class="modal-overlay" id="dailyModal">
+    <div class="settings-modal" style="max-width: 480px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="dailyModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🗓️ 每日修行</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;" id="dailyDateLabel"></div>
+      </div>
+
+      <div class="daily-festival" id="dailyFestival" hidden>
+        <div class="daily-festival-name" id="dailyFestivalName"></div>
+        <div class="daily-festival-desc" id="dailyFestivalDesc"></div>
+      </div>
+
+      <div class="daily-section-title">📅 每日簽到</div>
+      <div class="daily-streak-dots" id="dailyStreakDots"></div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 10px 0 16px;">
+        <div class="passport-stat-box"><div class="stat-label">連續簽到</div><div class="stat-val" id="dailyStreak">0</div></div>
+        <div class="passport-stat-box"><div class="stat-label">最長連續</div><div class="stat-val" id="dailyBestStreak">0</div></div>
+        <div class="passport-stat-box"><div class="stat-label">累計參拜</div><div class="stat-val" id="dailyTotalDays">0</div></div>
+      </div>
+
+      <div class="daily-section-title">📿 今日功課</div>
+      <div class="daily-task-list" id="dailyTaskList"></div>
+      <div class="wall-footnote" id="dailyBonusNote" style="margin-top: 8px;"></div>
+      <div class="wall-footnote" id="dailyNextFestival"></div>
+      <div class="wall-footnote">每天第一次開啟自動簽到，連續天數越多獎勵越高（7 天封頂）。大節慶當天簽到與功課功德加倍。</div>
+    </div>
+  </div>
+
   <!-- 即時香火牆 -->
   <div class="modal-overlay" id="liveWallModal">
     <div class="settings-modal" style="max-width: 520px; max-height: 88vh; overflow-y: auto;">
@@ -1690,6 +1721,15 @@
         </div>
 
         <!-- 清修與持誦 -->
+        <div class="pavilion-card" data-proxy="btnOpenDaily" data-cat="zen">
+          <div class="card-icon">🗓️</div>
+          <div class="card-body">
+            <div class="card-title">每日修行</div>
+            <div class="card-desc">每日簽到、今日三項功課、初一十五與神明聖誕節慶</div>
+          </div>
+          <span class="card-badge">每日功德</span>
+        </div>
+
         <div class="pavilion-card" id="btnOpenBeads" data-cat="zen">
           <div class="card-icon">📿</div>
           <div class="card-body">
@@ -1945,6 +1985,7 @@
   <script src="libs/three.min.js"></script>
   <script src="libs/OrbitControls.js"></script>
   <script src="audio.js"></script>
+  <script src="daily.js"></script>
   <script src="chiam-data.js"></script>
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>

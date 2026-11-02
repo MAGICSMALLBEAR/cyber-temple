@@ -1937,3 +1937,127 @@ body.hud-hidden .hud-exit-btn { display: block; }
 .btn-header[hidden] {
   display: none;
 }
+
+/* 頂部「功課」按鈕上的未完成數 */
+.hud-pending-dot {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: 2px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #d32f2f;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.hud-pending-dot[hidden] {
+  display: none;
+}
+
+/* 每日修行面板 */
+.daily-section-title {
+  color: var(--gold-bright);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.daily-festival {
+  background: linear-gradient(135deg, rgba(179, 32, 32, 0.6), rgba(90, 13, 13, 0.85));
+  border: 1px solid var(--gold-primary);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.daily-festival[hidden] {
+  display: none;
+}
+
+.daily-festival-name {
+  color: var(--gold-bright);
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin-bottom: 4px;
+}
+
+.daily-festival-desc {
+  color: #f3e3c0;
+  font-size: 0.84rem;
+}
+
+.daily-streak-dots {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.daily-streak-dot {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 6px;
+  border: 1px dashed rgba(245, 197, 66, 0.35);
+  color: #b8996a;
+  font-size: 0.78rem;
+}
+
+.daily-streak-dot.on {
+  background: rgba(245, 197, 66, 0.85);
+  border: 1px solid var(--gold-bright);
+  color: #3b0d0d;
+  font-weight: 700;
+}
+
+.daily-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.daily-task {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(245, 197, 66, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.daily-task.festival {
+  border-color: rgba(245, 197, 66, 0.6);
+  background: rgba(139, 28, 28, 0.35);
+}
+
+.daily-task.done {
+  opacity: 0.65;
+}
+
+.daily-task-label {
+  color: #f3e3c0;
+  font-size: 0.88rem;
+}
+
+.daily-task-meta {
+  color: #c9a76e;
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+.daily-task-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.daily-task-bar > div {
+  height: 100%;
+  background: var(--gold-primary);
+  transition: width 0.3s;
+}

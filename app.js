@@ -71,6 +71,11 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // 3.5 每日修行（自動簽到需要 addMerit 與通知條，放在香火牆之後）
+  if (window.dailyPractice) {
+    window.dailyPractice.init({ getDeity: () => state.currentDeity });
+  }
+
   // 4. 更新功德池與 AI 標籤
   updateMeritDisplay();
   updateAIEngineBadge();
@@ -132,16 +137,19 @@ function bindEvents() {
   // 角色禮佛動作列
   document.getElementById("btnActionBow").addEventListener("click", () => {
     if (temple3d && temple3d.avatar) temple3d.avatar.triggerAction("bow");
+    window.emitRitual?.("bow");
     setDockStatus("🙇 恭敬行三鞠躬禮...");
   });
 
   document.getElementById("btnActionKneel").addEventListener("click", () => {
     if (temple3d && temple3d.avatar) temple3d.avatar.triggerAction("kneel");
+    window.emitRitual?.("bow");
     setDockStatus("🧎 雙膝著地，虔誠跪拜禮佛...");
   });
 
   document.getElementById("btnActionPray").addEventListener("click", () => {
     if (temple3d && temple3d.avatar) temple3d.avatar.triggerAction("pray");
+    window.emitRitual?.("bow");
     setDockStatus("🙏 雙手合十胸前，默念心中祈願...");
   });
 
@@ -179,6 +187,7 @@ function bindEvents() {
       if (window.liveTempleWall) {
         window.liveTempleWall.broadcastIncense(state.avatarConfig.title || "善信");
       }
+      window.emitRitual?.("incense", { deity: state.currentDeity });
     }, 120);
   });
 
@@ -194,7 +203,7 @@ function bindEvents() {
 
   // 3D 敲木魚
   document.getElementById("btnKnockMuyu").addEventListener("click", () => {
-    performMuyuStrike();
+    performMuyuStrike(true);
   });
 
   // 時辰天色切換
@@ -781,6 +790,12 @@ function bindEvents() {
     openPassportModal();
   });
 
+  // 每日修行
+  document.getElementById("btnOpenDaily").addEventListener("click", () => window.dailyPractice?.open());
+  document.getElementById("dailyModalClose").addEventListener("click", () => {
+    document.getElementById("dailyModal").classList.remove("open");
+  });
+
   // 即時香火牆
   document.getElementById("btnOpenLiveWall").addEventListener("click", () => {
     if (window.liveTempleWall) {
@@ -840,7 +855,7 @@ function bindEvents() {
       } else if (typeof isRhythmGameRunning !== "undefined" && isRhythmGameRunning) {
         handleRhythmHit("muyu");
       } else {
-        performMuyuStrike();
+        performMuyuStrike(true);
       }
     } else if (e.code === "KeyV") {
       window.openPhotoModal();
@@ -1185,9 +1200,11 @@ function performBwaToss() {
 
   temple3d.tossBwa(({ outcome1, outcome2 }) => {
     window.templeAudio.playBwaBweiSound();
+    window.emitRitual?.("bwa");
 
     if (outcome1 !== outcome2) {
       state.consecutiveHolyBwa++;
+      window.emitRitual?.("holyBwa");
       const curHigh = parseInt(localStorage.getItem("temple_highest_bwa") || "0", 10);
       if (state.consecutiveHolyBwa > curHigh) {
         localStorage.setItem("temple_highest_bwa", state.consecutiveHolyBwa);
@@ -1231,6 +1248,7 @@ function performChiamShake() {
     const chosen = window.CHIAM_DATA[randomIndex];
     state.selectedChiam = chosen;
     recordChiamToHistory(chosen);
+    window.emitRitual?.("chiam");
 
     setDockStatus(`🎋 抽得第 ${chosen.id} 籤【${chosen.ganZhi}】${chosen.fortune}！正在展開靈籤捲軸...`);
     temple3d.spawn3DFloatingText(`第${chosen.id}籤 • ${chosen.ganZhi}`, new THREE.Vector3(1.4, 2.2, -0.3));
@@ -1241,8 +1259,8 @@ function performChiamShake() {
   });
 }
 
-// 執行 3D 敲木魚
-function performMuyuStrike() {
+// 執行 3D 敲木魚（manual：親手敲擊才算每日功課，掛機不算）
+function performMuyuStrike(manual = false) {
   if (temple3d) {
     temple3d.strikeMuyu();
   }
@@ -1251,6 +1269,7 @@ function performMuyuStrike() {
   state.meritCount++;
   localStorage.setItem("temple_merit", state.meritCount);
   updateMeritDisplay();
+  if (manual) window.emitRitual?.("muyu");
 }
 
 function addMerit(points) {
@@ -1288,6 +1307,7 @@ function updateAIEngineBadge() {
 function submitLanternAction() {
   const name = document.getElementById("lanternName")?.value.trim() || state.avatarConfig.title;
   const wish = document.getElementById("lanternWish")?.value.trim() || "平安順遂";
+  window.emitRitual?.("lantern");
 
   if (window.liveTempleWall) {
     window.liveTempleWall.recordLantern(name);
@@ -1581,7 +1601,7 @@ function openPassportModal() {
   document.getElementById("passportAvatarTitle").innerText = state.avatarConfig.title || "悠閒的信眾";
 
   // 念珠輪數
-  const beadLoops = parseInt(localStorage.getItem("temple_bead_loops") || "0", 10);
+  const beadLoops = parseInt(localStorage.getItem("temple_beads_loops") || "0", 10);
   document.getElementById("statBeadLoops").innerText = beadLoops;
 
   // 最高連得聖筊

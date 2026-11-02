@@ -43,6 +43,7 @@ class BeadsMeditationSystem {
   // 撥動下一顆念珠
   advanceBead() {
     this.currentCount++;
+    window.emitRitual?.("bead");
     window.templeAudio.playBeadClick();
 
     // 觸覺微震動 (如果裝置支援)

@@ -1986,6 +1986,7 @@ class Temple3DScene {
   strikeBell() {
     if (this.isBellStriking) return;
     this.isBellStriking = true;
+    window.emitRitual?.("bell");
 
     if (window.templeAudio) window.templeAudio.playTempleBellStrike();
 
@@ -2025,6 +2026,7 @@ class Temple3DScene {
   beatDrum() {
     if (this.isDrumBeating) return;
     this.isDrumBeating = true;
+    window.emitRitual?.("drum");
 
     if (window.templeAudio) window.templeAudio.playTempleDrumStrike();
 
@@ -2975,6 +2977,7 @@ class Temple3DScene {
   tossWishingCoin() {
     if (this.isCoinTossing) return;
     this.isCoinTossing = true;
+    window.emitRitual?.("coin");
 
     if (this.avatar) {
       this.avatar.triggerAction("pray");
@@ -3305,6 +3308,7 @@ class Temple3DScene {
   burnJossPaper() {
     if (this.isBurningPaper) return;
     this.isBurningPaper = true;
+    window.emitRitual?.("paper");
 
     if (this.avatar) {
       this.avatar.triggerAction("bow");
