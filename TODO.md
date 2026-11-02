@@ -277,6 +277,13 @@
 
 ---
 
+- [x] **自動化測試入庫 (v10.7.1)**
+  - **完成內容**：`npm test` 跑 9 組 132 項檢查；`tests/MANUAL-CHECKLIST.md` 真機驗收清單。
+
+- [ ] **真機驗收**：照 `tests/MANUAL-CHECKLIST.md` 在電腦與手機實際操作一輪
+
+---
+
 ## 📌 P5：長遠硬體沉浸規劃（XR 與實體宮廟聯名）
 
 - [ ] **WebXR / VR 虛擬實境沉浸模式 (VR Headset Support)**
