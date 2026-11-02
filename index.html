@@ -1,0 +1,1905 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>賽博虛擬神殿 3D • 沉浸元宇宙版</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- 頂部祥雲飾條 -->
+  <div class="temple-border-top"></div>
+
+  <!-- 3D WebGL 全景互動場景 -->
+  <div id="canvas3dContainer"></div>
+
+  <!-- 3D 物件懸停標籤 (Raycaster Tooltip) -->
+  <div id="canvas3dTooltip"></div>
+
+  <!-- 行動裝置虛擬搖桿 (Mobile Touch Joystick) -->
+  <div id="virtualJoystickZone">
+    <div id="joystickKnob"></div>
+  </div>
+
+  <!-- 頂部精緻導航與狀態列 -->
+  <header class="temple-header" id="templeHeader">
+    <!-- 左側：宮廟招牌與神尊選單 -->
+    <div class="header-left">
+      <div class="plaque" title="賽博虛擬神殿 3D">
+        <div class="plaque-title">賽博神殿</div>
+        <div class="plaque-subtitle">3D 沉浸元宇宙</div>
+      </div>
+
+      <!-- 神尊切換下拉選單 (收合 5 大神尊) -->
+      <div class="deity-dropdown-container">
+        <button class="deity-dropdown-btn" id="deityDropdownBtn" title="點擊切換參拜神尊">
+          <span id="currentDeityLabel">🌊 天上聖母 (媽祖)</span>
+          <span class="dropdown-chevron">▾</span>
+        </button>
+        <div class="deity-dropdown-menu" id="deityDropdownMenu">
+          <button class="btn-deity-pill active" data-deity="mazu">
+            <span>🌊</span> 天上聖母 (媽祖)
+          </button>
+          <button class="btn-deity-pill" data-deity="wenchang">
+            <span>📜</span> 文昌梓潼帝君
+          </button>
+          <button class="btn-deity-pill" data-deity="caishen">
+            <span>💰</span> 五路武財神
+          </button>
+          <button class="btn-deity-pill" data-deity="yuelao">
+            <span>❤️</span> 月下老人
+          </button>
+          <button class="btn-deity-pill" data-deity="guaiguai">
+            <span>🟢</span> 綠色乖乖守護神
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中間：功德池 -->
+    <div class="header-center">
+      <div class="merit-counter-badge" id="headerMeritBadge" title="累積總功德池">
+        <span>✨ 總功德：</span>
+        <strong id="meritCounter" style="color: var(--gold-bright); font-size: 1.15rem;">0</strong>
+      </div>
+    </div>
+
+    <!-- 右側：系統功能快捷條 -->
+    <div class="header-status">
+      <div class="shichen-select-container">
+        <select id="selectShichen" class="temple-select" title="切換時辰光影晝夜氛圍">
+          <option value="auto">🕒 時辰：真實時間</option>
+          <option value="dawn">🌅 卯時 • 晨霧金曦</option>
+          <option value="noon">☀️ 午時 • 烈日金光</option>
+          <option value="dusk">🌇 酉時 • 晚霞暮光</option>
+          <option value="midnight">🌌 子時 • 深夜星空</option>
+        </select>
+      </div>
+      <button class="btn-header" id="btnToggleWeather" title="切換宮廟天候氛圍">🌧️ 晴空</button>
+      <button class="btn-header" id="btnToggleBGM" title="禪音背景音開關">🎵 禪音</button>
+      <button class="btn-header" id="btnToggleMute" title="音效開關">🔊 音效</button>
+      <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
+      <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
+      <button class="btn-header" id="btnOpenSettings" title="AI 神諭與系統設定">⚙️ 設定</button>
+      <button class="btn-header" id="btnOpenHelp" title="操作與快捷鍵導引 (?)">❓</button>
+      <button class="btn-header btn-hud-toggle" id="btnToggleHUD" title="沉浸模式 (隱藏所有介面，快捷鍵 H)">👁️ 沉浸</button>
+    </div>
+  </header>
+
+  <!-- 右上方：3D 鏡頭視角導覽艙 (收納 20 種視角，告別右側滿版按鈕) -->
+  <div class="camera-nav-container" id="cameraNavContainer">
+    <button class="camera-nav-btn" id="cameraNavBtn" title="點擊切換鏡頭導覽視角 (快捷鍵 C)">
+      <span>🎥 視角：</span>
+      <strong id="currentCameraLabel">👤 分身隨行</strong>
+      <span class="dropdown-chevron">▾</span>
+    </button>
+    <div class="camera-nav-dropdown" id="cameraNavDropdown">
+      <div class="camera-group-title">🚶 自由漫遊</div>
+      <div class="camera-group-grid">
+        <button class="btn-cam-view active" data-view="follow" title="視角鎖定分身隨行 (按 [C] 重置身後)">👤 分身隨行 (C)</button>
+        <button class="btn-cam-view" data-view="firstPerson" title="第一人稱主觀視角漫遊">👁️ 第一人稱</button>
+        <button class="btn-cam-view" data-view="overview" title="大殿全景">🏛️ 大殿全景</button>
+        <button class="btn-cam-view" data-view="skyview" title="萬里鳥瞰">🦅 萬里鳥瞰</button>
+      </div>
+
+      <div class="camera-group-title">🪔 大殿特寫</div>
+      <div class="camera-group-grid">
+        <button class="btn-cam-view" data-view="censer" title="參拜香案">🔥 參拜香案</button>
+        <button class="btn-cam-view" data-view="bwa" title="擲筊特寫">🌓 擲筊特寫</button>
+        <button class="btn-cam-view" data-view="chiam" title="籤筒視角">🎋 籤筒視角</button>
+        <button class="btn-cam-view" data-view="muyu" title="賽博木魚">🪵 賽博木魚</button>
+      </div>
+
+      <div class="camera-group-title">⛩️ 廟埕景觀</div>
+      <div class="camera-group-grid">
+        <button class="btn-cam-view" data-view="courtyard" title="宏偉廟埕">⛩️ 宏偉廟埕</button>
+        <button class="btn-cam-view" data-view="pond" title="蓮花池拱橋">🪷 蓮花拱橋</button>
+        <button class="btn-cam-view" data-view="furnace" title="八角金爐閣">🔥 八角金爐</button>
+        <button class="btn-cam-view" data-view="ema" title="祈願木牌閣">🪵 祈願木牌</button>
+        <button class="btn-cam-view" data-view="gate" title="巍峨山門">⛩️ 巍峨山門</button>
+      </div>
+
+      <div class="camera-group-title">🏛️ 仙閣偏殿</div>
+      <div class="camera-group-grid">
+        <button class="btn-cam-view" data-view="wenchang" title="文昌閣">🎓 文昌閣</button>
+        <button class="btn-cam-view" data-view="yuelao" title="月老閣">❤️ 月老閣</button>
+        <button class="btn-cam-view" data-view="caishen" title="財神殿">💰 財神殿</button>
+        <button class="btn-cam-view" data-view="taisui" title="太歲殿">🏮 太歲殿</button>
+        <button class="btn-cam-view" data-view="bellTower" title="東天鐘樓">🔔 東天鐘樓</button>
+        <button class="btn-cam-view" data-view="drumTower" title="西暮鼓樓">🥁 西暮鼓樓</button>
+        <button class="btn-cam-view" data-view="parade" title="遶境聖駕">🏮 遶境聖駕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 即時祈願飛天彈幕層 -->
+  <div class="danmaku-container" id="danmakuContainer"></div>
+
+  <!-- 左下方：精巧角色禮佛動作列 (緊湊單排膠囊) -->
+  <div class="avatar-action-bar" id="avatarActionBar">
+    <div class="action-buttons">
+      <button class="btn-action-pill" id="btnActionBow" title="躬身禮佛 (B)">🙇 躬身 (B)</button>
+      <button class="btn-action-pill" id="btnActionKneel" title="屈膝跪拜 (K)">🧎 跪拜 (K)</button>
+      <button class="btn-action-pill" id="btnActionPray" title="虔誠合掌 (P)">🙏 合掌 (P)</button>
+      <button class="btn-action-pill" id="btnActionMeditate" title="打坐冥想 (M)">🧘 打坐 (M)</button>
+      <button class="btn-action-pill" id="btnPetInteract" title="撫摸靈寵 (G)">🐾 靈寵 (G)</button>
+      <button class="btn-action-pill" id="btnToggleSprint" title="疾步快跑 (Shift)">⚡ 疾步</button>
+    </div>
+  </div>
+
+  <!-- 底部中央：大殿 3D 核心互動操作塢 (精簡為 5 大核心參拜 + 祈願 + 萬寶閣) -->
+  <div class="temple-dock-container" id="templeDockContainer">
+    <!-- 即時狀態與神明諭示提示條 -->
+    <div class="dock-status-bar" id="dockStatusBar">
+      操作分身漫步大殿與廟埕，走近香案、筊杯、許願池或金爐按 [E] 鍵互動
+    </div>
+
+    <!-- 核心速控主列 (5 大常駐參拜動作 + 彈幕 + 萬寶閣) -->
+    <div class="dock-quick-bar">
+      <button class="btn-dock-quick" id="btnLightIncense" title="敬獻三炷清香">
+        🔥 點燃清香
+      </button>
+      <button class="btn-dock-quick" id="btnThrowBwa" title="誠心擲筊請示聖意">
+        🌓 誠心擲筊
+      </button>
+      <button class="btn-dock-quick" id="btnShakeChiam" title="搖動籤筒求取靈籤">
+        🎋 搖筒求籤
+      </button>
+      <button class="btn-dock-quick" id="btnKnockMuyu" title="敲擊賽博木魚 (Space)">
+        🪵 敲擊木魚
+      </button>
+      <button class="btn-dock-quick" id="btnTossCoin" title="向許願池投幣祈福">
+        🪙 投幣許願
+      </button>
+      <button class="btn-dock-quick btn-danmaku-toggle" id="btnToggleDanmaku" title="展開/收合飛天祈願彈幕輸入">
+        💬 祈願
+      </button>
+      <button class="btn-dock-quick btn-pavilion-trigger" id="btnOpenPavilion" title="開啟宮廟全功能萬寶閣 (Tab)">
+        🏛️ 宮廟萬寶閣 <span class="pavilion-badge">20+</span>
+      </button>
+    </div>
+
+    <!-- 可摺疊飛天彈幕輸入列 (點擊 💬 祈願 展開) -->
+    <div class="dock-danmaku-row" id="dockDanmakuRow">
+      <input type="text" class="temple-input" id="txtDanmakuInput" placeholder="在此輸入祈願，發射 3D 飛天彈幕直達天聽...">
+      <button class="btn-dock-action" id="btnSendDanmaku" style="padding: 7px 16px; border-radius: 20px;">
+        🚀 飛升祈願
+      </button>
+    </div>
+  </div>
+
+  <!-- 沉浸模式退出浮動按鈕 (僅在沉浸模式下浮現) -->
+  <button class="hud-exit-btn" id="btnExitHUD" title="退出沉浸模式 (快捷鍵 H)">
+    👁️ 恢復介面 (按 H)
+  </button>
+
+  <!-- 108 顆念珠冥想專屬彈窗 (Beads Modal) -->
+  <div class="modal-overlay" id="beadsModal">
+    <div class="settings-modal" style="max-width: 480px; text-align: center;">
+      <button class="modal-close" id="beadsModalClose" style="color: var(--gold-bright);">&times;</button>
+      <h3 style="color: var(--gold-bright); margin-bottom: 6px; letter-spacing: 2px;">📿 108 顆菩提念珠 • 靜心冥想</h3>
+      <div id="beadLoopsText" style="font-size: 0.82rem; color: #dfc18b; margin-bottom: 14px;">累計圓滿修行：0 輪</div>
+
+      <!-- 撥念珠核心觸控區 -->
+      <div id="beadTouchArea" style="width: 220px; height: 220px; margin: 0 auto 16px; position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="220" height="220" style="position: absolute; top:0; left:0; transform: rotate(-90deg);">
+          <circle cx="110" cy="110" r="90" stroke="rgba(245, 197, 66, 0.2)" stroke-width="8" fill="none" />
+          <circle id="beadProgressRing" cx="110" cy="110" r="90" stroke="#f5c542" stroke-width="8" fill="none" stroke-dasharray="565.48" stroke-dashoffset="565.48" style="transition: stroke-dashoffset 0.15s ease;" />
+        </svg>
+
+        <div style="display: flex; flex-direction: column; align-items: center; z-index: 2;">
+          <div style="font-size: 3rem; filter: drop-shadow(0 0 10px rgba(245, 197, 66, 0.6));">📿</div>
+          <div style="font-size: 2.2rem; font-weight: 700; color: var(--gold-bright); font-family: monospace;" id="beadCounterText">0</div>
+          <div style="font-size: 0.8rem; color: #dfc18b;">/ 108 顆</div>
+        </div>
+      </div>
+
+      <div id="beadZenQuote" style="font-size: 0.95rem; color: #ffe885; font-style: italic; min-height: 28px; margin-bottom: 14px;">
+        心若止水，波瀾不驚。
+      </div>
+
+      <div style="font-size: 0.78rem; color: #b59f7d;">
+        💡 點擊或向上滑動圓環即可撥過念珠，滿 108 顆長鳴大鐘並注入功德！
+      </div>
+    </div>
+  </div>
+
+  <!-- 角色換裝與自訂彈窗 (Avatar Modal) -->
+  <div class="modal-overlay" id="avatarModal">
+    <div class="settings-modal" style="max-width: 520px;">
+      <button class="modal-close" id="avatarModalClose" style="color: var(--gold-bright);">&times;</button>
+      <h3 style="color: var(--gold-bright); margin-bottom: 12px; letter-spacing: 2px;">👤 3D 信眾角色設計與換裝</h3>
+      
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">身份風格：</label>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn-custom-pill active" data-role="novice" data-color="#c24b2b" data-hat="headband">📿 清心小沙彌</button>
+          <button class="btn-custom-pill" data-role="taoist" data-color="#2a5298" data-hat="bun">☯️ 玄門道家弟子</button>
+          <button class="btn-custom-pill" data-role="scholar" data-color="#d4af37" data-hat="headband">📜 文昌應試學子</button>
+          <button class="btn-custom-pill" data-role="tech" data-color="#22aa33" data-hat="none">🟢 科技護法弟子</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">袍服主色：</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="color" id="avatarColorPicker" value="#c24b2b" style="border: none; width: 40px; height: 35px; border-radius: 4px; cursor: pointer; background: transparent;">
+          <span style="font-size: 0.8rem; color: #dfc18b;">自訂喜愛的道袍 / 袈裟色彩</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">頭飾外觀：</label>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-custom-pill active" data-hat-select="headband">進香紅布條</button>
+          <button class="btn-custom-pill" data-hat-select="bun">古典髮髻</button>
+          <button class="btn-custom-pill" data-hat-select="taoCap">道士方帽</button>
+          <button class="btn-custom-pill" data-hat-select="none">自然光頭</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">手持法器：</label>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-custom-pill active" data-held="incense">🔥 手持清香</button>
+          <button class="btn-custom-pill" data-held="beads">📿 108 念珠</button>
+          <button class="btn-custom-pill" data-held="none">✋ 雙手自然</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">頭頂稱號：</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" class="temple-input" id="avatarTitleInput" value="悠閒的信眾" style="flex: 1;">
+          <button class="btn-dock-action" id="btnRandomTitle" style="padding: 6px 12px; font-size: 0.85rem;">🎲 隨機稱號</button>
+        </div>
+      </div>
+
+      <button class="btn-dock-action" id="btnSaveAvatar" style="width: 100%; justify-content: center;">
+        💾 套用角色設計並出現在大殿
+      </button>
+    </div>
+  </div>
+
+  <!-- 籤詩捲軸彈窗 (Modal) -->
+  <div class="modal-overlay" id="chiamModal">
+    <div class="scroll-card">
+      <button class="modal-close" id="modalClose">&times;</button>
+      <div class="scroll-header">
+        <div class="scroll-title" id="scrollTitle">六十甲子媽祖靈籤 • 第 一 籤</div>
+        <div class="scroll-fortune" id="scrollFortune">甲子 • 大吉</div>
+        <div style="font-size: 0.85rem; color: #692c17; margin-top: 4px;" id="scrollGuaTou">
+          典故：漢高祖入關
+        </div>
+      </div>
+
+      <div class="scroll-poem-box" id="scrollPoemBox">
+        <!-- 動態四句詩文 -->
+      </div>
+
+      <div class="scroll-meaning">
+        <strong>【籤意詳解】</strong>：<span id="scrollMeaning"></span>
+      </div>
+
+      <div class="scroll-details" id="scrollDetails">
+        <!-- 細部運勢 -->
+      </div>
+
+      <!-- AI 智慧即時解籤專區 -->
+      <div class="ai-divination-box">
+        <div class="ai-divination-header">
+          <div class="ai-divination-title">
+            <span>🤖</span> 神明 AI 智慧即時量身解籤
+          </div>
+          <span style="font-size: 0.75rem; color: #7c1a1a; font-weight: bold;" id="aiEngineBadge">
+            ✨ 神明推演引擎就緒
+          </span>
+        </div>
+        <textarea class="ai-question-input" id="aiQuestionInput" placeholder="請詳細寫下您目前的處境、工作/感情困擾或疑惑，恭請神明 AI 針對此籤為您量身解惑..."></textarea>
+        <button class="btn-ai-divine" id="btnRequestAIDivine">
+          ✨ 恭請神明 AI 深度推演解惑
+        </button>
+
+        <div class="ai-loading-pulse" id="aiLoading">
+          <span>🕯️</span> 神尊正在洞悉因緣天時，推演吉凶破局之策...
+        </div>
+
+        <div class="ai-result-card" id="aiResultCard">
+          <!-- AI 即時解籤內容 -->
+        </div>
+      </div>
+
+      <div style="font-size: 0.9rem; font-weight: bold; color: #7c1a1a; margin-bottom: 16px;" id="scrollAdvice">
+        神明叮嚀：
+      </div>
+
+      <div class="scroll-actions">
+        <button class="btn-card btn-card-primary" id="btnSpeakOracle">
+          🔊 聆聽神明聖諭開示 (語音)
+        </button>
+        <button class="btn-card btn-card-primary" id="btnExportCard">
+          💾 匯出結緣平安卡 (PNG)
+        </button>
+        <button class="btn-card btn-card-secondary" onclick="document.getElementById('chiamModal').classList.remove('open')">
+          誠心謝恩
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 點燈閣彈窗 (Lantern Modal) -->
+  <div class="modal-overlay" id="lanternModal">
+    <div class="settings-modal" style="max-width: 500px;">
+      <button class="modal-close" id="lanternModalClose" style="color: var(--gold-bright);">&times;</button>
+      <h3 style="color: var(--gold-bright); margin-bottom: 12px; letter-spacing: 2px;">🏮 殿前點亮光明神燈</h3>
+      <div style="margin-bottom: 12px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">祈福信眾芳名：</label>
+        <input type="text" class="temple-input" id="lanternName" placeholder="如：林大華" style="width: 100%;">
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">心願一句話：</label>
+        <input type="text" class="temple-input" id="lanternWish" placeholder="如：全家平安康健、事業順遂" style="width: 100%;">
+      </div>
+      <button class="btn-dock-action" id="btnSubmitLantern" style="width: 100%; justify-content: center;">
+        點亮神燈 (納入全殿功德)
+      </button>
+    </div>
+  </div>
+
+  <!-- AI 設定彈窗 (Settings Modal) -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="settings-modal">
+      <button class="modal-close" id="settingsModalClose" style="color: var(--gold-bright);">&times;</button>
+      <h3 style="color: var(--gold-bright); margin-bottom: 12px; letter-spacing: 2px;">⚙️ AI 智慧解籤設定</h3>
+      <p style="font-size: 0.85rem; color: #dfc18b; line-height: 1.5; margin-bottom: 14px;">
+        本神殿預設已內建<strong>「高階本地神明心靈推演引擎」</strong>（免 Key 即刻可享深度解籤）。若您持有 Google Gemini API Key，可在此輸入以直連原廠即時大模型對話：
+      </p>
+
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">Google Gemini API Key：</label>
+        <input type="password" class="temple-input" id="txtGeminiKey" placeholder="AIzaSy... (僅存於您個人瀏覽器，安全無外洩)" style="width: 100%;">
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-dock-action" id="btnSaveSettings" style="flex: 1; justify-content: center;">
+          💾 儲存設定
+        </button>
+        <button class="btn-dock-action" id="btnClearSettings" style="flex: 1; justify-content: center; background: #44170d;">
+          🗑️ 清除 Key
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 祈願繪馬木牌閣彈窗 (Ema Modal) -->
+  <div class="modal-overlay" id="emaModal">
+    <div class="settings-modal" style="max-width: 560px; max-height: 85vh; overflow-y: auto;">
+      <button class="modal-close" id="emaModalClose" style="color: var(--gold-bright);">&times;</button>
+      <h3 style="color: var(--gold-bright); margin-bottom: 8px; letter-spacing: 2px;">⛩️ 廟埕祈願木牌閣 • 誠心祈福</h3>
+      <p style="font-size: 0.85rem; color: #dfc18b; margin-bottom: 14px;">
+        親筆題寫祈願，實體懸掛於 3D 廟埕木架之上，神明垂鑒、願力長存。
+      </p>
+
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(245, 197, 66, 0.2); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 4px;">祈願善信芳名：</label>
+          <input type="text" class="temple-input" id="emaPetitionerName" placeholder="如：林大華" style="width: 100%;">
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">祈求福分科儀：</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="emaCategoryPicker">
+            <button class="btn-custom-pill active" data-type="exam" data-icon="🎓">🎓 金榜題名 (文昌加持)</button>
+            <button class="btn-custom-pill" data-type="romance" data-icon="❤️">❤️ 永結同心 (月老牽線)</button>
+            <button class="btn-custom-pill" data-type="wealth" data-icon="💰">💰 招財進寶 (武財賜福)</button>
+            <button class="btn-custom-pill" data-type="tech" data-icon="🟢">🟢 系統無Bug (乖乖守護)</button>
+            <button class="btn-custom-pill" data-type="peace" data-icon="🛡️">🛡️ 闔家平安 (媽祖庇佑)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 4px;">祈福祝願詞（限 30 字）：</label>
+          <textarea class="ai-question-input" id="emaWishMessage" placeholder="如：祈求今年考研一次上岸，文思泉湧！" style="height: 55px;"></textarea>
+        </div>
+
+        <button class="btn-dock-action" id="btnSubmitEmaPlaque" style="width: 100%; justify-content: center;">
+          🪵 恭敬懸掛木牌祈福
+        </button>
+      </div>
+
+      <h4 style="font-size: 0.95rem; color: var(--gold-bright); margin-bottom: 8px;">📜 大殿善信祈願木牌一覽</h4>
+      <div id="emaPlaquesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; max-height: 220px; overflow-y: auto;">
+        <!-- 動態列出木牌 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 善信功德修持護照彈窗 (Passport Modal) -->
+  <div class="modal-overlay" id="passportModal">
+    <div class="settings-modal" style="max-width: 620px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="passportModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">📜 善信功德修持護照</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">賽博神殿 • 雲端功德修持明細與靈籤總錄</div>
+      </div>
+
+      <!-- 修行境界勳章卡 -->
+      <div style="background: linear-gradient(135deg, rgba(80,24,18,0.7), rgba(40,12,8,0.9)); border: 1.5px solid #d4a034; border-radius: 10px; padding: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px;">
+        <div id="passportRankIcon" style="font-size: 2.8rem; filter: drop-shadow(0 0 10px #f5c542);">🌱</div>
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div id="passportRankTitle" style="font-size: 1.25rem; font-weight: 700; color: var(--gold-bright);">初入法門</div>
+            <div style="font-size: 0.82rem; color: #eedab0;">稱號：<span id="passportAvatarTitle">悠閒的信眾</span></div>
+          </div>
+          <div style="font-size: 0.8rem; color: #dfc18b; margin: 4px 0;" id="passportRankDesc">積善立德，方能致遠。勤敲木魚以明心見性。</div>
+          <!-- 晉階進度條 -->
+          <div style="background: rgba(0,0,0,0.4); border-radius: 10px; height: 8px; width: 100%; overflow: hidden; margin-top: 6px;">
+            <div id="passportRankProgress" style="background: linear-gradient(90deg, #d4a034, #ffe885); height: 100%; width: 10%; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 修行各項數據統計 -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+        <div class="passport-stat-box">
+          <div class="stat-label">✨ 功德總數</div>
+          <div class="stat-val" id="statMeritTotal">0</div>
+        </div>
+        <div class="passport-stat-box">
+          <div class="stat-label">📿 念珠圓滿輪數</div>
+          <div class="stat-val" id="statBeadLoops">0</div>
+        </div>
+        <div class="passport-stat-box">
+          <div class="stat-label">🌓 最高連續聖筊</div>
+          <div class="stat-val" id="statHolyStreak">0</div>
+        </div>
+        <div class="passport-stat-box">
+          <div class="stat-label">🏮 殿前長明燈</div>
+          <div class="stat-val" id="statLanternsCount">0</div>
+        </div>
+        <div class="passport-stat-box">
+          <div class="stat-label">🪙 許願池投幣</div>
+          <div class="stat-val" id="statCoinsCount">0</div>
+        </div>
+        <div class="passport-stat-box">
+          <div class="stat-label">🔥 焚燒金紙化寶</div>
+          <div class="stat-val" id="statPaperCount">0</div>
+        </div>
+      </div>
+
+      <!-- 標籤頁切換：歷史求籤簿 / 點燈紀錄 / 祈願木牌 -->
+      <div style="display: flex; gap: 8px; border-bottom: 1px solid rgba(245,197,66,0.25); margin-bottom: 12px;">
+        <button class="passport-tab-btn active" data-ptab="chiam">📜 歷次求籤錄 (<span id="countChiamHist">0</span>)</button>
+        <button class="passport-tab-btn" data-ptab="lantern">🏮 光明燈名冊 (<span id="countLanternHist">0</span>)</button>
+        <button class="passport-tab-btn" data-ptab="ema">🪵 祈願木牌 (<span id="countEmaHist">0</span>)</button>
+      </div>
+
+      <div id="passportTabContent" style="max-height: 220px; overflow-y: auto; margin-bottom: 16px;">
+        <!-- 動態渲染各頁內容 -->
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button class="btn-dock-action" id="btnExportCertificate" style="flex: 1; justify-content: center;">
+          🧧 匯出修持功德榮譽狀 (PNG)
+        </button>
+        <button class="btn-dock-action" id="btnClosePassport" style="justify-content: center; background: #33150d;">
+          誠心收闔
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 偏殿參拜與祈福特寫彈窗 (Side Halls Modal) -->
+  <div class="modal-overlay" id="sideHallModal">
+    <div class="settings-modal" style="max-width: 620px;">
+      <button class="modal-close" id="sideHallModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🏛️ 偏殿仙真 • 祈福專區</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">踏入東翼智慧良緣、西翼金庫靈窟，誠叩仙真慈悲庇佑</div>
+      </div>
+
+      <!-- 偏殿分頁切換按鈕 -->
+      <div class="side-hall-tabs">
+        <button class="side-hall-tab-btn active" data-hall="wenchang">🎓 文昌帝君 • 智慧殿</button>
+        <button class="side-hall-tab-btn" data-hall="yuelao">❤️ 月下老人 • 天賜良緣</button>
+        <button class="side-hall-tab-btn" data-hall="caishen">💰 五路財神 • 金庫洞窟</button>
+      </div>
+
+      <!-- 偏殿 1: 文昌閣 -->
+      <div class="side-hall-panel active" id="hallPanelWenchang">
+        <div class="hall-banner">
+          <div class="hall-badge">文運亨通 • 魁星點斗</div>
+          <h4 style="color: var(--gold-bright); margin: 4px 0;">梓潼帝君 • 金榜題名智慧加持</h4>
+          <p style="font-size: 0.84rem; color: #eedab0; line-height: 1.4;">主掌天下士子功名、文運考運與才思靈感。誠心敬拜，點亮智慧硃砂筆，祈願金榜題名、思路澄澈。</p>
+        </div>
+        <div class="hall-actions-grid">
+          <button class="btn-hall-ritual" id="btnWenchangBrush">
+            <span class="ritual-icon">🖌️</span>
+            <div class="ritual-info">
+              <strong>點亮文昌智慧筆</strong>
+              <small>硃砂批點，文思敏捷 (+35 功德)</small>
+            </div>
+          </button>
+          <button class="btn-hall-ritual" id="btnWenchangOde">
+            <span class="ritual-icon">📜</span>
+            <div class="ritual-info">
+              <strong>虔誦《文昌陰騭文》</strong>
+              <small>廣積陰騭，福蔭門第 (+50 功德)</small>
+            </div>
+          </button>
+        </div>
+        <div class="hall-wish-form">
+          <input type="text" class="temple-input" id="txtWenchangCandidate" placeholder="考生/應試者姓名 (例: 善信張三)" style="width: 100%; margin-bottom: 8px;">
+          <input type="text" class="temple-input" id="txtWenchangExam" placeholder="占問考科/升遷目標 (例: 國家高等考試 / 軟體工程師升遷)" style="width: 100%; margin-bottom: 8px;">
+          <button class="btn-dock-action" id="btnSubmitWenchangBlessing" style="width: 100%; justify-content: center;">
+            🌟 奉呈文昌金榜祈願疏文 (+40 功德)
+          </button>
+        </div>
+      </div>
+
+      <!-- 偏殿 2: 月老閣 -->
+      <div class="side-hall-panel" id="hallPanelYuelao" style="display: none;">
+        <div class="hall-banner">
+          <div class="hall-badge">天賜良緣 • 千里一線</div>
+          <h4 style="color: var(--gold-bright); margin: 4px 0;">月下老人 • 善緣美滿同心相印</h4>
+          <p style="font-size: 0.84rem; color: #eedab0; line-height: 1.4;">主掌天下男女姻緣、善緣貴人與家庭和睦。誠扣同心金鎖，求取開光紅絲線，祈願有緣人早日相聚相守。</p>
+        </div>
+        <div class="hall-actions-grid">
+          <button class="btn-hall-ritual" id="btnYuelaoThread">
+            <span class="ritual-icon">🧶</span>
+            <div class="ritual-info">
+              <strong>求取月老紅絲線</strong>
+              <small>千里暗繫，天賜良緣 (+35 功德)</small>
+            </div>
+          </button>
+          <button class="btn-hall-ritual" id="btnYuelaoLock">
+            <span class="ritual-icon">🔒</span>
+            <div class="ritual-info">
+              <strong>扣上同心金鎖</strong>
+              <small>永結鸞儔，永不相負 (+50 功德)</small>
+            </div>
+          </button>
+        </div>
+        <div class="hall-wish-form">
+          <input type="text" class="temple-input" id="txtYuelaoSelf" placeholder="善信本名 (例: 李四)" style="width: 100%; margin-bottom: 8px;">
+          <input type="text" class="temple-input" id="txtYuelaoTarget" placeholder="意中人姓名或理想對象期許 (例: 志趣相投之善良伴侶)" style="width: 100%; margin-bottom: 8px;">
+          <button class="btn-dock-action" id="btnSubmitYuelaoBlessing" style="width: 100%; justify-content: center;">
+            💕 奉呈月老牽線祈願疏文 (+40 功德)
+          </button>
+        </div>
+      </div>
+
+      <!-- 偏殿 3: 財神殿金庫 -->
+      <div class="side-hall-panel" id="hallPanelCaishen" style="display: none;">
+        <div class="hall-banner">
+          <div class="hall-badge">金玉滿堂 • 八方聚寶</div>
+          <h4 style="color: var(--gold-bright); margin: 4px 0;">五路武財神 • 正偏財氣利祿亨通</h4>
+          <p style="font-size: 0.84rem; color: #eedab0; line-height: 1.4;">玄壇真君趙公明統領招寶、納珍、招財、利市四路天官。撫摸萬兩黃金元寶，迎請發財水，金虎爺咬錢庇佑。</p>
+        </div>
+        <div class="hall-actions-grid">
+          <button class="btn-hall-ritual" id="btnCaishenIngot">
+            <span class="ritual-icon">🪙</span>
+            <div class="ritual-info">
+              <strong>撫摸聚寶萬兩元寶</strong>
+              <small>元寶滾滾，財庫豐盈 (+35 功德)</small>
+            </div>
+          </button>
+          <button class="btn-hall-ritual" id="btnCaishenWater">
+            <span class="ritual-icon">💧</span>
+            <div class="ritual-info">
+              <strong>恭請五路開運發財水</strong>
+              <small>甘霖潤澤，生財有道 (+50 功德)</small>
+            </div>
+          </button>
+          <button class="btn-hall-ritual" id="btnCaishenTiger">
+            <span class="ritual-icon">🐯</span>
+            <div class="ritual-info">
+              <strong>金虎爺咬錢避煞</strong>
+              <small>虎威顯赫，正偏財聚 (+40 功德)</small>
+            </div>
+          </button>
+        </div>
+        <div class="hall-wish-form">
+          <input type="text" class="temple-input" id="txtCaishenWish" placeholder="事業或財富祈願 (例: 投資順利、創業興隆、財庫飽滿)" style="width: 100%; margin-bottom: 8px;">
+          <button class="btn-dock-action" id="btnSubmitCaishenBlessing" style="width: 100%; justify-content: center;">
+            💰 呈奏五路財神招財進寶疏文 (+40 功德)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 功德福閣 • 數位平安符求取開光所 (Amulet Modal) -->
+  <div class="modal-overlay" id="amuletModal">
+    <div class="settings-modal" style="max-width: 650px;">
+      <button class="modal-close" id="amuletModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🛡️ 功德福閣 • 數位開光靈符</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">請領神聖符令 • 經香爐三圈旋轉過爐開光 • 生成手機高清守護桌布</div>
+      </div>
+
+      <!-- 靈符選擇格 (6 款) -->
+      <div class="amulet-selection-grid" id="amuletGrid">
+        <div class="amulet-card-item active" data-amulet="mazu">
+          <div class="amulet-badge">萬事平安</div>
+          <div class="amulet-title">天上聖母 • 平安護身符</div>
+          <div class="amulet-desc">護國庇民、行車平順、逢凶化吉</div>
+        </div>
+        <div class="amulet-card-item" data-amulet="wenchang">
+          <div class="amulet-badge">金榜題名</div>
+          <div class="amulet-title">文昌帝君 • 狀元及第符</div>
+          <div class="amulet-desc">文思泉湧、考運亨通、智慧明澈</div>
+        </div>
+        <div class="amulet-card-item" data-amulet="caishen">
+          <div class="amulet-badge">八方招財</div>
+          <div class="amulet-title">五路財神 • 進寶發財符</div>
+          <div class="amulet-desc">日進斗金、財庫充盈、生意興隆</div>
+        </div>
+        <div class="amulet-card-item" data-amulet="yuelao">
+          <div class="amulet-badge">千里良緣</div>
+          <div class="amulet-title">月下老人 • 天賜真愛符</div>
+          <div class="amulet-desc">情投意合、良緣早結、貴人相助</div>
+        </div>
+        <div class="amulet-card-item" data-amulet="guaiguai">
+          <div class="amulet-badge">綠燈永續</div>
+          <div class="amulet-title">科技乖乖 • 機房綠燈符</div>
+          <div class="amulet-desc">主機安穩、系統乖乖、部署零Bug</div>
+        </div>
+        <div class="amulet-card-item" data-amulet="taisui">
+          <div class="amulet-badge">辟邪化煞</div>
+          <div class="amulet-title">值年太歲 • 化煞安康符</div>
+          <div class="amulet-desc">化解沖煞、百邪不侵、歲運吉慶</div>
+        </div>
+      </div>
+
+      <!-- 祈求善信資訊 -->
+      <div style="display: flex; gap: 8px; margin: 12px 0;">
+        <input type="text" class="temple-input" id="txtAmuletPetitioner" placeholder="善信名諱 (例: 張大仙)" style="flex: 1;">
+        <input type="text" class="temple-input" id="txtAmuletWish" placeholder="所求心願 (例: 闔家康寧、事業騰達)" style="flex: 2;">
+      </div>
+
+      <!-- 開光過香爐動作與動態展示 -->
+      <div class="amulet-consecrate-box">
+        <div id="consecrateStatus" style="font-size: 0.88rem; color: #eedab0; margin-bottom: 8px;">
+          點擊下方進行「過主殿香爐順時針開光三圈」，注入神聖法力。
+        </div>
+        <div id="consecrateCenserAnim" class="censer-anim-area" style="display: none;">
+          <div class="censer-graphic">🔥</div>
+          <div class="talisman-spinning" id="spinningAmuletIcon">📜</div>
+        </div>
+        <button class="btn-dock-action" id="btnConsecrateAmulet" style="width: 100%; justify-content: center; font-size: 0.95rem;">
+          🔥 恭行過香爐開光三圈儀式 (耗費 20 功德)
+        </button>
+      </div>
+
+      <!-- 開光完成成果預覽 -->
+      <div id="amuletResultSection" style="display: none; margin-top: 14px; text-align: center;">
+        <div style="font-size: 0.84rem; color: var(--gold-bright); margin-bottom: 8px;">
+          ✨ 靈符開光圓滿！神聖朱砂法印已鈐蓋加持。
+        </div>
+        <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+          <canvas id="amuletPreviewCanvas" width="360" height="640" style="max-height: 250px; width: auto; border: 2px solid var(--gold-bright); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);"></canvas>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-dock-action" id="btnDownloadAmuletPng" style="flex: 1; justify-content: center;">
+            💾 下載手機桌布靈符 (PNG)
+          </button>
+          <button class="btn-dock-action" id="btnEquipAmuletAura" style="flex: 1; justify-content: center; background: #682315;">
+            ✨ 佩戴護身靈光 (3D神光)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 線上收驚科儀 (Virtual Shoujing Ceremony Modal) -->
+  <div class="modal-overlay" id="shoujingModal">
+    <div class="settings-modal" style="max-width: 620px;">
+      <button class="modal-close" id="shoujingModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🪔 功德堂 • 線上收驚解煞科儀</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">行天宮與大甲鎮瀾宮古法科儀 • 前三後四清香掃煞 • 396Hz釋驚梵音 • 魂魄歸位</div>
+      </div>
+
+      <!-- 信眾資料與收驚事由選擇 -->
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.85rem; color: var(--gold-bright); margin-bottom: 6px;">善信尊名與受驚信眾：</label>
+        <input type="text" class="temple-input" id="txtShoujingName" placeholder="善信名諱 (例: 王小華)" style="width: 100%;">
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.85rem; color: var(--gold-bright); margin-bottom: 6px;">請選取受驚或祈求化煞之事由：</label>
+        <div class="shoujing-reasons-grid" id="shoujingReasonsGrid">
+          <div class="shoujing-reason-card active" data-reason="calm">
+            <div class="reason-icon">🌀</div>
+            <div class="reason-title">心神不寧</div>
+            <div class="reason-desc">思緒紊亂、恍惚失眠</div>
+          </div>
+          <div class="shoujing-reason-card" data-reason="nightmare">
+            <div class="reason-icon">🌙</div>
+            <div class="reason-title">噩夢驚悸</div>
+            <div class="reason-desc">夜寐不安、虛汗怔忡</div>
+          </div>
+          <div class="shoujing-reason-card" data-reason="traffic">
+            <div class="reason-icon">🚗</div>
+            <div class="reason-title">行車驚魂</div>
+            <div class="reason-desc">路逢險兆、車關心悸</div>
+          </div>
+          <div class="shoujing-reason-card" data-reason="fortune">
+            <div class="reason-icon">📉</div>
+            <div class="reason-title">運途坎坷</div>
+            <div class="reason-desc">諸事不遂、霉氣纏身</div>
+          </div>
+          <div class="shoujing-reason-card" data-reason="exam">
+            <div class="reason-icon">📖</div>
+            <div class="reason-title">考前焦慮</div>
+            <div class="reason-desc">臨陣心怯、神魂不定</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 科儀動態儀式區 -->
+      <div class="shoujing-action-box" style="background: rgba(40,15,50,0.5); border: 1px solid #9c27b0; border-radius: 8px; padding: 14px; text-align: center;">
+        <div id="shoujingStageStatus" style="font-size: 0.9rem; color: #f3e5f5; margin-bottom: 10px;">
+          請誠敬端坐，點擊下方啟動收驚科儀。三清帝鐘鳴響，九天玄火掃煞。
+        </div>
+        <div id="shoujingAnimationArea" style="display: none; height: 75px; align-items: center; justify-content: center; gap: 14px; margin-bottom: 10px;">
+          <div style="font-size: 2rem; animation: spin 3s linear infinite;">🪔</div>
+          <div id="shoujingStepText" style="font-size: 1.05rem; color: #ffd54f; font-weight: bold; letter-spacing: 2px;">
+            敬稟仙真，前三後四淨香掃煞...
+          </div>
+          <div style="font-size: 2rem; animation: pulse 1.5s ease-in-out infinite;">✨</div>
+        </div>
+        <button class="btn-dock-action" id="btnStartShoujing" style="width: 100%; justify-content: center; font-size: 1rem; background: linear-gradient(135deg, #7b1fa2, #4a148c); border-color: #e1bee7;">
+          🔥 敬啟三清 • 前三後四收驚除煞 (祈安化煞)
+        </button>
+      </div>
+
+      <!-- 收驚圓滿結果區 -->
+      <div id="shoujingResultSection" style="display: none; margin-top: 14px; background: rgba(25, 45, 25, 0.6); border: 1px solid #4caf50; border-radius: 8px; padding: 14px; text-align: center;">
+        <div style="font-size: 1.1rem; color: #a5d6a7; font-weight: bold; margin-bottom: 6px;">
+          🌟 收驚科儀圓滿 • 魂魄歸位！
+        </div>
+        <div id="shoujingBlessingText" style="font-size: 0.88rem; color: #e8f5e9; margin-bottom: 10px; line-height: 1.6;">
+          本命元神安泰，三魂七魄歸其位。凶煞退散，吉曜臨門！獲得心神加持 (+120 功德)。
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+          <button class="btn-dock-action" id="btnEquipShoujingTitle" style="background: #2e7d32; border-color: #81c784;">
+            🌟 佩戴「🌟 心魂安泰」殊勝稱號
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 功德福田 • 法器結緣閣 (Merit Relic Shop Modal) -->
+  <div class="modal-overlay" id="relicShopModal">
+    <div class="settings-modal" style="max-width: 680px;">
+      <button class="modal-close" id="relicShopModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🪷 功德福田 • 法器結緣閣</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">以平日精誠修持積攢之功德 • 恭請道家仙真法寶與蓮華神行加持</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 8px 14px; border-radius: 6px; margin-bottom: 12px; border: 1px solid rgba(212,160,52,0.3);">
+        <span style="font-size: 0.88rem; color: #ebd197;">善信當前可用修持功德：</span>
+        <span style="font-size: 1.15rem; font-weight: bold; color: var(--gold-bright);"><span id="relicShopMeritCount">0</span> 功德</span>
+      </div>
+
+      <!-- 6 大法器卡片網格 -->
+      <div class="relic-grid" id="relicGrid">
+        <!-- 1. 步步生蓮 -->
+        <div class="relic-card-item" data-relic="lotusSteps">
+          <div class="relic-icon">🪷</div>
+          <div class="relic-name">步步生蓮 • 踏蓮神行</div>
+          <div class="relic-desc">行走時腳下綻放金粉蓮華印記，移步生香</div>
+          <div class="relic-footer">
+            <span class="relic-cost">150 功德</span>
+            <button class="btn-relic-action" data-relic="lotusSteps">結緣請領</button>
+          </div>
+        </div>
+        <!-- 2. 七星太極寶劍 -->
+        <div class="relic-card-item" data-relic="sword">
+          <div class="relic-icon">⚔️</div>
+          <div class="relic-name">七星太極寶劍</div>
+          <div class="relic-desc">北斗七星金光流轉，青芒劍刃與太極陰陽鐔</div>
+          <div class="relic-footer">
+            <span class="relic-cost">200 功德</span>
+            <button class="btn-relic-action" data-relic="sword">結緣請領</button>
+          </div>
+        </div>
+        <!-- 3. 太極乾坤拂塵 -->
+        <div class="relic-card-item" data-relic="whisk">
+          <div class="relic-icon">🪶</div>
+          <div class="relic-name">太極乾坤拂塵</div>
+          <div class="relic-desc">烏木執柄、雪白拂絲與朱紅仙結，拂拭心塵</div>
+          <div class="relic-footer">
+            <span class="relic-cost">180 功德</span>
+            <button class="btn-relic-action" data-relic="whisk">結緣請領</button>
+          </div>
+        </div>
+        <!-- 4. 如意紫金葫蘆 -->
+        <div class="relic-card-item" data-relic="calabash">
+          <div class="relic-icon">🍶</div>
+          <div class="relic-name">如意紫金葫蘆</div>
+          <div class="relic-desc">紫金靈光流轉，納福降祥，收攝四方吉瑞</div>
+          <div class="relic-footer">
+            <span class="relic-cost">120 功德</span>
+            <button class="btn-relic-action" data-relic="calabash">結緣請領</button>
+          </div>
+        </div>
+        <!-- 5. 紫薇八卦神鏡 -->
+        <div class="relic-card-item" data-relic="baguaMirror">
+          <div class="relic-icon">🪞</div>
+          <div class="relic-name">紫薇八卦神鏡</div>
+          <div class="relic-desc">懸浮右肩自轉之八卦銅鏡，散發辟邪金芒神光</div>
+          <div class="relic-footer">
+            <span class="relic-cost">250 功德</span>
+            <button class="btn-relic-action" data-relic="baguaMirror">結緣請領</button>
+          </div>
+        </div>
+        <!-- 6. 琉璃九品蓮花座 -->
+        <div class="relic-card-item" data-relic="lotusThrone">
+          <div class="relic-icon">🌸</div>
+          <div class="relic-name">琉璃九品蓮花座</div>
+          <div class="relic-desc">靜坐修持時召喚十二瓣綻放蓮座，浮空懸旋</div>
+          <div class="relic-footer">
+            <span class="relic-cost">300 功德</span>
+            <button class="btn-relic-action" data-relic="lotusThrone">結緣請領</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 宮廟拍立得與全景明信片 (Temple Polaroid & Postcard Modal) -->
+  <div class="modal-overlay" id="photoModal">
+    <div class="settings-modal" style="max-width: 660px;">
+      <button class="modal-close" id="photoModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">📷 賽博虛擬神殿 • 拍立得留影坊</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">拍攝3D全景實況 • 套用復古宮廟框與神明朱印 • 生成珍藏明信片</div>
+      </div>
+
+      <!-- 相框風格選擇與濾鏡選項 -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 4px;">相框風格：</label>
+          <select id="selectPhotoFrame" class="temple-select" style="width: 100%;">
+            <option value="polaroid">📷 經典拍立得 (朱印底款)</option>
+            <option value="postcard">🎴 金碧明信片 (宮闈雙龍框)</option>
+            <option value="cyber">⚡ 賽博神威框 (霓虹靈光印)</option>
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 4px;">濾鏡色調：</label>
+          <select id="selectPhotoFilter" class="temple-select" style="width: 100%;">
+            <option value="normal">✨ 自然原色</option>
+            <option value="warm">🕯️ 暖金香火</option>
+            <option value="vintage">📜 仿古宣紙</option>
+            <option value="radiance">🌟 神光普照</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 題字與自訂祝福 -->
+      <div style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 4px;">照片題字與祝福款識：</label>
+        <input type="text" class="temple-input" id="txtPhotoInscription" placeholder="題字 (例: 丙午新春 萬事勝意、祈安植福)" style="width: 100%;" value="合境平安 萬福駢臻">
+      </div>
+
+      <!-- 拍照預覽畫布 -->
+      <div style="display: flex; justify-content: center; margin-bottom: 12px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; border: 1px solid rgba(212,160,52,0.3);">
+        <canvas id="photoCanvas" width="600" height="750" style="max-height: 320px; width: auto; border-radius: 4px; box-shadow: 0 4px 18px rgba(0,0,0,0.7);"></canvas>
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-dock-action" id="btnSnapPhoto" style="flex: 1; justify-content: center; background: #1a237e;">
+          📸 重新抓拍快照
+        </button>
+        <button class="btn-dock-action" id="btnDownloadPhoto" style="flex: 1; justify-content: center; background: #2e7d32;">
+          💾 下載拍立得 (PNG)
+        </button>
+        <button class="btn-dock-action" id="btnSharePhotoToWall" style="flex: 1; justify-content: center; background: #c24b2b;">
+          🏮 發布至香火牆
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 線上安太歲與元辰斗燈 (Tai Sui & Yuan Chen Modal) -->
+  <div class="modal-overlay" id="taiSuiModal">
+    <div class="settings-modal" style="max-width: 660px;">
+      <button class="modal-close" id="taiSuiModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🏮 西天太歲殿 • 安太歲與元辰斗燈</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">值年太歲大將軍鎮守 • 照亮本命元辰斗燈 • 化解沖煞逢凶化吉</div>
+      </div>
+
+      <!-- 生肖與善信輸入 -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <div style="flex: 1.2;">
+          <label style="display: block; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 4px;">善信名諱：</label>
+          <input type="text" class="temple-input" id="txtTaiSuiName" placeholder="姓名 (例: 陳大仙)" style="width: 100%;">
+        </div>
+        <div style="flex: 1;">
+          <label style="display: block; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 4px;">生肖屬相：</label>
+          <select id="selectZodiac" class="temple-select" style="width: 100%;">
+            <option value="rat">🐭 鼠 (子)</option>
+            <option value="ox">🐮 牛 (丑)</option>
+            <option value="tiger">🐯 虎 (寅)</option>
+            <option value="rabbit">🐰 兔 (卯)</option>
+            <option value="dragon">🐲 龍 (辰)</option>
+            <option value="snake">🐍 蛇 (巳)</option>
+            <option value="horse" selected>🐴 馬 (午)</option>
+            <option value="goat">🐐 羊 (未)</option>
+            <option value="monkey">🐵 猴 (申)</option>
+            <option value="rooster">🐔 雞 (酉)</option>
+            <option value="dog">🐶 狗 (戌)</option>
+            <option value="pig">🐷 豬 (亥)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 歲運本命推演卡片 -->
+      <div class="taisui-fortune-card" id="taiSuiFortuneCard" style="background: rgba(45, 15, 10, 0.7); border: 1.5px solid rgba(245, 197, 66, 0.4); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 0.95rem; font-weight: bold; color: var(--gold-bright);" id="cardZodiacTitle">🐴 丙午馬年 • 當前歲運</span>
+          <span class="taisui-badge" id="badgeTaiSuiStatus" style="background: #a32222; color: #fff; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; font-weight: bold;">
+            值太歲 (本命坐太歲)
+          </span>
+        </div>
+        <div style="font-size: 0.84rem; color: #ebd197; line-height: 1.5;" id="cardTaiSuiDesc">
+          歲運值太歲，宜安奉值年【章詞大將軍】以鎮守本命。點亮元辰斗燈，五穀充盈、七星劍鎮煞，護佑整年百邪不侵。
+        </div>
+        <div style="margin-top: 8px; font-size: 0.78rem; color: #dfc18b; border-top: 1px dashed rgba(212,160,52,0.3); padding-top: 6px;">
+          本命元辰守護神：<strong style="color: #ffd54f;" id="cardGuardianName">大勢至菩薩 / 虛空藏菩薩</strong>
+        </div>
+      </div>
+
+      <!-- 安奉科儀動作按鈕 -->
+      <button class="btn-dock-action" id="btnSubmitTaiSui" style="width: 100%; justify-content: center; font-size: 1rem; background: linear-gradient(135deg, #d84315, #bf360c); border-color: #ffcc80; margin-bottom: 12px;">
+        🏮 虔敬安奉太歲星君 • 點亮元辰斗燈 (消耗 50 功德)
+      </button>
+
+      <!-- 太歲福證預覽區 (成功後顯示) -->
+      <div id="taiSuiResultSection" style="display: none; text-align: center; border-top: 1px solid rgba(212,160,52,0.3); padding-top: 12px;">
+        <div style="font-size: 0.92rem; color: #81c784; font-weight: bold; margin-bottom: 8px;">
+          🌟 安太歲植福疏文已奉呈！元辰斗燈常明光彩！
+        </div>
+        <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+          <canvas id="taiSuiCertificateCanvas" width="560" height="780" style="max-height: 280px; width: auto; border: 2px solid var(--gold-bright); border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);"></canvas>
+        </div>
+        <button class="btn-dock-action" id="btnDownloadTaiSuiCert" style="width: 100%; justify-content: center; background: #2e7d32;">
+          💾 下載安太歲植福文疏 (PNG)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 梵音課誦節奏法會 (Cyber Dharma Rhythm Modal) -->
+  <div class="modal-overlay" id="rhythmModal">
+    <div class="settings-modal" style="max-width: 720px;">
+      <button class="modal-close" id="rhythmModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🎵 梵音課誦 • 賽博功德節奏法會</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">依古法敲擊木魚與引磬 • 隨經文律動修持 • 連擊聚福法喜充滿</div>
+      </div>
+
+      <!-- 經文課誦曲目選擇 -->
+      <div class="side-hall-tabs" style="margin-bottom: 10px;">
+        <button class="side-hall-tab-btn active" data-sutra="qingxin">清心普善咒 (慢板)</button>
+        <button class="side-hall-tab-btn" data-sutra="yinzhi">文昌陰騭文 (中板)</button>
+        <button class="side-hall-tab-btn" data-sutra="qingjing">太上清靜經 (莊嚴)</button>
+      </div>
+
+      <!-- 節奏計分板 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 8px 14px; border-radius: 6px; margin-bottom: 10px; border: 1px solid rgba(212,160,52,0.3);">
+        <div>
+          <span style="font-size: 0.82rem; color: #dfc18b;">修持連擊：</span>
+          <strong id="rhythmCombo" style="font-size: 1.2rem; color: var(--gold-bright);">0</strong>
+        </div>
+        <div>
+          <span id="rhythmAccuracyText" style="font-size: 0.95rem; font-weight: bold; color: #a5d6a7;">靜心以待</span>
+        </div>
+        <div>
+          <span style="font-size: 0.82rem; color: #dfc18b;">本次聚德：</span>
+          <strong id="rhythmEarnedMerit" style="font-size: 1.2rem; color: #ffd54f;">+0</strong>
+        </div>
+      </div>
+
+      <!-- 節奏經文卷軸軌道畫布 -->
+      <div style="position: relative; width: 100%; height: 180px; background: #140808; border: 2px solid var(--gold-primary); border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+        <canvas id="rhythmTrackCanvas" width="680" height="180" style="width: 100%; height: 100%;"></canvas>
+      </div>
+
+      <!-- 敲擊操作提示與快捷鍵 -->
+      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <button class="btn-dock-action" id="btnHitMuyu" style="flex: 1; justify-content: center; font-size: 1.05rem; background: #4e342e; height: 50px;">
+          🪵 敲木魚 [J]
+        </button>
+        <button class="btn-dock-action" id="btnHitBell" style="flex: 1; justify-content: center; font-size: 1.05rem; background: #826842; height: 50px;">
+          🔔 擊引磬 [K]
+        </button>
+      </div>
+
+      <!-- 遊戲控制按鈕條 -->
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.78rem; color: #c9a76e;">鍵盤：[J] 木魚 / [K] 引磬 / 空白鍵亦可敲擊</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-dock-action" id="btnStartRhythm" style="background: #2e7d32; padding: 6px 18px;">
+            ▶️ 開始課誦
+          </button>
+          <button class="btn-dock-action" id="btnStopRhythm" style="background: #78281f; padding: 6px 14px;">
+            ⏹️ 結束法會
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 山海祥瑞 • 隨身萌寵護法小窩 (Pet Modal) -->
+  <div class="modal-overlay" id="petModal">
+    <div class="settings-modal" style="max-width: 660px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="petModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 16px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          🐾 山海祥瑞 • 隨身萌寵護法神獸
+        </h3>
+        <p style="font-size: 0.85rem; color: #d1d5db; margin: 0;">
+          仙山通靈，護法神獸隨行信眾身後，帶來聚財、增壽、祛煞與安康祥瑞
+        </p>
+      </div>
+
+      <!-- 萌寵選單格 -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
+        <!-- 金虎爺 -->
+        <div class="pet-card active" data-pet-type="tiger" style="background: rgba(40, 24, 12, 0.7); border: 2px solid #f59e0b; border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 2.4rem; margin-bottom: 6px;">🐯</div>
+          <div style="font-weight: bold; color: #fde047; font-size: 1.05rem; margin-bottom: 4px;">金虎爺大將軍</div>
+          <span style="display: inline-block; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(245, 158, 11, 0.25); color: #fbbf24; margin-bottom: 8px;">
+            💰 咬錢招財 • 避邪鎮煞
+          </span>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.4; margin-bottom: 10px;">
+            圓滾滾金黃萌軀，額頂「王」字符印，口銜萬兩黃金元寶，小步顛跑隨侍身旁。
+          </div>
+          <button class="btn-dock-action btn-select-pet" data-pet="tiger" style="width: 100%; justify-content: center; font-size: 0.85rem; padding: 4px 0; background: #b45309;">
+            ✅ 當前隨行
+          </button>
+        </div>
+
+        <!-- 靈龜 -->
+        <div class="pet-card" data-pet-type="turtle" style="background: rgba(12, 35, 24, 0.7); border: 2px solid #10b981; border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 2.4rem; margin-bottom: 6px;">🐢</div>
+          <div style="font-weight: bold; color: #a7f3d0; font-size: 1.05rem; margin-bottom: 4px;">九品金靈龜</div>
+          <span style="display: inline-block; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(16, 185, 129, 0.25); color: #6ee7b7; margin-bottom: 8px;">
+            🌿 延壽固本 • 八卦護佑
+          </span>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.4; margin-bottom: 10px;">
+            翠玉金背甲刻太極八卦，四足漫步划動，頭頂常駐生機翡翠靈環，聚氣延年。
+          </div>
+          <button class="btn-dock-action btn-select-pet" data-pet="turtle" style="width: 100%; justify-content: center; font-size: 0.85rem; padding: 4px 0; background: #065f46;">
+            選擇隨行
+          </button>
+        </div>
+
+        <!-- 玉兔 -->
+        <div class="pet-card" data-pet-type="rabbit" style="background: rgba(35, 18, 30, 0.7); border: 2px solid #ec4899; border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s;">
+          <div style="font-size: 2.4rem; margin-bottom: 6px;">🐰</div>
+          <div style="font-weight: bold; color: #fbcfe8; font-size: 1.05rem; margin-bottom: 4px;">廣寒玉兔</div>
+          <span style="display: inline-block; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(236, 72, 153, 0.25); color: #f472b6; margin-bottom: 8px;">
+            ✨ 身心安泰 • 祛病消災
+          </span>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.4; margin-bottom: 10px;">
+            通體雪白玉潔，雙耳輕顫，胸前捧著仙山搗藥杵臼，雀躍跳躍帶來祥和康健。
+          </div>
+          <button class="btn-dock-action btn-select-pet" data-pet="rabbit" style="width: 100%; justify-content: center; font-size: 0.85rem; padding: 4px 0; background: #831843;">
+            選擇隨行
+          </button>
+        </div>
+      </div>
+
+      <!-- 萌寵專屬互動區 -->
+      <div style="background: rgba(0,0,0,0.35); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border: 1px dashed rgba(245, 158, 11, 0.4);">
+        <div>
+          <div style="font-weight: bold; color: #fde047; font-size: 0.95rem;" id="petCurrentTitle">當前靈寵：🐯 金虎爺大將軍</div>
+          <div style="font-size: 0.78rem; color: #cbd5e1;" id="petCurrentDesc">按鍵盤 [G] 或點擊右側按鈕撫摸靈寵，觸發歡快跳躍、咕嚕聲與金幣神光！</div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-dock-action" id="btnPetPetting" style="background: linear-gradient(135deg, #d97706, #92400e); border-color: #fde047;">
+            🤲 撫摸身旁靈寵 (+36 功德)
+          </button>
+          <button class="btn-dock-action" id="btnPetDismiss" style="background: #334155; padding: 4px 10px; font-size: 0.8rem;">
+            獨步清修
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 平溪賽博祈安天燈盛典 (Sky Lantern Modal) -->
+  <div class="modal-overlay" id="skyLanternModal">
+    <div class="settings-modal" style="max-width: 620px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="skyLanternModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 16px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          🏮 平溪賽博祈安天燈盛典
+        </h3>
+        <p style="font-size: 0.85rem; color: #d1d5db; margin: 0;">
+          題寫四面宏願，點燃暖火神燈，乘熱氣流冉冉升入璀璨星河，直達天聽
+        </p>
+      </div>
+
+      <!-- 心願文字輸入 -->
+      <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 14px; margin-bottom: 14px; border: 1px solid rgba(255, 215, 0, 0.3);">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px; font-weight: bold;">
+          ✍️ 題寫天燈四面願文（限 8 字內）：
+        </label>
+        <input type="text" class="temple-input" id="skyLanternText" value="萬事亨通" maxlength="8" style="width: 100%; font-size: 1.1rem; text-align: center; letter-spacing: 4px; font-weight: bold; color: #ffd700; margin-bottom: 10px;">
+
+        <!-- 快速願詞選擇條 -->
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;">
+          <button class="btn-action-pill lantern-quick-pill" data-text="闔家安康">闔家安康</button>
+          <button class="btn-action-pill lantern-quick-pill" data-text="財源廣進">財源廣進</button>
+          <button class="btn-action-pill lantern-quick-pill" data-text="金榜題名">金榜題名</button>
+          <button class="btn-action-pill lantern-quick-pill" data-text="程式無Bug">程式無Bug</button>
+          <button class="btn-action-pill lantern-quick-pill" data-text="良緣天賜">良緣天賜</button>
+          <button class="btn-action-pill lantern-quick-pill" data-text="身心清淨">身心清淨</button>
+        </div>
+      </div>
+
+      <!-- 善信尊名與色彩款式 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label style="font-size: 0.82rem; color: var(--gold-bright); display: block; margin-bottom: 4px;">善信尊諱（落款）：</label>
+          <input type="text" class="temple-input" id="skyLanternPetitioner" value="善信" maxlength="8" style="width: 100%;">
+        </div>
+        <div>
+          <label style="font-size: 0.82rem; color: var(--gold-bright); display: block; margin-bottom: 4px;">天燈法色：</label>
+          <select class="temple-input" id="skyLanternColor" style="width: 100%;">
+            <option value="#dc2626">🏮 赤誠祈福紅（鴻運當頭）</option>
+            <option value="#f59e0b">🪙 金玉滿堂金（八方招財）</option>
+            <option value="#ec4899">🌸 天賜良緣粉（佳偶牽線）</option>
+            <option value="#10b981">🌿 身心安康青（長生清心）</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 施放動作列 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button class="btn-dock-action" id="btnLaunchSkyLantern" style="background: linear-gradient(135deg, #c2410c, #9a3412); border-color: #fed7aa; justify-content: center; font-size: 0.95rem; padding: 12px 0;">
+          🔥 點燃天燈 • 升入星空 (+80 功德)
+        </button>
+        <button class="btn-dock-action" id="btnLaunchWaterLantern" style="background: linear-gradient(135deg, #047857, #064e3b); border-color: #a7f3d0; justify-content: center; font-size: 0.95rem; padding: 12px 0;">
+          🪷 放流祈願水燈 • 漂漾水池 (+50 功德)
+        </button>
+      </div>
+      <div style="text-align: center; margin-top: 10px; font-size: 0.76rem; color: #94a3b8;">
+        💡 放飛後可按 [C] 對齊視角或 [🦅 萬里鳥瞰] 仰望滿天星燈之盛景
+      </div>
+    </div>
+  </div>
+
+  <!-- 賽博禪修堂 • 數息定心冥想 (Zen Breathwork Modal) -->
+  <div class="modal-overlay" id="zenModal">
+    <div class="settings-modal" style="max-width: 660px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close" id="zenModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          🧘 賽博禪修堂 • 數息定心冥想
+        </h3>
+        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">
+          觀照呼吸曼陀羅，聆聽古剎 4 軌禪境環境音，安住當下，滌淨萬緣煩囂
+        </p>
+      </div>
+
+      <!-- 中央動態呼吸曼陀羅畫布 -->
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 14px;">
+        <div style="position: relative; width: 260px; height: 260px; display: flex; align-items: center; justify-content: center;">
+          <canvas id="zenMandalaCanvas" width="260" height="260" style="border-radius: 50%; box-shadow: 0 0 25px rgba(245, 158, 11, 0.25);"></canvas>
+          <div id="zenTimerCenter" style="position: absolute; text-align: center; pointer-events: none;">
+            <div id="zenTimerText" style="font-size: 2.2rem; font-weight: bold; color: #ffd700; text-shadow: 0 0 10px rgba(0,0,0,0.8); font-family: monospace;">05:00</div>
+            <div id="zenPhaseText" style="font-size: 0.88rem; color: #fef08a; font-weight: 500; text-shadow: 0 0 6px rgba(0,0,0,0.9);">準備靜心</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 呼吸法則模式切換 -->
+      <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 14px;">
+        <button class="btn-action-pill zen-mode-btn active" data-mode="box">🍃 4-4-4 箱式勻速數息</button>
+        <button class="btn-action-pill zen-mode-btn" data-mode="478">🌙 4-7-8 深度安神助眠</button>
+        <button class="btn-action-pill zen-mode-btn" data-mode="free">🧘 自由放空冥想</button>
+      </div>
+
+      <!-- 4 軌古剎環境白噪音混音器 -->
+      <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; border: 1px solid rgba(255, 215, 0, 0.25);">
+        <div style="font-size: 0.85rem; color: var(--gold-bright); font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>🎧 4 軌名剎聲學環境音</span>
+          <span style="font-size: 0.75rem; color: #94a3b8;">可自由調配混音</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem;">
+          <!-- 風聲 -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 22px;">🌿</span>
+            <span style="width: 65px; color: #e2e8f0;">深山松風</span>
+            <input type="range" class="zen-slider" id="zenWindVol" min="0" max="100" value="40" style="flex: 1; accent-color: #f59e0b;">
+          </div>
+          <!-- 雨聲 -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 22px;">🌧️</span>
+            <span style="width: 65px; color: #e2e8f0;">甘霖細雨</span>
+            <input type="range" class="zen-slider" id="zenRainVol" min="0" max="100" value="35" style="flex: 1; accent-color: #38bdf8;">
+          </div>
+          <!-- 鳥鳴 -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 22px;">🐦</span>
+            <span style="width: 65px; color: #e2e8f0;">清晨幽鳥</span>
+            <input type="range" class="zen-slider" id="zenBirdsVol" min="0" max="100" value="30" style="flex: 1; accent-color: #a3e635;">
+          </div>
+          <!-- 頌缽 -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="width: 22px;">🔔</span>
+            <span style="width: 65px; color: #e2e8f0;">432Hz頌缽</span>
+            <input type="range" class="zen-slider" id="zenBowlVol" min="0" max="100" value="45" style="flex: 1; accent-color: #c084fc;">
+          </div>
+        </div>
+      </div>
+
+      <!-- 時長選擇與啟動按鈕 -->
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 6px;">
+          <button class="btn-action-pill zen-time-btn" data-time="180">3分</button>
+          <button class="btn-action-pill zen-time-btn active" data-time="300">5分</button>
+          <button class="btn-action-pill zen-time-btn" data-time="600">10分</button>
+          <button class="btn-action-pill zen-time-btn" data-time="0">無限</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-dock-action" id="btnStartZen" style="background: #2e7d32; padding: 6px 20px;">
+            🧘 開始定心禪修
+          </button>
+          <button class="btn-dock-action" id="btnStopZen" style="background: #78281f; padding: 6px 16px;">
+            🛑 出定收功
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. 搏杯大賽 • 連得聖筊發財擂台 (Bwa Competition Modal) -->
+  <div class="modal-overlay" id="bwaCompModal">
+    <div class="settings-modal" style="max-width: 660px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="bwaCompModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          🏆 搏杯大賽 • 連得聖筊發財擂台
+        </h3>
+        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">
+          再現各大宮廟博金錢龜與爐主盛事！連續擲得聖筊，累進功德並角逐全殿天選信徒名人堂
+        </p>
+      </div>
+
+      <!-- 連聖數據儀表板 -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px;">
+        <div style="background: rgba(185, 28, 28, 0.25); border: 1px solid rgba(248, 113, 113, 0.4); border-radius: 8px; padding: 10px; text-align: center;">
+          <div style="font-size: 0.76rem; color: #fca5a5;">當前連續聖筊</div>
+          <div style="font-size: 1.8rem; font-weight: bold; color: #ffd700;" id="bwaCompStreak">0</div>
+        </div>
+        <div style="background: rgba(245, 158, 11, 0.25); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 8px; padding: 10px; text-align: center;">
+          <div style="font-size: 0.76rem; color: #fde047;">擂台累計功德</div>
+          <div style="font-size: 1.8rem; font-weight: bold; color: #4ade80;" id="bwaCompMerit">+0</div>
+        </div>
+        <div style="background: rgba(30, 58, 138, 0.35); border: 1px solid rgba(147, 197, 253, 0.4); border-radius: 8px; padding: 10px; text-align: center;">
+          <div style="font-size: 0.76rem; color: #bfdbfe;">本殿歷史最高紀錄</div>
+          <div style="font-size: 1.8rem; font-weight: bold; color: #60a5fa;" id="bwaCompPersonalBest">0</div>
+        </div>
+      </div>
+
+      <!-- 當前法位標章與提示 -->
+      <div style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 14px; text-align: center; margin-bottom: 14px; border: 1px solid rgba(255, 215, 0, 0.3);">
+        <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 4px;">當前福分境界：</div>
+        <div style="font-size: 1.15rem; font-weight: bold; color: #fde047; margin-bottom: 8px;" id="bwaCompTitleBadge">🌱 初入法門</div>
+        <div id="bwaCompResultText" style="font-size: 1.1rem; font-weight: bold; color: #ffd700; min-height: 28px;">
+          請誠心默禱，點擊下方「誠心起擲」啟動擂台挑戰！
+        </div>
+      </div>
+
+      <!-- 挑戰控制條 -->
+      <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 14px;">
+        <button class="btn-dock-action" id="btnBwaCompThrow" style="background: linear-gradient(135deg, #b91c1c, #7f1d1d); border-color: #fde047; padding: 10px 28px; font-size: 1.05rem;">
+          🎲 誠心起擲 [空白鍵]
+        </button>
+        <button class="btn-dock-action" id="btnBwaCompReset" style="background: #374151; padding: 10px 16px;">
+          🔄 重新挑戰
+        </button>
+        <button class="btn-dock-action" id="btnBwaCompDownload" style="background: linear-gradient(135deg, #b45309, #78350f); padding: 10px 16px;">
+          📜 頒發博杯證書
+        </button>
+      </div>
+
+      <!-- 金色筊杯外觀開關 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255, 215, 0, 0.1); border-radius: 8px; padding: 8px 14px; margin-bottom: 14px; border: 1px dashed rgba(255, 215, 0, 0.3);">
+        <span style="font-size: 0.82rem; color: #fef08a;">✨ 裝備 3D 金光開光神筊（連得 3 聖筊即可啟用）：</span>
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82rem; color: #ffd700;">
+          <input type="checkbox" id="chkGoldenBwa" style="accent-color: #ffd700;">
+          <span>黃金筊杯</span>
+        </label>
+      </div>
+
+      <!-- 聖筊名人堂排行榜 -->
+      <div style="background: rgba(0,0,0,0.35); border-radius: 8px; padding: 12px 14px; border: 1px solid rgba(255, 255, 255, 0.1);">
+        <div style="font-size: 0.85rem; font-weight: bold; color: var(--gold-bright); margin-bottom: 8px;">
+          🏆 聖筊名人堂（本殿歷代爐主英名）
+        </div>
+        <div id="bwaLeaderboardList" style="font-size: 0.8rem; line-height: 1.8;">
+          <!-- 動態載入榜單 -->
+        </div>
+      </div>
+      <canvas id="bwaCompCertCanvas" width="600" height="800" style="display: none;"></canvas>
+    </div>
+  </div>
+
+  <!-- 2. 宮廟藏經閣 • 六十甲子靈籤圖鑑與民俗史料館 (Lore Modal) -->
+  <div class="modal-overlay" id="loreModal">
+    <div class="settings-modal" style="max-width: 720px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close" id="loreModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 12px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          📜 宮廟藏經閣 • 靈籤寶典與仙真史料館
+        </h3>
+        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">
+          探幽洞微，博古通今。翻閱六十甲子籤詩原文、歷史典故卦頭與神明護法歷代聖蹟
+        </p>
+      </div>
+
+      <!-- 藏經分類切換標籤 -->
+      <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 12px;">
+        <button class="btn-action-pill lore-tab-btn active" id="tabLoreChiam">📜 六十甲子籤寶典 (60首全集)</button>
+        <button class="btn-action-pill lore-tab-btn" id="tabLoreDeities">🏮 仙真列傳神尊志</button>
+        <button class="btn-action-pill lore-tab-btn" id="tabLoreTraditions">🏮 宮廟科儀與拜拜禮俗</button>
+      </div>
+
+      <!-- 搜尋與過濾列 -->
+      <div style="margin-bottom: 12px;">
+        <input type="text" id="loreSearchInput" class="temple-input" placeholder="🔍 搜尋籤序、干支（如甲子、乙丑）、典故（如孔明、趙子龍）或吉凶..." style="width: 100%; font-size: 0.85rem;">
+      </div>
+
+      <!-- 籤詩列表與圖鑑清單容器 -->
+      <div id="loreContentContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 4px;">
+        <!-- 動態渲染各籤詩卡片或史料卡片 -->
+      </div>
+
+      <!-- 典籍詳細檢視器 (點選單籤時滑出) -->
+      <div id="loreDetailView" style="display: none; background: rgba(20, 10, 5, 0.95); border: 2px solid var(--gold-bright); border-radius: 8px; padding: 16px; margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255, 215, 0, 0.3); padding-bottom: 8px; margin-bottom: 10px;">
+          <h4 id="loreDetailTitle" style="color: #ffd700; margin: 0; font-size: 1.15rem;"></h4>
+          <span id="loreDetailFortune" style="font-size: 0.85rem; color: #4ade80; font-weight: bold;"></span>
+        </div>
+        <div style="font-size: 0.85rem; color: #fde047; margin-bottom: 8px;" id="loreDetailGua"></div>
+        <div style="background: rgba(0,0,0,0.4); border-radius: 6px; padding: 10px; margin-bottom: 10px; text-align: center;">
+          <div id="loreDetailPoem" style="font-size: 0.95rem; font-weight: bold; color: #ffffff; line-height: 1.8; letter-spacing: 2px;"></div>
+        </div>
+        <div style="font-size: 0.82rem; color: #e2e8f0; line-height: 1.6; margin-bottom: 10px;" id="loreDetailStory"></div>
+        <div style="font-size: 0.78rem; color: #cbd5e1; background: rgba(255,255,255,0.06); border-radius: 6px; padding: 8px; margin-bottom: 12px;" id="loreDetailAdvice"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button class="btn-dock-action" id="btnLoreDetailBack" style="background: #475569; padding: 6px 14px; font-size: 0.85rem;">
+            ⬅️ 返回圖鑑
+          </button>
+          <button class="btn-dock-action" id="btnLoreStudy" style="background: #15803d; padding: 6px 18px; font-size: 0.85rem;">
+            📖 虔心研讀領悟 (+20 功德)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 賽博御賜平安齋 • 祈福供品擺盤 (Feast Modal) -->
+  <div class="modal-overlay" id="feastModal">
+    <div class="settings-modal" style="max-width: 680px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="feastModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          🍱 賽博御賜平安齋 • 祈福供品筵席大典
+        </h3>
+        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">
+          三牲五果配金牌乖乖，自選五大御品呈獻大殿神案，行三獻禮蒙神尊恩賜全天好運
+        </p>
+      </div>
+
+      <!-- 神案五大供盤位置 (點擊更換供品) -->
+      <div style="background: rgba(40, 20, 10, 0.6); border: 2px solid #b45309; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+        <div style="text-align: center; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 10px; font-weight: bold;">
+          🌟 神案金尊供桌 • 當前五品筵席（點擊供盤以替換供品）：
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+          <div class="feast-slot active" id="feastSlot0" data-slot="0" style="background: rgba(0,0,0,0.4); border: 2px solid #ffd700; border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
+            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon0">🍎</div>
+            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName0">五福果盤</div>
+          </div>
+          <div class="feast-slot" id="feastSlot1" data-slot="1" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
+            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon1">🍑</div>
+            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName1">長生仙桃</div>
+          </div>
+          <div class="feast-slot" id="feastSlot2" data-slot="2" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
+            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon2">🍞</div>
+            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName2">富貴發糕</div>
+          </div>
+          <div class="feast-slot" id="feastSlot3" data-slot="3" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
+            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon3">🐢</div>
+            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName3">紅龜粿</div>
+          </div>
+          <div class="feast-slot" id="feastSlot4" data-slot="4" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
+            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon4">🟢</div>
+            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName4">金牌乖乖</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 可選供品庫 -->
+      <div style="background: rgba(0,0,0,0.35); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
+        <div style="font-size: 0.8rem; color: #e2e8f0; margin-bottom: 8px; font-weight: bold;">
+          🍱 點選欲擺入當前選中供盤的聖品：
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          <div class="feast-dish-picker" data-dish="fruit" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🍎</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">五福果盤</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="peach" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🍑</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">長生仙桃</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="fagao" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🍞</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">富貴發糕</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="redturtle" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🐢</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">祈福紅龜粿</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="guaiguai" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🟢</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">金牌乖乖</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="milktea" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🧋</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">特大珍奶</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="chicken" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🍗</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">香脆雞排</div>
+          </div>
+          <div class="feast-dish-picker" data-dish="flowers" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
+            <span style="font-size: 1.3rem;">🌸</span>
+            <div style="font-size: 0.75rem; color: #fef08a;">百合素花</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 呈獻按鈕列 -->
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <button class="btn-dock-action" id="btnFeastReset" style="background: #475569; padding: 8px 16px;">
+          🔄 重設五品
+        </button>
+        <button class="btn-dock-action" id="btnFeastPresent" style="background: linear-gradient(135deg, #b45309, #78350f); border-color: #fde047; padding: 8px 24px; font-size: 1.05rem;">
+          🙏 恭行三獻禮 • 呈獻大典 (+128 功德)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 線上抄經閣 • 虔心描紅抄經 (Copy Sutra Modal) -->
+  <div class="modal-overlay" id="copySutraModal">
+    <div class="settings-modal" style="max-width: 740px; max-height: 92vh; overflow-y: auto;">
+      <button class="modal-close" id="copySutraModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 10px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
+          📿 線上抄經閣 • 虔心描紅抄經靜心
+        </h3>
+        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">
+          萬緣放下，一心不亂。以指或鼠為筆，描摹經文聖言，滌除塵垢，功德迴向
+        </p>
+      </div>
+
+      <!-- 經文選擇與書法控制條 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); border-radius: 8px; padding: 8px 12px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 0.8rem; color: var(--gold-bright);">經典：</span>
+          <select id="sutraSelect" class="temple-input" style="font-size: 0.8rem; padding: 3px 8px;">
+            <option value="heart">《般若波羅蜜多心經》精選</option>
+            <option value="qingjing">《太上老君說常清靜經》精選</option>
+            <option value="yinzhi">《文昌帝君陰騭文》精選</option>
+          </select>
+        </div>
+        <!-- 墨色與筆徑切換 -->
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button class="btn-action-pill sutra-color-btn active" data-color="#18181b" style="background: #18181b; color: #fff; border-color: #ffd700;">玄墨</button>
+          <button class="btn-action-pill sutra-color-btn" data-color="#dc2626" style="background: #dc2626; color: #fff;">硃砂</button>
+          <button class="btn-action-pill sutra-color-btn" data-color="#f59e0b" style="background: #f59e0b; color: #111;">金墨</button>
+          <span style="border-left: 1px solid #666; margin: 0 4px; height: 16px;"></span>
+          <button class="btn-action-pill sutra-size-btn" data-size="3">細筆</button>
+          <button class="btn-action-pill sutra-size-btn active" data-size="6">楷書</button>
+          <button class="btn-action-pill sutra-size-btn" data-size="10">濃墨</button>
+          <button class="btn-action-pill" id="btnSutraClear" style="background: #475569; padding: 2px 8px; font-size: 0.75rem;">重描</button>
+        </div>
+      </div>
+
+      <!-- 宣紙書法描紅畫布 -->
+      <div style="position: relative; width: 100%; display: flex; justify-content: center; margin-bottom: 12px;">
+        <canvas id="sutraCanvas" width="680" height="340" style="background: #fefae0; border: 2px solid #b45309; border-radius: 8px; cursor: crosshair; box-shadow: 0 4px 15px rgba(0,0,0,0.5); max-width: 100%; touch-action: none;"></canvas>
+      </div>
+
+      <!-- 功德迴向輸入與完成按鈕 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 260px;">
+          <span style="font-size: 0.8rem; color: #fde047;">迴向信眾芳名：</span>
+          <input type="text" id="sutraDedicationTarget" class="temple-input" placeholder="如：父母、摯愛、天下蒼生" style="flex: 1; font-size: 0.82rem;">
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-dock-action" id="btnSutraDownload" style="background: #1e3a8a; padding: 6px 14px; font-size: 0.85rem;">
+            📥 保存墨寶 (PNG)
+          </button>
+          <button class="btn-dock-action" id="btnSutraComplete" style="background: linear-gradient(135deg, #065f46, #064e3b); border-color: #6ee7b7; padding: 6px 18px; font-size: 0.85rem;">
+            🪷 抄經圓滿迴向 (+150 功德)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. 宮廟萬寶閣 • 二十大修持與民俗科儀全覽 (Pavilion Drawer Modal) -->
+  <div class="modal-overlay" id="pavilionModal">
+    <div class="settings-modal pavilion-modal" style="max-width: 920px; max-height: 90vh; overflow-y: auto;">
+      <button class="modal-close" id="pavilionModalClose" style="color: var(--gold-bright);">&times;</button>
+      
+      <div class="pavilion-header">
+        <h3 class="pavilion-title">🏛️ 宮廟萬寶閣 • 二十全景科儀大覽</h3>
+        <p class="pavilion-subtitle">心誠則靈 • 隨緣修持 • 福庇安康 • 點選任一科儀即可即刻啟動</p>
+      </div>
+
+      <!-- 分類標籤頁切換列 -->
+      <div class="pavilion-category-tabs">
+        <button class="pavilion-cat-tab active" data-cat="all">🌟 全部科儀</button>
+        <button class="pavilion-cat-tab" data-cat="grounds">🏛️ 殿堂與廟埕</button>
+        <button class="pavilion-cat-tab" data-cat="zen">📿 清修與持誦</button>
+        <button class="pavilion-cat-tab" data-cat="rituals">🧧 祈福與盛典</button>
+        <button class="pavilion-cat-tab" data-cat="lore">📜 典藏與文庫</button>
+      </div>
+
+      <!-- 萬寶閣功能卡片網格 -->
+      <div class="pavilion-cards-container">
+        <!-- 殿堂與廟埕 -->
+        <div class="pavilion-card" id="btnOpenSideHalls" data-cat="grounds">
+          <div class="card-icon">🏛️</div>
+          <div class="card-body">
+            <div class="card-title">偏殿巡禮</div>
+            <div class="card-desc">文昌閣、月老閣、武財神金庫洞窟祈福專殿</div>
+          </div>
+          <span class="card-badge">[E] 互動</span>
+        </div>
+
+        <div class="pavilion-card" id="btnBurnPaper" data-cat="grounds">
+          <div class="card-icon">🔥</div>
+          <div class="card-body">
+            <div class="card-title">八角金爐</div>
+            <div class="card-desc">焚化九金九銀紙錢、祈求神光普照消災解厄</div>
+          </div>
+          <span class="card-badge">化寶 +35</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenEma" data-cat="grounds">
+          <div class="card-icon">🪵</div>
+          <div class="card-body">
+            <div class="card-title">祈願木牌閣</div>
+            <div class="card-desc">廟埕仿古歇山頂繪馬閣架，親題五大福分願景</div>
+          </div>
+          <span class="card-badge">許願繪馬</span>
+        </div>
+
+        <div class="pavilion-card" id="btnGoLantern" data-cat="grounds">
+          <div class="card-icon">🏮</div>
+          <div class="card-body">
+            <div class="card-title">點光明燈</div>
+            <div class="card-desc">正殿佛前供奉長明琉璃燈，照亮元辰護佑平安</div>
+          </div>
+          <span class="card-badge">元辰光明</span>
+        </div>
+
+        <div class="pavilion-card" id="btnStrikeBell" data-cat="grounds">
+          <div class="card-icon">🔔</div>
+          <div class="card-body">
+            <div class="card-title">叩撞金鐘</div>
+            <div class="card-desc">東天金鐘清音入雲、直達天聽除障醒神</div>
+          </div>
+          <span class="card-badge">功德 +50</span>
+        </div>
+
+        <div class="pavilion-card" id="btnBeatDrum" data-cat="grounds">
+          <div class="card-icon">🥁</div>
+          <div class="card-body">
+            <div class="card-title">擊響雷鼓</div>
+            <div class="card-desc">西暮雷鼓振聵定魄、降伏外魔定三魂七魄</div>
+          </div>
+          <span class="card-badge">功德 +50</span>
+        </div>
+
+        <!-- 清修與持誦 -->
+        <div class="pavilion-card" id="btnOpenBeads" data-cat="zen">
+          <div class="card-icon">📿</div>
+          <div class="card-body">
+            <div class="card-title">108 顆念珠</div>
+            <div class="card-desc">環形菩提撥珠靜心冥想、消除百八煩惱</div>
+          </div>
+          <span class="card-badge">快捷 [N]</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenZen" data-cat="zen">
+          <div class="card-icon">🧘</div>
+          <div class="card-body">
+            <div class="card-title">賽博禪修堂</div>
+            <div class="card-desc">神聖曼陀羅呼吸引導儀與 4 軌名山聲學禪音混音</div>
+          </div>
+          <span class="card-badge">快捷 [Z]</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenCopySutra" data-cat="zen">
+          <div class="card-icon">📿</div>
+          <div class="card-body">
+            <div class="card-title">線上抄經閣</div>
+            <div class="card-desc">宣紙毛筆淡墨描紅心經、鈐印心安即福功德迴向</div>
+          </div>
+          <span class="card-badge">墨寶 PNG</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenRhythm" data-cat="zen">
+          <div class="card-icon">🎵</div>
+          <div class="card-body">
+            <div class="card-title">梵音課誦法會</div>
+            <div class="card-desc">古卷節奏音軌法會、索爾菲吉奧連擊與打擊評級</div>
+          </div>
+          <span class="card-badge">快捷 [R]</span>
+        </div>
+
+        <div class="pavilion-card" id="btnAutoMuyuToggle" data-cat="zen">
+          <div class="card-icon">✨</div>
+          <div class="card-body">
+            <div class="card-title">掛機積德木魚</div>
+            <div class="card-desc">離手無為自動叩誦賽博木魚，隨時積累無量功德</div>
+          </div>
+          <span class="card-badge">自動積德</span>
+        </div>
+
+        <!-- 祈福與盛典 -->
+        <div class="pavilion-card" id="btnOpenBwaComp" data-cat="rituals">
+          <div class="card-icon">🏆</div>
+          <div class="card-body">
+            <div class="card-title">搏杯大賽擂台</div>
+            <div class="card-desc">連聖挑戰擂台、開光黃金筊杯與歷代爐主名人堂</div>
+          </div>
+          <span class="card-badge">敕令證書</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenFeast" data-cat="rituals">
+          <div class="card-icon">🍱</div>
+          <div class="card-body">
+            <div class="card-title">御賜平安齋</div>
+            <div class="card-desc">神案 3D 供品 5 盤位自選擺盤與三獻禮呈獻大典</div>
+          </div>
+          <span class="card-badge">3D 擺盤</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenSkyLantern" data-cat="rituals">
+          <div class="card-icon">🏮</div>
+          <div class="card-body">
+            <div class="card-title">祈安天燈盛會</div>
+            <div class="card-desc">平溪四面天燈題詞昇空、水院放流蓮花水燈</div>
+          </div>
+          <span class="card-badge">快捷 [L]</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenTaiSui" data-cat="rituals">
+          <div class="card-icon">🏮</div>
+          <div class="card-body">
+            <div class="card-title">安奉太歲元辰</div>
+            <div class="card-desc">十二生肖太歲沖煞推算、點亮長生斗燈與植福文疏</div>
+          </div>
+          <span class="card-badge">植福文疏</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenAmulet" data-cat="rituals">
+          <div class="card-icon">🛡️</div>
+          <div class="card-body">
+            <div class="card-title">開光靈符結緣</div>
+            <div class="card-desc">六大神尊過香爐開光三圈、720p 桌布下載與隨身護光</div>
+          </div>
+          <span class="card-badge">護身靈光</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenShoujing" data-cat="rituals">
+          <div class="card-icon">🪔</div>
+          <div class="card-body">
+            <div class="card-title">道家正統收驚</div>
+            <div class="card-desc">帝鐘米盤安魂定魄科儀、消災除煞解驚魘</div>
+          </div>
+          <span class="card-badge">安魂定魄</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenRelicShop" data-cat="rituals">
+          <div class="card-icon">🪷</div>
+          <div class="card-body">
+            <div class="card-title">隨身法器寶閣</div>
+            <div class="card-desc">七星桃木劍、太極八卦鏡、金剛杵隨身護持辟邪</div>
+          </div>
+          <span class="card-badge">法器隨身</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenPet" data-cat="rituals">
+          <div class="card-icon">🐾</div>
+          <div class="card-body">
+            <div class="card-title">隨行萌寵神獸</div>
+            <div class="card-desc">黑虎金虎爺、九品金靈龜、廣寒仙兔護法小窩</div>
+          </div>
+          <span class="card-badge">快捷 [G]</span>
+        </div>
+
+        <div class="pavilion-card" id="btnTriggerParade" data-cat="rituals">
+          <div class="card-icon">🏮</div>
+          <div class="card-body">
+            <div class="card-title">恭迎媽祖遶境</div>
+            <div class="card-desc">鑾駕出巡、信眾伏地鑽轎腳、萬千神光普照</div>
+          </div>
+          <span class="card-badge">出巡盛典</span>
+        </div>
+
+        <div class="pavilion-card" id="btnOpenPhoto" data-cat="rituals">
+          <div class="card-icon">📷</div>
+          <div class="card-body">
+            <div class="card-title">留影拍立得</div>
+            <div class="card-desc">3D 畫面零延遲快照、古典賽博邊框、硃砂大印篆刻</div>
+          </div>
+          <span class="card-badge">快捷 [V]</span>
+        </div>
+
+        <!-- 典藏與文庫 -->
+        <div class="pavilion-card" id="btnOpenLore" data-cat="lore">
+          <div class="card-icon">📜</div>
+          <div class="card-body">
+            <div class="card-title">宮廟藏經閣</div>
+            <div class="card-desc">六十甲子靈籤圖鑑大全、仙真神尊列傳、拜拜科儀寶典</div>
+          </div>
+          <span class="card-badge">經閣領悟</span>
+        </div>
+
+        <div class="pavilion-card" data-proxy="btnOpenPassport" data-cat="lore">
+          <div class="card-icon">🪪</div>
+          <div class="card-body">
+            <div class="card-title">善信修持護照</div>
+            <div class="card-desc">六大修持境界認證、六維功德數據看板與修持榮譽狀</div>
+          </div>
+          <span class="card-badge">修持榮譽狀</span>
+        </div>
+
+        <div class="pavilion-card" data-proxy="btnOpenAvatar" data-cat="lore">
+          <div class="card-icon">👤</div>
+          <div class="card-body">
+            <div class="card-title">分身換裝閣</div>
+            <div class="card-desc">道袍顏色、頭飾、持物與浮動稱號自由搭配</div>
+          </div>
+          <span class="card-badge">角色自訂</span>
+        </div>
+
+        <div class="pavilion-card" data-proxy="btnOpenHelp" data-cat="lore">
+          <div class="card-icon">❓</div>
+          <div class="card-body">
+            <div class="card-title">操作鍵位秘笈</div>
+            <div class="card-desc">漫遊、禮佛、修持與介面全部快捷鍵一覽</div>
+          </div>
+          <span class="card-badge">快捷 [?]</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 操作導引與快捷鍵秘笈 (Help & Guide Modal) -->
+  <div class="modal-overlay" id="helpModal">
+    <div class="settings-modal" style="max-width: 620px;">
+      <button class="modal-close" id="helpModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px;">❓ 宮廟修持 • 操作導引與鍵位秘笈</h3>
+        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">掌握全方位快捷鍵與手勢，漫遊賽博仙境更加得心應手</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 12px; border: 1px solid rgba(255,215,0,0.2);">
+          <div style="color: #fde047; font-weight: bold; font-size: 0.88rem; margin-bottom: 6px;">🚶 漫遊與鏡頭控制</div>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.7;">
+            • <b>WASD / 方向鍵</b>：分身行走漫步<br>
+            • <b>按住 Shift</b>：切換疾步快跑<br>
+            • <b>滑鼠左鍵拖曳</b>：360° 旋轉鏡頭<br>
+            • <b>滑鼠右鍵拖曳</b>：平移全景視角<br>
+            • <b>滾輪滑動</b>：縮放鏡頭遠近<br>
+            • <b>點擊地面</b>：分身自動尋路前往<br>
+            • <b>[C] 鍵</b>：鏡頭迅速對齊分身身後
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 12px; border: 1px solid rgba(255,215,0,0.2);">
+          <div style="color: #fde047; font-weight: bold; font-size: 0.88rem; margin-bottom: 6px;">🙏 禮佛與敬拜動作</div>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.7;">
+            • <b>[E] 鍵</b>：走近物件近身禮敬互動<br>
+            • <b>[B] 鍵</b>：躬身行三鞠躬禮<br>
+            • <b>[K] 鍵</b>：屈膝跪拜行大禮<br>
+            • <b>[P] 鍵</b>：雙手合掌虔誠祈福<br>
+            • <b>[M] 鍵</b>：蓮花座端坐打坐入定<br>
+            • <b>[G] 鍵</b>：撫摸隨行萌寵神獸<br>
+            • <b>[Space] 空白鍵</b>：敲木魚 / 搏杯擲筊
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 12px; border: 1px solid rgba(255,215,0,0.2);">
+          <div style="color: #fde047; font-weight: bold; font-size: 0.88rem; margin-bottom: 6px;">📿 修持與冥想法門</div>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.7;">
+            • <b>[N] 鍵</b>：開合 108 顆菩提念珠<br>
+            • <b>[Z] 鍵</b>：進入賽博禪修堂冥想<br>
+            • <b>[L] 鍵</b>：開啟平溪祈安天燈盛會<br>
+            • <b>[R] 鍵</b>：開啟梵音課誦法會音遊<br>
+            • <b>[V] 鍵</b>：啟動 3D 留影拍立得
+          </div>
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 12px; border: 1px solid rgba(255,215,0,0.2);">
+          <div style="color: #fde047; font-weight: bold; font-size: 0.88rem; margin-bottom: 6px;">🏛️ 介面與沉浸視覺</div>
+          <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.7;">
+            • <b>[H] 鍵</b>：隱藏/顯示所有介面 (沉浸模式)<br>
+            • <b>[Tab] 鍵</b>：展開/收合宮廟萬寶閣<br>
+            • <b>[?] 鍵</b>：隨時呼叫本快捷秘笈<br>
+            • <b>行動裝置</b>：左下虛擬搖桿靈活走動
+          </div>
+        </div>
+      </div>
+
+      <div style="text-align: center;">
+        <button class="btn-dock-action" id="btnHelpConfirm" style="padding: 6px 24px; border-radius: 20px; font-size: 0.9rem;">
+          🙏 善信弟子明瞭
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入 3D WebGL 與功能模組 -->
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+  <script src="audio.js"></script>
+  <script src="chiam-data.js"></script>
+  <script src="ai-divination.js"></script>
+  <script src="live-wall.js"></script>
+  <script src="avatar3d.js"></script>
+  <script src="temple3d.js"></script>
+  <script src="beads.js"></script>
+  <script src="joystick.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

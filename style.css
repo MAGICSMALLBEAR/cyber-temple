@@ -1,0 +1,1813 @@
+/* style.css - 賽博虛擬神殿 3D 全景國潮美學、角色動作、念珠冥想與行動裝置搖桿 */
+
+:root {
+  --gold-primary: #f5c542;
+  --gold-bright: #ffe885;
+  --gold-dark: #b8860b;
+  --red-palace: #8b1c1c;
+  --red-dark: #3a0d0d;
+  --red-bright: #d93838;
+  --wood-dark: #2a150e;
+  --bg-dark: #100606;
+  --text-gold: #fde8a3;
+  --font-temple: "Songti TC", "Noto Serif TC", "PMingLiU", "MingLiU", serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: #fff;
+  font-family: var(--font-temple);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+}
+
+/* 3D WebGL 全景容器 */
+#canvas3dContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* 3D 物件懸停提示標籤 (跟隨滑鼠) */
+#canvas3dTooltip {
+  position: fixed;
+  display: none;
+  background: rgba(46, 12, 12, 0.9);
+  border: 1px solid var(--gold-bright);
+  color: var(--gold-bright);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 200;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8), 0 0 10px rgba(245, 197, 66, 0.5);
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+}
+
+/* 行動裝置虛擬搖桿 (觸控螢幕自適應) */
+#virtualJoystickZone {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(42, 10, 10, 0.55);
+  border: 2px dashed rgba(245, 197, 66, 0.5);
+  z-index: 80;
+  display: none; /* 觸控或行動裝置開啟 */
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  touch-action: none;
+}
+
+#joystickKnob {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #f5c542, #9c6c10);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 10px rgba(245, 197, 66, 0.6);
+  pointer-events: none;
+  transition: transform 0.05s linear;
+}
+
+@media (pointer: coarse), (max-width: 860px) {
+  #virtualJoystickZone {
+    display: flex;
+  }
+}
+
+/* 頂部裝飾條 */
+.temple-border-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--gold-dark),
+    var(--gold-bright) 10px,
+    var(--gold-primary) 20px,
+    var(--red-palace) 30px
+  );
+  box-shadow: 0 2px 10px rgba(245, 197, 66, 0.5);
+  z-index: 50;
+}
+
+/* 頂部半透明懸浮導航欄 */
+.temple-header {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 100%;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(25, 8, 8, 0.88) 0%, rgba(20, 6, 6, 0.2) 100%);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.plaque {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(180deg, #601414, #2a0808);
+  border: 2px double var(--gold-primary);
+  border-radius: 6px;
+  padding: 4px 16px;
+  box-shadow: 0 0 15px rgba(245, 197, 66, 0.3);
+}
+
+.plaque-title {
+  color: var(--gold-bright);
+  font-size: 1.3rem;
+  letter-spacing: 4px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 0 10px rgba(245, 197, 66, 0.6);
+}
+
+.plaque-subtitle {
+  color: #d1b474;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.merit-counter-badge {
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid var(--gold-primary);
+  border-radius: 20px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-gold);
+  font-size: 0.85rem;
+}
+
+.btn-header {
+  background: rgba(96, 20, 20, 0.85);
+  border: 1px solid var(--gold-primary);
+  color: var(--text-gold);
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.btn-header:hover {
+  background: var(--gold-primary);
+  color: #120808;
+  box-shadow: 0 0 12px rgba(245, 197, 66, 0.6);
+}
+
+/* 3D 視角快速切換懸浮塢 (右上方) */
+.camera-view-dock {
+  position: absolute;
+  top: 72px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.btn-cam-view {
+  background: rgba(30, 8, 8, 0.8);
+  border: 1px solid rgba(245, 197, 66, 0.4);
+  color: #dfc18b;
+  padding: 5px 12px;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  text-align: right;
+}
+
+.btn-cam-view:hover, .btn-cam-view.active {
+  background: linear-gradient(90deg, #7c1a1a, #ba2b2b);
+  border-color: var(--gold-bright);
+  color: #fff;
+  transform: translateX(-4px);
+  box-shadow: 0 0 10px rgba(245, 197, 66, 0.5);
+}
+
+/* 諸神寶座切換塢 (左上方) */
+.deity-switch-dock {
+  position: absolute;
+  top: 72px;
+  left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+}
+
+.btn-deity-pill {
+  background: rgba(28, 8, 8, 0.8);
+  border: 1px solid rgba(245, 197, 66, 0.3);
+  color: #d1b88a;
+  padding: 5px 12px;
+  border-radius: 18px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.btn-deity-pill:hover, .btn-deity-pill.active {
+  background: linear-gradient(90deg, #851e1e, #470e0e);
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  font-weight: bold;
+  transform: translateX(4px);
+  box-shadow: 0 0 10px rgba(245, 197, 66, 0.4);
+}
+
+/* 浮動祈願彈幕容器 */
+.danmaku-container {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  width: 100%;
+  height: 220px;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 40;
+}
+
+.live-danmaku-item {
+  position: absolute;
+  right: -500px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(36, 10, 10, 0.85);
+  border: 1px solid var(--gold-primary);
+  border-radius: 20px;
+  padding: 4px 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7), 0 0 10px rgba(245, 197, 66, 0.3);
+  animation: danmakuFly 12s linear forwards;
+  white-space: nowrap;
+}
+
+.live-danmaku-item.self-danmaku {
+  background: rgba(139, 28, 28, 0.95);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 15px var(--gold-bright);
+}
+
+.danmaku-badge {
+  font-size: 0.78rem;
+  color: var(--gold-bright);
+  font-weight: bold;
+}
+
+.danmaku-text {
+  font-size: 0.92rem;
+  color: #fff;
+}
+
+@keyframes danmakuFly {
+  0% { transform: translateX(0); opacity: 0; }
+  5% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(-1600px); opacity: 0; }
+}
+
+/* 左下方：角色禮佛動作列 */
+.avatar-action-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 60;
+  background: rgba(25, 8, 8, 0.85);
+  border: 1px solid rgba(245, 197, 66, 0.4);
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+@media (max-width: 860px) {
+  .avatar-action-bar {
+    bottom: 160px;
+    left: 14px;
+    padding: 6px 10px;
+  }
+}
+
+.action-bar-title {
+  font-size: 0.82rem;
+  color: var(--gold-bright);
+  font-weight: bold;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-action-pill {
+  background: rgba(80, 18, 18, 0.85);
+  border: 1px solid var(--gold-primary);
+  color: #f7ecd2;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.btn-action-pill:hover,
+.btn-action-pill.active {
+  background: var(--gold-primary);
+  color: #1a0808;
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(245, 197, 66, 0.6);
+}
+
+.walk-tips {
+  font-size: 0.72rem;
+  color: #c9a76e;
+  margin-top: 2px;
+}
+
+/* 底部中央：大殿 3D 核心互動操作塢 */
+.temple-dock-container {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 60;
+  width: 95%;
+  max-width: 1040px;
+}
+
+.dock-status-bar {
+  background: rgba(28, 8, 8, 0.88);
+  border: 1px solid var(--gold-bright);
+  border-radius: 25px;
+  padding: 7px 22px;
+  color: var(--gold-bright);
+  font-size: 0.92rem;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8), 0 0 15px rgba(245, 197, 66, 0.4);
+  backdrop-filter: blur(6px);
+  text-align: center;
+  min-width: 320px;
+}
+
+.dock-buttons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-dock-action {
+  background: linear-gradient(180deg, #8a1d1d, #420d0d);
+  border: 1.5px solid var(--gold-primary);
+  color: var(--gold-bright);
+  padding: 8px 15px;
+  border-radius: 22px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.btn-dock-action:hover {
+  background: linear-gradient(180deg, #aa2424, #611313);
+  border-color: #fff;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 14px rgba(245, 197, 66, 0.7);
+}
+
+.btn-dock-action:active {
+  transform: translateY(0);
+}
+
+.dock-danmaku-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.temple-input {
+  flex: 1;
+  background: rgba(20, 6, 6, 0.85);
+  border: 1px solid #734522;
+  border-radius: 20px;
+  color: var(--gold-bright);
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.temple-input:focus {
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 8px rgba(245, 197, 66, 0.5);
+}
+
+.btn-custom-pill {
+  background: rgba(46, 12, 12, 0.8);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  color: #dfc18b;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.btn-custom-pill:hover, .btn-custom-pill.active {
+  background: var(--gold-primary);
+  color: #1a0808;
+  border-color: #fff;
+  font-weight: bold;
+}
+
+/* 籤詩彈窗與古風捲軸 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.scroll-card {
+  background: linear-gradient(180deg, #f7ecd2 0%, #ebd39c 100%);
+  color: #2b1109;
+  border: 4px solid #7c1a1a;
+  border-radius: 12px;
+  max-width: 580px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9), 0 0 30px rgba(245, 197, 66, 0.5);
+  position: relative;
+  padding: 26px 22px;
+}
+
+.scroll-header {
+  text-align: center;
+  border-bottom: 2px dashed #9c2e2e;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.scroll-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #7c1a1a;
+  letter-spacing: 4px;
+}
+
+.scroll-fortune {
+  display: inline-block;
+  background: #7c1a1a;
+  color: #f7ecd2;
+  font-size: 0.9rem;
+  font-weight: bold;
+  padding: 3px 14px;
+  border-radius: 14px;
+  margin-top: 6px;
+}
+
+.scroll-poem-box {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid #c29f68;
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.poem-line {
+  writing-mode: vertical-rl;
+  font-size: 1.15rem;
+  letter-spacing: 4px;
+  font-weight: 600;
+  color: #3b1406;
+}
+
+.scroll-meaning {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin-bottom: 14px;
+  color: #381b10;
+}
+
+.scroll-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+/* AI 智慧解籤專區 */
+.ai-divination-box {
+  background: rgba(124, 26, 26, 0.08);
+  border: 2px solid #8b1c1c;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.ai-divination-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ai-divination-title {
+  font-weight: 700;
+  color: #7c1a1a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+}
+
+.ai-question-input {
+  width: 100%;
+  border: 1px solid #c29f68;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: #331206;
+  margin-bottom: 8px;
+  outline: none;
+  resize: vertical;
+  min-height: 55px;
+}
+
+.btn-ai-divine {
+  background: linear-gradient(180deg, #8b1c1c, #591010);
+  border: 1px solid var(--gold-dark);
+  color: var(--gold-bright);
+  padding: 8px 18px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: bold;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.btn-ai-divine:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 12px rgba(245, 197, 66, 0.6);
+}
+
+.ai-result-card {
+  display: none;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border-left: 4px solid #7c1a1a;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #2b0f05;
+  white-space: pre-wrap;
+}
+
+.ai-loading-pulse {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #7c1a1a;
+  font-weight: bold;
+}
+
+.scroll-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-card {
+  flex: 1;
+  min-width: 130px;
+  padding: 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  font-size: 0.92rem;
+}
+
+.btn-card-primary {
+  background: #7c1a1a;
+  color: #f7ecd2;
+}
+
+.btn-card-secondary {
+  background: #9c7b4c;
+  color: #fff;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  color: #7c1a1a;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* 設置與角色彈窗 */
+.settings-modal {
+  background: linear-gradient(180deg, #2a0c0c, #160404);
+  border: 2px solid var(--gold-primary);
+  color: var(--text-gold);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+  position: relative;
+}
+
+/* 時辰切換下拉框 */
+.shichen-select-container {
+  display: flex;
+  align-items: center;
+}
+
+.temple-select {
+  background: rgba(30, 8, 8, 0.85);
+  border: 1px solid var(--gold-dark);
+  color: var(--gold-bright);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  transition: all 0.2s ease;
+}
+
+.temple-select:hover {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 10px rgba(245, 197, 66, 0.4);
+}
+
+.temple-select option {
+  background: #240a0a;
+  color: #eedab0;
+}
+
+/* 功德護照統計方塊 */
+.passport-stat-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+
+.passport-stat-box .stat-label {
+  font-size: 0.76rem;
+  color: #dfc18b;
+  margin-bottom: 4px;
+}
+
+.passport-stat-box .stat-val {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gold-bright);
+  font-family: monospace;
+}
+
+/* 護照標籤切換按鈕 */
+.passport-tab-btn {
+  background: none;
+  border: none;
+  color: #eedab0;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.passport-tab-btn:hover {
+  color: var(--gold-bright);
+}
+
+.passport-tab-btn.active {
+  color: var(--gold-bright);
+  border-bottom-color: var(--gold-bright);
+  font-weight: bold;
+}
+
+/* 木牌小卡 */
+.ema-card-item {
+  background: rgba(50, 18, 12, 0.7);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ema-card-item .ema-header {
+  display: flex;
+  justify-content: space-between;
+  color: var(--gold-bright);
+  font-weight: bold;
+}
+
+.ema-card-item .ema-wish {
+  color: #ffe6ba;
+  line-height: 1.4;
+}
+
+/* 歷史籤詩列表條目 */
+.passport-chiam-item {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(245, 197, 66, 0.2);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.passport-chiam-item .chiam-info {
+  flex: 1;
+}
+
+.passport-chiam-item .chiam-num {
+  color: var(--gold-bright);
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.passport-chiam-item .chiam-sub {
+  color: #dfc18b;
+  font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   偏殿祈福 (Side Halls) 模態框美化
+   ========================================================================== */
+.side-hall-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1.5px solid rgba(245, 197, 66, 0.3);
+  margin-bottom: 14px;
+}
+
+.side-hall-tab-btn {
+  flex: 1;
+  background: rgba(30, 8, 8, 0.6);
+  border: 1px solid rgba(245, 197, 66, 0.25);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  color: #eedab0;
+  padding: 8px 6px;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.side-hall-tab-btn:hover {
+  background: rgba(80, 20, 20, 0.7);
+  color: var(--gold-bright);
+}
+
+.side-hall-tab-btn.active {
+  background: linear-gradient(180deg, rgba(120, 28, 28, 0.9), rgba(50, 12, 12, 0.95));
+  border-color: var(--gold-primary);
+  color: var(--gold-bright);
+  box-shadow: 0 -2px 10px rgba(245, 197, 66, 0.25);
+}
+
+.side-hall-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hall-banner {
+  background: linear-gradient(135deg, rgba(70, 20, 15, 0.75), rgba(35, 10, 8, 0.9));
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  border-radius: 8px;
+  padding: 12px 14px;
+  position: relative;
+}
+
+.hall-badge {
+  display: inline-block;
+  background: #8b1c1c;
+  color: var(--gold-bright);
+  font-size: 0.74rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--gold-dark);
+  margin-bottom: 4px;
+}
+
+.hall-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.btn-hall-ritual {
+  background: rgba(45, 14, 12, 0.85);
+  border: 1.5px solid rgba(245, 197, 66, 0.35);
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all 0.25s ease;
+}
+
+.btn-hall-ritual:hover {
+  background: rgba(90, 25, 20, 0.9);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 12px rgba(245, 197, 66, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-hall-ritual .ritual-icon {
+  font-size: 1.8rem;
+}
+
+.btn-hall-ritual .ritual-info strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--gold-bright);
+}
+
+.btn-hall-ritual .ritual-info small {
+  font-size: 0.74rem;
+  color: #dfc18b;
+}
+
+.hall-wish-form {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(245, 197, 66, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* ==========================================================================
+   功德福閣 • 數位開光靈符 (Amulet System)
+   ========================================================================== */
+.amulet-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .amulet-selection-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.amulet-card-item {
+  background: rgba(35, 12, 10, 0.7);
+  border: 1.5px solid rgba(245, 197, 66, 0.25);
+  border-radius: 8px;
+  padding: 10px 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.amulet-card-item:hover {
+  background: rgba(65, 20, 16, 0.85);
+  border-color: rgba(245, 197, 66, 0.6);
+  transform: scale(1.02);
+}
+
+.amulet-card-item.active {
+  background: linear-gradient(135deg, rgba(100, 24, 18, 0.9), rgba(45, 12, 10, 0.95));
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 14px rgba(245, 197, 66, 0.5);
+}
+
+.amulet-badge {
+  display: inline-block;
+  background: #a32222;
+  color: #ffe6ba;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.amulet-title {
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: var(--gold-bright);
+  margin-bottom: 2px;
+}
+
+.amulet-desc {
+  font-size: 0.72rem;
+  color: #dfc18b;
+  line-height: 1.25;
+}
+
+.amulet-consecrate-box {
+  background: rgba(20, 5, 5, 0.6);
+  border: 1.5px dashed rgba(245, 197, 66, 0.4);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.censer-anim-area {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 10px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.censer-graphic {
+  font-size: 2.8rem;
+  filter: drop-shadow(0 0 12px #ff4500);
+}
+
+.talisman-spinning {
+  position: absolute;
+  font-size: 1.8rem;
+  animation: orbitCenser 1s linear infinite;
+  filter: drop-shadow(0 0 10px var(--gold-bright));
+}
+
+@keyframes orbitCenser {
+  0% {
+    transform: rotate(0deg) translateX(55px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(55px) rotate(-360deg);
+  }
+}
+
+/* ==========================================================================
+   線上收驚科儀 (Virtual Shoujing Ceremony)
+   ========================================================================== */
+.shoujing-reasons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+}
+
+.shoujing-reason-card {
+  background: rgba(35, 12, 45, 0.6);
+  border: 1.5px solid rgba(186, 104, 200, 0.35);
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.shoujing-reason-card:hover {
+  border-color: #ba68c8;
+  transform: translateY(-2px);
+  background: rgba(55, 18, 70, 0.8);
+}
+
+.shoujing-reason-card.active {
+  border-color: #e1bee7;
+  background: linear-gradient(145deg, #6a1b9a, #4a148c);
+  box-shadow: 0 0 12px rgba(206, 147, 216, 0.5);
+}
+
+.shoujing-reason-card .reason-icon {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.shoujing-reason-card .reason-title {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #f3e5f5;
+  margin-bottom: 2px;
+}
+
+.shoujing-reason-card .reason-desc {
+  font-size: 0.7rem;
+  color: #dfc18b;
+  line-height: 1.2;
+}
+
+/* ==========================================================================
+   法器結緣閣 (Merit Relic Shop)
+   ========================================================================== */
+.relic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.relic-card-item {
+  background: rgba(22, 10, 10, 0.7);
+  border: 1.5px solid rgba(212, 160, 52, 0.35);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.relic-card-item:hover {
+  border-color: var(--gold-bright);
+  transform: translateY(-2px);
+  background: rgba(35, 15, 15, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.relic-card-item.equipped {
+  border-color: #81c784;
+  background: linear-gradient(145deg, rgba(27, 94, 32, 0.4), rgba(13, 51, 17, 0.7));
+  box-shadow: 0 0 12px rgba(129, 199, 132, 0.3);
+}
+
+.relic-card-item .relic-icon {
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+}
+
+.relic-card-item .relic-name {
+  font-size: 0.92rem;
+  font-weight: bold;
+  color: var(--gold-bright);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.relic-card-item .relic-desc {
+  font-size: 0.74rem;
+  color: #ebd197;
+  line-height: 1.35;
+  flex-grow: 1;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.relic-card-item .relic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(212, 160, 52, 0.2);
+  padding-top: 8px;
+}
+
+.relic-cost {
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: #ffd54f;
+}
+
+.btn-relic-action {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  border-radius: 4px;
+  border: 1px solid var(--gold-primary);
+  background: #5c1818;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-relic-action:hover {
+  background: #8a1d1d;
+  border-color: var(--gold-bright);
+}
+
+.btn-relic-action.equipped {
+  background: #2e7d32;
+  border-color: #81c784;
+  color: #e8f5e9;
+}
+
+.btn-relic-action.equipped:hover {
+  background: #388e3c;
+}
+
+/* ==========================================================================
+   宮廟拍立得留影坊 (Temple Polaroid Camera & Photo Mode)
+   ========================================================================== */
+#photoCanvas {
+  transition: transform 0.3s ease;
+}
+
+#photoCanvas:hover {
+  transform: scale(1.02);
+}
+
+/* ==========================================================================
+   太歲元辰殿 (Tai Sui & Yuan Chen Shrine)
+   ========================================================================== */
+.taisui-fortune-card {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.taisui-badge {
+  letter-spacing: 1px;
+}
+
+#taiSuiCertificateCanvas {
+  transition: transform 0.3s ease;
+}
+
+#taiSuiCertificateCanvas:hover {
+  transform: scale(1.02);
+}
+
+/* ==========================================================================
+   梵音課誦節奏法會 (Cyber Dharma Rhythm Mode)
+   ========================================================================== */
+#rhythmTrackCanvas {
+  display: block;
+}
+
+#btnHitMuyu:active {
+  transform: scale(0.96);
+  background: #6d4c41 !important;
+}
+
+#btnHitBell:active {
+  transform: scale(0.96);
+  background: #a1887f !important;
+}
+
+/* ==========================================================================
+   山海祥瑞萌寵護法 (Pet Sanctuary)
+   ========================================================================== */
+.pet-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.pet-card.active {
+  box-shadow: 0 0 15px rgba(253, 224, 71, 0.4);
+}
+
+/* ==========================================================================
+   平溪賽博祈安天燈 (Sky & Water Lanterns)
+   ========================================================================== */
+.lantern-quick-pill {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  color: #fef08a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lantern-quick-pill:hover {
+  background: rgba(245, 158, 11, 0.3);
+  border-color: #ffd700;
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   賽博禪修堂 (Zen Breathwork & Ambient Mixer)
+   ========================================================================== */
+.zen-mode-btn.active, .zen-time-btn.active {
+  background: linear-gradient(135deg, #f59e0b, #b45309) !important;
+  color: #111827 !important;
+  font-weight: bold;
+  border-color: #fef08a !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+}
+
+.zen-slider {
+  cursor: pointer;
+}
+
+#zenMandalaCanvas {
+  background: radial-gradient(circle, rgba(30, 20, 10, 0.8) 0%, rgba(10, 10, 15, 0.95) 70%);
+}
+
+/* ==========================================================================
+   v10.0.0 擴充樣式：搏杯大賽、藏經閣、御賜平安齋、線上抄經閣
+   ========================================================================== */
+/* 藏經閣 */
+.lore-tab-btn.active {
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8) !important;
+  color: #fff !important;
+  border-color: #93c5fd !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+}
+
+.lore-card {
+  background: rgba(30, 20, 10, 0.7);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lore-card:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #ffd700;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 御賜平安齋 */
+.feast-slot.active {
+  border-color: #ffd700 !important;
+  background: rgba(245, 158, 11, 0.25) !important;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+.feast-dish-picker:hover {
+  background: rgba(245, 158, 11, 0.3) !important;
+  border-color: #ffd700 !important;
+  transform: scale(1.05);
+}
+
+/* 線上抄經閣 */
+.sutra-color-btn.active, .sutra-size-btn.active {
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
+  border-color: #ffd700 !important;
+  transform: scale(1.08);
+}
+
+
+
+
+
+
+
+/* ==========================================================================
+   v10.1.0 UI 重新設計：收納式介面外殼 (Clean HUD Shell)
+   原則：畫面四角各只放一組控制、20+ 功能收進「宮廟萬寶閣」、可一鍵沉浸
+   ========================================================================== */
+
+/* ---------- 頂部導航列：三段式 (左 招牌+神尊 / 中 功德 / 右 系統) ---------- */
+.temple-header {
+  padding: 8px 16px;
+  gap: 12px;
+  background: linear-gradient(180deg, rgba(20, 6, 6, 0.82) 0%, rgba(20, 6, 6, 0) 100%);
+  backdrop-filter: none;
+  pointer-events: none;
+}
+.temple-header > * { pointer-events: auto; }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+.header-center {
+  display: flex;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.header-status {
+  flex: 1 1 0;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.plaque { padding: 2px 12px; }
+.plaque-title { font-size: 1.05rem; letter-spacing: 3px; }
+.plaque-subtitle { font-size: 0.62rem; letter-spacing: 1.5px; }
+
+.merit-counter-badge {
+  padding: 5px 16px;
+  font-size: 0.85rem;
+  box-shadow: 0 0 12px rgba(245, 197, 66, 0.25);
+}
+
+.btn-header {
+  padding: 5px 9px;
+  font-size: 0.78rem;
+  border-color: rgba(245, 197, 66, 0.55);
+  background: rgba(40, 10, 10, 0.75);
+  white-space: nowrap;
+}
+.btn-header.active { background: rgba(245, 197, 66, 0.25); border-color: var(--gold-bright); }
+.btn-header.muted { opacity: 0.6; }
+.header-status .temple-select { font-size: 0.78rem; padding: 4px 8px; max-width: 150px; }
+
+/* 舊版左右兩側滿版按鈕列已移除，保留 class 防止殘留樣式干擾 */
+.deity-switch-dock, .camera-view-dock { display: none !important; }
+
+/* ---------- 共用下拉選單 ---------- */
+.deity-dropdown-container,
+.camera-nav-container { position: relative; }
+
+.deity-dropdown-btn,
+.camera-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(40, 10, 10, 0.8);
+  border: 1px solid rgba(245, 197, 66, 0.55);
+  color: var(--gold-bright);
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+.deity-dropdown-btn:hover,
+.camera-nav-btn:hover {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 10px rgba(245, 197, 66, 0.45);
+}
+.dropdown-chevron { font-size: 0.7rem; opacity: 0.8; }
+
+.deity-dropdown-menu,
+.camera-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  display: none;
+  background: rgba(22, 7, 7, 0.96);
+  border: 1px solid rgba(245, 197, 66, 0.5);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 120;
+  animation: hudDropIn 0.16s ease-out;
+}
+.deity-dropdown-menu.open,
+.camera-nav-dropdown.open { display: block; }
+
+@keyframes hudDropIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.deity-dropdown-menu { left: 0; min-width: 200px; }
+.deity-dropdown-menu .btn-deity-pill {
+  width: 100%;
+  margin-bottom: 4px;
+  border-radius: 8px;
+  background: transparent;
+  border-color: transparent;
+}
+.deity-dropdown-menu .btn-deity-pill:last-child { margin-bottom: 0; }
+.deity-dropdown-menu .btn-deity-pill:hover,
+.deity-dropdown-menu .btn-deity-pill.active {
+  transform: none;
+  background: linear-gradient(90deg, #851e1e, #470e0e);
+  border-color: rgba(245, 197, 66, 0.6);
+}
+
+/* ---------- 右上：鏡頭視角導覽艙 ---------- */
+.camera-nav-container {
+  position: absolute;
+  top: 66px;
+  right: 16px;
+  z-index: 55;
+}
+.camera-nav-dropdown {
+  right: 0;
+  width: 320px;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+.camera-group-title {
+  font-size: 0.74rem;
+  color: #c9a76e;
+  letter-spacing: 1px;
+  margin: 6px 4px 4px;
+}
+.camera-group-title:first-child { margin-top: 0; }
+.camera-group-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.camera-group-grid .btn-cam-view {
+  text-align: left;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.camera-group-grid .btn-cam-view:hover,
+.camera-group-grid .btn-cam-view.active { transform: none; }
+
+/* ---------- 左下：精簡動作列 (單排膠囊，無標題與說明文字) ---------- */
+.avatar-action-bar {
+  bottom: 20px;
+  left: 16px;
+  padding: 6px;
+  border-radius: 24px;
+  gap: 0;
+  background: rgba(22, 7, 7, 0.72);
+}
+.avatar-action-bar .action-buttons { gap: 4px; }
+.avatar-action-bar .btn-action-pill {
+  padding: 5px 9px;
+  font-size: 0.76rem;
+  border-radius: 16px;
+  border-color: rgba(245, 197, 66, 0.45);
+  white-space: nowrap;
+}
+.action-bar-title, .walk-tips { display: none; }
+
+/* ---------- 底部中央：核心速控列 ---------- */
+.temple-dock-container {
+  bottom: 18px;
+  width: auto;
+  max-width: calc(100vw - 32px);
+  gap: 8px;
+}
+.dock-status-bar {
+  font-size: 0.84rem;
+  padding: 6px 18px;
+  min-width: 0;
+  max-width: 640px;
+  letter-spacing: 1px;
+  background: rgba(22, 7, 7, 0.78);
+  border-color: rgba(255, 232, 133, 0.6);
+}
+
+.dock-quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(22, 7, 7, 0.82);
+  border: 1px solid rgba(245, 197, 66, 0.55);
+  border-radius: 30px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.btn-dock-quick {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--gold-bright);
+  padding: 8px 13px;
+  border-radius: 22px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s ease;
+}
+.btn-dock-quick:hover {
+  background: linear-gradient(180deg, #8a1d1d, #4a0f0f);
+  border-color: rgba(245, 197, 66, 0.7);
+  transform: translateY(-2px);
+}
+.btn-dock-quick:active { transform: translateY(0); }
+.btn-dock-quick.active {
+  background: rgba(245, 197, 66, 0.2);
+  border-color: var(--gold-bright);
+}
+
+.btn-danmaku-toggle { border-left: 1px solid rgba(245, 197, 66, 0.25); border-radius: 0 22px 22px 0; }
+
+.btn-pavilion-trigger {
+  background: linear-gradient(135deg, #b8860b, #f5c542);
+  color: #2a0808;
+  border-color: #ffe885;
+  margin-left: 4px;
+  box-shadow: 0 0 14px rgba(245, 197, 66, 0.45);
+}
+.btn-pavilion-trigger:hover {
+  background: linear-gradient(135deg, #f5c542, #ffe885);
+  color: #2a0808;
+  box-shadow: 0 0 20px rgba(245, 197, 66, 0.75);
+}
+.pavilion-badge {
+  background: #8b1c1c;
+  color: #ffe885;
+  font-size: 0.66rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+
+/* 摺疊彈幕輸入列 */
+.dock-danmaku-row {
+  display: none;
+  max-width: 520px;
+  animation: hudDropIn 0.16s ease-out;
+}
+.dock-danmaku-row.open { display: flex; }
+
+/* ---------- 宮廟萬寶閣 ---------- */
+.pavilion-modal { padding: 22px 24px; }
+.pavilion-header { text-align: center; margin-bottom: 14px; }
+.pavilion-title {
+  color: var(--gold-bright);
+  font-size: 1.3rem;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+.pavilion-subtitle { font-size: 0.8rem; color: #c9a76e; }
+
+.pavilion-category-tabs {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.pavilion-cat-tab {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(245, 197, 66, 0.35);
+  color: #dfc18b;
+  padding: 6px 14px;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.pavilion-cat-tab:hover { border-color: var(--gold-bright); color: var(--gold-bright); }
+.pavilion-cat-tab.active {
+  background: linear-gradient(90deg, #7c1a1a, #ba2b2b);
+  border-color: var(--gold-bright);
+  color: #fff;
+}
+
+.pavilion-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.pavilion-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: linear-gradient(160deg, rgba(60, 16, 16, 0.75), rgba(25, 8, 8, 0.85));
+  border: 1px solid rgba(245, 197, 66, 0.28);
+  border-radius: 12px;
+  padding: 12px 12px 12px 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  outline: none;
+}
+.pavilion-card:hover,
+.pavilion-card:focus-visible {
+  border-color: var(--gold-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 197, 66, 0.35);
+}
+.pavilion-card.active {
+  border-color: #6ee7b7;
+  box-shadow: 0 0 14px rgba(110, 231, 183, 0.4);
+}
+.pavilion-card .card-icon {
+  font-size: 1.7rem;
+  line-height: 1;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+}
+.pavilion-card .card-body { flex: 1; min-width: 0; padding-right: 54px; }
+.pavilion-card .card-title {
+  color: var(--gold-bright);
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 3px;
+}
+.pavilion-card .card-desc {
+  color: #cdb995;
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+.pavilion-card .card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 0.64rem;
+  color: #ffe885;
+  background: rgba(139, 28, 28, 0.8);
+  border: 1px solid rgba(245, 197, 66, 0.4);
+  padding: 1px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* ---------- 沉浸模式：隱藏所有 HUD ---------- */
+.hud-exit-btn {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 130;
+  display: none;
+  background: rgba(22, 7, 7, 0.55);
+  border: 1px solid rgba(245, 197, 66, 0.45);
+  color: var(--gold-bright);
+  padding: 6px 14px;
+  border-radius: 18px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+.hud-exit-btn:hover { opacity: 1; }
+
+body.hud-hidden .temple-header,
+body.hud-hidden .temple-border-top,
+body.hud-hidden .camera-nav-container,
+body.hud-hidden .avatar-action-bar,
+body.hud-hidden .temple-dock-container,
+body.hud-hidden #virtualJoystickZone {
+  opacity: 0;
+  pointer-events: none !important;
+  visibility: hidden;
+}
+body.hud-hidden .hud-exit-btn { display: block; }
+
+.temple-header,
+.camera-nav-container,
+.avatar-action-bar,
+.temple-dock-container {
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+/* ---------- 響應式：中型螢幕 ---------- */
+@media (max-width: 1180px) {
+  .plaque-subtitle { display: none; }
+  .header-status .temple-select { max-width: 118px; }
+  .btn-dock-quick { padding: 7px 10px; font-size: 0.82rem; }
+}
+
+/* 中小螢幕：動作列改成直立縮小，避免與底部速控列重疊 */
+@media (max-width: 1100px) {
+  .avatar-action-bar {
+    bottom: auto;
+    top: 112px;
+    left: 12px;
+    border-radius: 16px;
+  }
+  .avatar-action-bar .action-buttons { flex-direction: column; }
+}
+
+/* ---------- 響應式：平板與手機 ---------- */
+@media (max-width: 860px) {
+  .temple-header { flex-wrap: wrap; padding: 6px 10px; gap: 6px; }
+  .plaque { display: none; }
+  .header-left { flex: 0 0 auto; }
+  .header-center { flex: 1 1 auto; justify-content: flex-start; }
+  .header-status {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .header-status::-webkit-scrollbar { display: none; }
+  .camera-nav-container { top: 92px; right: 10px; }
+  .camera-nav-btn > span:first-child { display: none; }
+  .camera-nav-dropdown { width: min(300px, calc(100vw - 20px)); }
+
+  .avatar-action-bar { top: 140px; left: 10px; bottom: auto; padding: 4px; }
+  .avatar-action-bar .btn-action-pill { font-size: 0.7rem; padding: 4px 7px; }
+
+  .temple-dock-container { bottom: 10px; max-width: calc(100vw - 16px); }
+  .dock-status-bar { font-size: 0.74rem; padding: 5px 12px; }
+  .dock-quick-bar {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    justify-content: flex-start;
+  }
+  .dock-quick-bar::-webkit-scrollbar { display: none; }
+  .btn-dock-quick { padding: 7px 9px; font-size: 0.78rem; }
+
+  /* 搖桿上移避開底部速控列 */
+  #virtualJoystickZone { bottom: 120px; }
+
+  .pavilion-modal { padding: 16px 12px; }
+  .pavilion-cards-container { grid-template-columns: 1fr; }
+}

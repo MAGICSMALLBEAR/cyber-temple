@@ -1,0 +1,6 @@
+# 從其他 AI 工具對話紀錄撈回的重建殘留（含對話內容，不入版控）
+found_step.json
+scratch_match.json
+reconstructed_index.html
+full_index_base.html
+node_modules/
