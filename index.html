@@ -82,6 +82,7 @@
       <button class="btn-header" id="btnToggleBGM" title="禪音背景音開關">🎵 禪音</button>
       <button class="btn-header" id="btnToggleMute" title="音效開關">🔊 音效</button>
       <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
+      <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態">🏮 香火 <span class="hud-online-pill" id="hudOnlineCount">1</span></button>
       <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
       <button class="btn-header" id="btnOpenSettings" title="AI 神諭與系統設定">⚙️ 設定</button>
       <button class="btn-header" id="btnOpenHelp" title="操作與快捷鍵導引 (?)">❓</button>
@@ -137,6 +138,9 @@
 
   <!-- 即時祈願飛天彈幕層 -->
   <div class="danmaku-container" id="danmakuContainer"></div>
+
+  <!-- 同行善信廣播通知（點香、三聖筊） -->
+  <div class="temple-broadcast-notice" id="templeBroadcastNotice" role="status" aria-live="polite"></div>
 
   <!-- 左下方：精巧角色禮佛動作列 (緊湊單排膠囊) -->
   <div class="avatar-action-bar" id="avatarActionBar">
@@ -438,6 +442,36 @@
   </div>
 
   <!-- 善信功德修持護照彈窗 (Passport Modal) -->
+  <!-- 即時香火牆 -->
+  <div class="modal-overlay" id="liveWallModal">
+    <div class="settings-modal" style="max-width: 520px; max-height: 88vh; overflow-y: auto;">
+      <button class="modal-close" id="liveWallModalClose" style="color: var(--gold-bright);">&times;</button>
+      <div style="text-align: center; margin-bottom: 14px;">
+        <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🏮 即時香火牆</h3>
+        <div style="font-size: 0.82rem; color: #dfc18b;">同殿善信的香火與祈願，即時同步</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px;">
+        <div class="passport-stat-box" title="你自己，加上目前連線中的同行分身">
+          <div class="stat-label">🟢 在線同行</div>
+          <div class="stat-val" id="statOnlineCount">1</div>
+        </div>
+        <div class="passport-stat-box" title="你今天點的香，加上本次連線看到的同行點香；每天零時歸零">
+          <div class="stat-label">🔥 今日香火</div>
+          <div class="stat-val" id="statTodayIncense">0</div>
+        </div>
+        <div class="passport-stat-box" title="你今天點的光明燈，加上本次連線看到的同行點燈；每天零時歸零">
+          <div class="stat-label">🪔 今日點燈</div>
+          <div class="stat-val" id="statTodayLantern">0</div>
+        </div>
+      </div>
+      <div class="wall-footnote">在線人數含你自己。用「啟動神殿.bat」開啟時，同一個 WiFi 下的手機、平板也會連進來；直接開 index.html 只會同步同一個瀏覽器的分頁。</div>
+
+      <div class="wall-feed-title">📜 祈願動態</div>
+      <div class="wall-feed" id="liveWallFeed"></div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="passportModal">
     <div class="settings-modal" style="max-width: 620px; max-height: 88vh; overflow-y: auto;">
       <button class="modal-close" id="passportModalClose" style="color: var(--gold-bright);">&times;</button>
@@ -1791,6 +1825,15 @@
             <div class="card-desc">六十甲子靈籤圖鑑大全、仙真神尊列傳、拜拜科儀寶典</div>
           </div>
           <span class="card-badge">經閣領悟</span>
+        </div>
+
+        <div class="pavilion-card" data-proxy="btnOpenLiveWall" data-cat="lore">
+          <div class="card-icon">🏮</div>
+          <div class="card-body">
+            <div class="card-title">即時香火牆</div>
+            <div class="card-desc">在線同行、今日香火與點燈、同殿善信祈願動態</div>
+          </div>
+          <span class="card-badge">同行連線</span>
         </div>
 
         <div class="pavilion-card" data-proxy="btnOpenPassport" data-cat="lore">

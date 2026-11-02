@@ -119,6 +119,34 @@ class TempleAudioEngine {
     });
   }
 
+  // 清脆銅磬 / 小頌缽：比大鐘輕短，兩個微失諧正弦產生自然拍音
+  playBowl(freq = 880, sourcePos = null) {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const spatialGain = sourcePos ? this.getSpatialGain(sourcePos.x, sourcePos.y, sourcePos.z, 12) : 1;
+    const duration = 2.2;
+
+    [{ ratio: 1.0, gain: 0.32 }, { ratio: 1.004, gain: 0.22 }, { ratio: 2.76, gain: 0.07 }].forEach(p => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq * p.ratio, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(p.gain * spatialGain, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    });
+  }
+
+  // 舊呼叫名稱，等同木魚聲
+  playMuyuSound(sourcePos = null) {
+    this.playWoodblock(sourcePos);
+  }
+
   // 擲筊落地撞擊聲
   playBwaBweiSound() {
     if (this.isMuted) return;

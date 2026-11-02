@@ -48,6 +48,8 @@ window.addEventListener("DOMContentLoaded", () => {
   // 1. 初始化 3D WebGL 場景與角色
   if (window.Temple3DScene) {
     temple3d = new Temple3DScene("canvas3dContainer");
+    // 其他模組（avatar3d、beads 與本檔多處）都透過 window.temple3d 取用場景
+    window.temple3d = temple3d;
     if (temple3d.avatar && state.avatarConfig) {
       temple3d.avatar.customize(state.avatarConfig);
     }
@@ -63,7 +65,10 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // 3. 初始化即時彈幕
   if (window.liveTempleWall) {
-    window.liveTempleWall.init("danmakuContainer");
+    window.liveTempleWall.init("danmakuContainer", {
+      getPeerCount: () => (temple3d && temple3d.avatar && temple3d.avatar.peers ? temple3d.avatar.peers.size : 0),
+      getSelfName: () => state.avatarConfig.title || "善信"
+    });
   }
 
   // 4. 更新功德池與 AI 標籤
@@ -776,6 +781,18 @@ function bindEvents() {
     openPassportModal();
   });
 
+  // 即時香火牆
+  document.getElementById("btnOpenLiveWall").addEventListener("click", () => {
+    if (window.liveTempleWall) {
+      window.liveTempleWall.renderStats();
+      window.liveTempleWall.updateLiveFeedList();
+    }
+    document.getElementById("liveWallModal").classList.add("open");
+  });
+  document.getElementById("liveWallModalClose").addEventListener("click", () => {
+    document.getElementById("liveWallModal").classList.remove("open");
+  });
+
   document.getElementById("passportModalClose").addEventListener("click", () => {
     document.getElementById("passportModal").classList.remove("open");
   });
@@ -1184,9 +1201,7 @@ function performBwaToss() {
         setDockStatus("🔥 賀！連續獲得三個聖筊！神明大顯神通，萬事皆成！聖駕起駕出巡遶境！");
         window.templeAudio.playBell(660);
         if (temple3d) temple3d.startParade();
-        if (window.liveTempleWall && window.liveTempleWall.channel) {
-          window.liveTempleWall.channel.postMessage({ type: "HOLY_BWA", payload: { name: state.avatarConfig.title } });
-        }
+        if (window.liveTempleWall) window.liveTempleWall.announceHolyBwa(state.avatarConfig.title);
       }
     } else if (outcome1 === 0 && outcome2 === 0) {
       state.consecutiveHolyBwa = 0;
@@ -1275,9 +1290,7 @@ function submitLanternAction() {
   const wish = document.getElementById("lanternWish")?.value.trim() || "平安順遂";
 
   if (window.liveTempleWall) {
-    window.liveTempleWall.todayLanterns++;
-    localStorage.setItem("temple_today_lanterns", window.liveTempleWall.todayLanterns);
-    window.liveTempleWall.renderStats();
+    window.liveTempleWall.recordLantern(name);
     window.liveTempleWall.broadcastPrayer({
       name,
       loc: "大殿點燈閣",
@@ -1292,6 +1305,9 @@ function submitLanternAction() {
   } catch (e) {}
   lHist.unshift({ date: new Date().toLocaleDateString(), name, wish });
   localStorage.setItem("temple_lantern_history", JSON.stringify(lHist.slice(0, 30)));
+  // 名冊只留 30 筆，累計點燈數另外記
+  const litTotal = parseInt(localStorage.getItem("temple_lanterns_lit") || String(lHist.length - 1), 10) + 1;
+  localStorage.setItem("temple_lanterns_lit", litTotal);
 
   window.templeAudio.playBell(560);
   if (temple3d) {
@@ -1573,7 +1589,9 @@ function openPassportModal() {
   document.getElementById("statHolyStreak").innerText = Math.max(highestBwa, state.consecutiveHolyBwa);
 
   // 點燈數
-  const lanterns = parseInt(localStorage.getItem("temple_today_lanterns") || "0", 10);
+  let lanternHistLen = 0;
+  try { lanternHistLen = JSON.parse(localStorage.getItem("temple_lantern_history") || "[]").length; } catch (e) {}
+  const lanterns = Math.max(parseInt(localStorage.getItem("temple_lanterns_lit") || "0", 10), lanternHistLen);
   document.getElementById("statLanternsCount").innerText = lanterns;
 
   // 許願投幣數
@@ -3058,9 +3076,7 @@ function launchCurrentSkyLantern() {
 
   addMerit(80);
   const broadcastMsg = `🏮 善信【${petitioner}】在神殿放飛祈安天燈：「${text}」，願力通達九天！`;
-  if (window.liveWall) {
-    window.liveWall.broadcastWish(broadcastMsg);
-  }
+  if (window.liveTempleWall) window.liveTempleWall.addDanmaku(broadcastMsg);
   if (typeof showFloatingDanmaku !== "undefined") {
     showFloatingDanmaku(broadcastMsg, "#ffd700");
   }
@@ -3083,9 +3099,7 @@ function launchCurrentWaterLantern() {
 
   addMerit(50);
   const broadcastMsg = `🪷 善信【${petitioner}】在蓮花池放流祈願水燈：「${text}」，波光照耀福海！`;
-  if (window.liveWall) {
-    window.liveWall.broadcastWish(broadcastMsg);
-  }
+  if (window.liveTempleWall) window.liveTempleWall.addDanmaku(broadcastMsg);
   if (typeof showFloatingDanmaku !== "undefined") {
     showFloatingDanmaku(broadcastMsg, "#a7f3d0");
   }
@@ -3427,7 +3441,7 @@ function throwBwaCompetition() {
 
         if (bwaStreak >= 5) {
           const bMsg = `🎉 善信【${state.avatarConfig.title || "善信"}】在搏杯大賽連續擲得【${bwaStreak} 聖筊】！${getBwaTitleByStreak(bwaStreak)}！`;
-          if (window.liveWall) window.liveWall.broadcastWish(bMsg);
+          if (window.liveTempleWall) window.liveTempleWall.addDanmaku(bMsg);
           if (typeof showFloatingDanmaku !== "undefined") showFloatingDanmaku(bMsg, "#ffd700");
         }
       } else {
@@ -3817,7 +3831,7 @@ function presentFeastOffering() {
   addMerit(128);
   const petitioner = state.avatarConfig.title || "善信";
   const msg = `🍱 善信【${petitioner}】在神案呈獻御賜五品大筵席，神威廣大，功德 +128！全天福星高照！`;
-  if (window.liveWall) window.liveWall.broadcastWish(msg);
+  if (window.liveTempleWall) window.liveTempleWall.addDanmaku(msg);
   if (typeof showFloatingDanmaku !== "undefined") showFloatingDanmaku(msg, "#fde047");
   if (window.setDockStatus) window.setDockStatus(msg);
   window.closeFeastModal();
@@ -4014,7 +4028,7 @@ function completeSutraCopying() {
   if (window.templeAudio) window.templeAudio.playBell(108);
 
   const msg = `🪷 抄經圓滿！將無量功德迴向給【${target}】！消除業障，功德 +150！`;
-  if (window.liveWall) window.liveWall.broadcastWish(msg);
+  if (window.liveTempleWall) window.liveTempleWall.addDanmaku(msg);
   if (typeof showFloatingDanmaku !== "undefined") showFloatingDanmaku(msg, "#6ee7b7");
   if (window.setDockStatus) window.setDockStatus(msg);
   alert(`🪷 虔心抄經功德圓滿！朱印已鈐蓋於墨寶之上，功德 +150，願力廣被【${target}】！`);

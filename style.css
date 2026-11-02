@@ -312,6 +312,127 @@ body {
   100% { transform: translateX(-1600px); opacity: 0; }
 }
 
+/* 示範祈願彈幕：與真人祈願區隔 */
+.live-danmaku-item.demo-danmaku {
+  background: rgba(20, 12, 8, 0.6);
+  border-style: dashed;
+  border-color: rgba(245, 197, 66, 0.45);
+  box-shadow: none;
+  opacity: 0.8;
+}
+
+.live-danmaku-item.demo-danmaku .danmaku-badge {
+  color: #c9a76e;
+  font-weight: normal;
+}
+
+/* 頂部「香火」按鈕上的在線人數 */
+.hud-online-pill {
+  display: inline-block;
+  min-width: 1.4em;
+  margin-left: 2px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: rgba(46, 160, 67, 0.85);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* 同行善信廣播通知條 */
+.temple-broadcast-notice {
+  position: fixed;
+  top: 78px;
+  left: 50%;
+  transform: translate(-50%, -12px);
+  max-width: min(90vw, 560px);
+  padding: 8px 18px;
+  border-radius: 20px;
+  background: rgba(60, 14, 10, 0.92);
+  border: 1px solid var(--gold-primary);
+  color: var(--gold-bright);
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 60;
+}
+
+.temple-broadcast-notice.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* 即時香火牆面板 */
+.wall-footnote {
+  font-size: 0.74rem;
+  color: #b8996a;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.wall-feed-title {
+  color: var(--gold-bright);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.wall-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wall-feed-item {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(245, 197, 66, 0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.wall-feed-item.is-self {
+  border-color: rgba(245, 197, 66, 0.55);
+  background: rgba(139, 28, 28, 0.35);
+}
+
+.wall-feed-item .feed-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.wall-feed-item .feed-header strong {
+  color: var(--gold-bright);
+  font-size: 0.85rem;
+}
+
+.wall-feed-item .feed-header span {
+  color: #c9a76e;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.wall-feed-item .feed-body {
+  color: #f3e3c0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.wall-feed-empty {
+  color: #b8996a;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 18px 8px;
+  border: 1px dashed rgba(245, 197, 66, 0.25);
+  border-radius: 8px;
+}
+
 /* 左下方：角色禮佛動作列 */
 .avatar-action-bar {
   position: absolute;
