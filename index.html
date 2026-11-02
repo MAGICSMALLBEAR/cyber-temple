@@ -387,7 +387,7 @@
   <div class="modal-overlay" id="settingsModal">
     <div class="settings-modal">
       <button class="modal-close" id="settingsModalClose" style="color: var(--gold-bright);">&times;</button>
-      <h3 style="color: var(--gold-bright); margin-bottom: 12px; letter-spacing: 2px;">⚙️ AI 智慧解籤設定</h3>
+      <h3 style="color: var(--gold-bright); margin-bottom: 12px; letter-spacing: 2px;">⚙️ 畫質與 AI 解籤設定</h3>
       <p style="font-size: 0.85rem; color: #dfc18b; line-height: 1.5; margin-bottom: 14px;">
         本神殿預設已內建<strong>「高階本地神明心靈推演引擎」</strong>（免 Key 即刻可享深度解籤）。若您持有 Google Gemini API Key，可在此輸入以直連原廠即時大模型對話：
       </p>
@@ -396,6 +396,18 @@
         <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">Google Gemini API Key：</label>
         <input type="password" class="temple-input" id="txtGeminiKey" placeholder="AIzaSy... (僅存於您個人瀏覽器，安全無外洩)" style="width: 100%;">
       </div>
+
+      <div class="daily-section-title" style="margin-top: 4px;">🖥️ 畫質</div>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px;">
+        <select id="selectQuality" class="temple-select" style="flex: 1;" title="畫面不順時調低畫質">
+          <option value="auto">自動</option>
+          <option value="high">高：柔和陰影、最清晰</option>
+          <option value="medium">中：一般陰影、粒子減量</option>
+          <option value="low">低：關閉陰影與裝飾光源，最省電</option>
+        </select>
+        <span class="wall-footnote" id="qualityFps" style="margin: 0; white-space: nowrap;">量測中…</span>
+      </div>
+      <div class="wall-footnote" id="qualityNote">自動模式會依電腦效能選擇，畫面持續不順時自動調低一級。畫質變更立即生效。</div>
 
       <div style="display: flex; gap: 10px;">
         <button class="btn-dock-action" id="btnSaveSettings" style="flex: 1; justify-content: center;">
@@ -1997,6 +2009,7 @@
   <script src="audio.js"></script>
   <script src="daily.js"></script>
   <script src="save-data.js"></script>
+  <script src="quality.js"></script>
   <script src="chiam-data.js"></script>
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>

@@ -123,9 +123,11 @@ class Temple3DScene {
     this.camera.position.set(0, 3.2, 8.8); // 初始置於分身後上方
 
     // 3. 渲染器
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+    // 抗鋸齒只能在建立時決定，其餘畫質設定由 applyQuality 隨時套用
+    const initialQuality = window.templeQuality ? window.templeQuality.preset : null;
+    this.renderer = new THREE.WebGLRenderer({ antialias: initialQuality ? initialQuality.antialias : true, alpha: true, powerPreference: "high-performance" });
     this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, initialQuality ? initialQuality.maxPixelRatio : 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -159,6 +161,9 @@ class Temple3DScene {
     if (window.TempleAvatarSystem) {
       this.avatar = new TempleAvatarSystem(this.scene, this.camera, this.controls);
     }
+
+    // 6.5 畫質分級（場景與燈光都建好之後才套用）
+    if (window.templeQuality) window.templeQuality.attach(this);
 
     // 7. 事件監聽
     window.addEventListener("resize", () => this.onWindowResize());
@@ -2218,6 +2223,7 @@ class Temple3DScene {
       this.spawn3DFloatingText("☀️ 天朗氣清 • 晴空萬里", new THREE.Vector3(0, 3.5, 8.0));
       if (window.setDockStatus) window.setDockStatus("☀️ 晴空碧藍，宮闕巍峨，陽光普照神威顯赫。");
     }
+    this.applyParticleBudget();
   }
 
   // 地面雨滴漣漪生成
@@ -3689,6 +3695,54 @@ class Temple3DScene {
     }
   }
 
+  // ---------- 畫質分級 ----------
+  applyQuality(preset) {
+    this.qualityPreset = preset;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.maxPixelRatio));
+    this.onWindowResize();
+
+    const shadowType = preset.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    const shadowsChanged = this.renderer.shadowMap.enabled !== preset.shadows || this.renderer.shadowMap.type !== shadowType;
+    this.renderer.shadowMap.enabled = preset.shadows;
+    this.renderer.shadowMap.type = shadowType;
+    [[this.sunMoonLight, preset.sunShadowSize], [this.mainSpot, preset.spotShadowSize]].forEach(([light, size]) => {
+      if (!light || light.shadow.mapSize.width === size) return;
+      light.shadow.mapSize.set(size, size);
+      // 舊的陰影貼圖要丟掉，three 才會以新尺寸重建
+      if (light.shadow.map) {
+        light.shadow.map.dispose();
+        light.shadow.map = null;
+      }
+    });
+    // 陰影開關或類型改變後，所有材質都要重新編譯
+    if (shadowsChanged) {
+      this.scene.traverse(obj => {
+        if (!obj.material) return;
+        (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => { m.needsUpdate = true; });
+      });
+    }
+    this.applyParticleBudget();
+    this.applyLightBudget();
+  }
+
+  // 粒子只畫前面一部分，不重建幾何
+  applyParticleBudget() {
+    const factor = this.qualityPreset ? this.qualityPreset.particles : 1;
+    [this.starPoints, this.dustPoints, this.weatherPoints].forEach(points => {
+      if (!points) return;
+      const total = points.geometry.attributes.position.count;
+      points.geometry.setDrawRange(0, Math.max(1, Math.floor(total * factor)));
+    });
+  }
+
+  // 低畫質關掉裝飾用點光源（每盞點光源都會增加每個像素的計算），只留神像主光
+  applyLightBudget() {
+    const allow = !this.qualityPreset || this.qualityPreset.decorLights;
+    this.scene.traverse(obj => {
+      if (obj.isPointLight && obj !== this.shrineBacklight && obj.visible !== allow) obj.visible = allow;
+    });
+  }
+
   onWindowResize() {
     if (!this.container || !this.renderer) return;
     const width = this.container.clientWidth || window.innerWidth;
@@ -3700,6 +3754,10 @@ class Temple3DScene {
 
   animate() {
     requestAnimationFrame(() => this.animate());
+
+    // 科儀過程中會動態新增點光源（化金紙、點香），低畫質時定期關掉
+    this.qualityFrame = (this.qualityFrame || 0) + 1;
+    if (this.qualityFrame % 90 === 0 && this.qualityPreset && !this.qualityPreset.decorLights) this.applyLightBudget();
 
     const now = performance.now();
     const dt = Math.min((now - this.lastTime) * 0.001, 0.1);
