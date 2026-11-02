@@ -252,6 +252,11 @@
 
 ---
 
+- [x] **PWA 可安裝與離線參拜 (v10.3.0)**
+  - **完成內容**：manifest、圖示、Service Worker 離線快取、安裝按鈕。手機安裝需 https 部署。
+
+---
+
 ## 📌 P5：長遠硬體沉浸規劃（XR 與實體宮廟聯名）
 
 - [ ] **WebXR / VR 虛擬實境沉浸模式 (VR Headset Support)**

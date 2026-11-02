@@ -1932,3 +1932,8 @@ body.hud-hidden .hud-exit-btn { display: block; }
   .pavilion-modal { padding: 16px 12px; }
   .pavilion-cards-container { grid-template-columns: 1fr; }
 }
+
+/* 安裝按鈕在瀏覽器提供安裝前保持隱藏 */
+.btn-header[hidden] {
+  display: none;
+}

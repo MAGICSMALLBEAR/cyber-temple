@@ -6,17 +6,15 @@ const path = require('path');
 const PORT = Number(process.env.PORT) || 8080;
 const sseClients = new Set();
 const MAX_BROADCAST_BYTES = 64 * 1024;
-// 伺服器端與重建殘留檔，不對外提供
-const BLOCKED_FILES = new Set([
-  'server.js', 'found_step.json', 'scratch_match.json',
-  'reconstructed_index.html', 'full_index_base.html'
-]);
+// 伺服器端檔案，不對外提供
+const BLOCKED_FILES = new Set(['server.js']);
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=UTF-8',
   '.css': 'text/css; charset=UTF-8',
   '.js': 'application/javascript; charset=UTF-8',
   '.json': 'application/json; charset=UTF-8',
+  '.webmanifest': 'application/manifest+json; charset=UTF-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',

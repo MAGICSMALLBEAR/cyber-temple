@@ -403,6 +403,14 @@
 - **修正**：`window.temple3d` 從未設定，天燈、水燈、萌寵、搏杯擂台、供品擺盤、禪坐、[E] 互動等 35 處呼叫全部失效；9 個科儀按鈕呼叫不存在的 `addDanmaku` 而拋錯；5 處呼叫不存在的 `window.liveWall`；`audio.js` 缺 `playBowl`、`playMuyuSound`；護照點燈數讀的是假計數。
 - **驗證**：Playwright 依序開啟萬寶閣 26 張卡片並點遍視窗內按鈕，修改前 15 種 JS 錯誤、修改後 0；三台獨立瀏覽器測試在線人數、跨裝置祈願、去重、XSS、跨日歸零。
 
+
+### 📲 第十七階段：PWA 可安裝與離線參拜 (v10.3.0，2026-11-02)
+
+- **可安裝**：`manifest.webmanifest`（全螢幕、朱紅主題色）與 `icons/` 四款圖示（一般、maskable、Apple 主畫面）；瀏覽器提供安裝時頂部出現「📲 安裝」按鈕。
+- **離線**：`sw.js` 安裝時預存 19 個檔案；同源檔案網路優先（3 秒逾時退回快取），有網路時永遠拿最新版；Google 字型快取優先（第二次開啟起離線可用）；`/api/*` 多人連線與 AI 解籤不經快取。
+- **限制**：Service Worker 只在 https 或 localhost 生效。手機用區網 IP（http://192.168.x.x）連進來可以玩、可以多人，但不能安裝也不能離線。
+- **清理**：刪除重建殘留檔 found_step.json、scratch_match.json、reconstructed_index.html、full_index_base.html。
+
 ---
 
 ## 📊 技術架構一覽表
