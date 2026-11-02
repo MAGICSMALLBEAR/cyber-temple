@@ -1,6 +1,10 @@
 // temple3d.js - 賽博虛擬神殿 3D 全景沉浸式 WebGL 引擎
 // 包含：大殿、戶外廟埕、天公爐、蓮花許願池、八角金爐、神尊專屬法相切換、角色跟隨與接近觸發
 
+// 神轎停放處（御道東側，避開大殿入口側牆）
+const PALANQUIN_REST_X = 3.8;
+const PALANQUIN_REST_Z = 9;
+
 class Temple3DScene {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
@@ -82,7 +86,7 @@ class Temple3DScene {
     this.palanquinGroup = null;
     this.liangsanMesh = null;
     this.isParading = false;
-    this.paradeZ = 7.5;
+    this.paradeZ = PALANQUIN_REST_Z;
     this.paradeDirection = 1;
     this.firecrackerParticles = [];
     this.hasKneeledUnderPalanquin = false;
@@ -1854,7 +1858,8 @@ class Temple3DScene {
   // 16. 迎神遶境八抬神轎與儀仗隊伍 (中央神道起點)
   buildPalanquinProcession() {
     this.palanquinGroup = new THREE.Group();
-    this.palanquinGroup.position.set(0, 0.8, 7.5);
+    // 平時停在御道東側，不擋大殿入口的視線；遶境時才移到中央御道
+    this.palanquinGroup.position.set(PALANQUIN_REST_X, 0.8, PALANQUIN_REST_Z);
 
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xf5c542, metalness: 0.8, roughness: 0.25 });
     const redMat = new THREE.MeshStandardMaterial({ color: 0x991f1f, roughness: 0.45 });
@@ -2074,12 +2079,12 @@ class Temple3DScene {
       return;
     }
     this.isParading = true;
-    this.paradeZ = 7.5;
+    this.paradeZ = PALANQUIN_REST_Z;
     this.paradeDirection = 1;
     this.hasKneeledUnderPalanquin = false;
 
     if (window.templeAudio) window.templeAudio.playParadeMusic();
-    this.spawn3DFloatingText("🏮 聖駕起駕 • 迎神遶境大吉！", new THREE.Vector3(0, 3.2, 7.5));
+    this.spawn3DFloatingText("🏮 聖駕起駕 • 迎神遶境大吉！", new THREE.Vector3(0, 3.2, PALANQUIN_REST_Z));
 
     if (window.setDockStatus) window.setDockStatus("🏮 神明聖駕起駕！八抬大轎出巡，鑼鼓齊鳴、鞭炮喧天！信眾可隨香祈福！");
     if (window.liveTempleWall) window.liveTempleWall.addDanmaku("🏮 恭迎神明聖駕出巡遶境！風調雨順，國泰民安，四時吉祥！");
@@ -3928,6 +3933,12 @@ class Temple3DScene {
       this.liangsanMesh.rotation.y += 0.025;
     }
 
+    // 起駕時從東側停放處平移到中央御道，回鑾後再移回
+    if (this.palanquinGroup) {
+      const targetX = this.isParading ? 0 : PALANQUIN_REST_X;
+      this.palanquinGroup.position.x += (targetX - this.palanquinGroup.position.x) * Math.min(1, dt * 2.5);
+    }
+
     if (this.isParading && this.palanquinGroup) {
       this.palanquinGroup.position.z += dt * 2.4 * this.paradeDirection;
       this.palanquinGroup.position.y = 0.8 + Math.sin(time * 5.5) * 0.08;
@@ -3941,11 +3952,11 @@ class Temple3DScene {
         this.paradeDirection = -1;
         this.palanquinGroup.rotation.y = Math.PI;
         this.spawn3DFloatingText("🏮 聖駕巡抵山門！祈福圓滿，起駕回鑾！", new THREE.Vector3(0, 3.2, 35.0));
-      } else if (this.palanquinGroup.position.z <= 7.5 && this.paradeDirection < 0) {
+      } else if (this.palanquinGroup.position.z <= PALANQUIN_REST_Z && this.paradeDirection < 0) {
         this.paradeDirection = 1;
         this.palanquinGroup.rotation.y = 0;
         this.isParading = false;
-        this.spawn3DFloatingText("🏮 聖駕回鑾安座！合境平安，萬福駢臻！", new THREE.Vector3(0, 3.2, 7.5));
+        this.spawn3DFloatingText("🏮 聖駕回鑾安座！合境平安，萬福駢臻！", new THREE.Vector3(0, 3.2, PALANQUIN_REST_Z));
         if (window.setDockStatus) window.setDockStatus("🏮 神明聖駕出巡圓滿，回鑾安座！信眾闔家蒙受庇佑！");
       }
 

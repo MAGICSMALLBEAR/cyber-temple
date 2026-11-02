@@ -1059,7 +1059,29 @@ function setAutoMuyuCardState(el, isOn) {
 // ==========================================
 // 新版 UI 外殼 (v10.1.0)：收納式介面整合
 // ==========================================
+// 頂部列在較窄的螢幕會換行變高：視角按鈕與彈幕層跟著往下移，避免互相遮住
+function layoutBelowHeader() {
+  const status = document.querySelector("#templeHeader .header-status");
+  if (!status) return;
+  const bottom = Math.round(status.getBoundingClientRect().bottom);
+  const camNav = document.getElementById("cameraNavContainer");
+  if (camNav) {
+    camNav.style.top = "";
+    const navTop = Math.round(camNav.getBoundingClientRect().top);
+    if (navTop < bottom + 6) camNav.style.top = `${bottom + 6}px`;
+  }
+  const danmaku = document.getElementById("danmakuContainer");
+  if (danmaku) {
+    const below = Math.max(bottom, camNav ? Math.round(camNav.getBoundingClientRect().bottom) : 0);
+    danmaku.style.top = `${Math.max(70, below + 8)}px`;
+  }
+}
+
 function bindModernUIShell() {
+  layoutBelowHeader();
+  window.addEventListener("resize", layoutBelowHeader);
+  // 字型載入完成後按鈕寬度會變，再排一次
+  document.fonts?.ready.then(layoutBelowHeader);
   const $ = (id) => document.getElementById(id);
   const closeAllDropdowns = (except) => {
     ["deityDropdownMenu", "cameraNavDropdown"].forEach(id => {
