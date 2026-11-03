@@ -2062,7 +2062,11 @@
   <script src="chiam-data.js"></script>
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>
-  <script src="avatar3d.js"></script>
+  <!-- 玩家分身：core 必須最先 -->
+  <script src="avatar/core.js"></script>
+  <script src="avatar/relics.js"></script>
+  <script src="avatar/pet.js"></script>
+  <script src="avatar/companions.js"></script>
   <!-- 3D 場景引擎：core 必須最先，其餘檔案把方法掛回 Temple3DScene -->
   <script src="scene/core.js"></script>
   <script src="scene/architecture.js"></script>
