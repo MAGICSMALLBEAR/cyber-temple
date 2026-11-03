@@ -24,7 +24,9 @@ function bindAltarRitualEvents() {
 
   // 3D 搖籤筒抽籤
   document.getElementById("btnShakeChiam").addEventListener("click", () => {
-    performChiamShake();
+    // 正統求籤：擲筊請示 → 搖籤 → 擲筊確認（儀式小卡內也可改用快速求籤）
+    if (window.chiamRitual) window.chiamRitual.start();
+    else performChiamShake();
   });
 
   // 3D 敲木魚
@@ -143,8 +145,9 @@ function setAutoMuyuCardState(el, isOn) {
 }
 
 // 執行 3D 擲筊
-function performBwaToss() {
-  if (!temple3d || temple3d.isBwaTossing) return;
+// onResult（可選）：擲筊結束後回報 "holy"（聖筊）、"laugh"（笑筊）、"yin"（陰筊），供求籤儀式使用
+function performBwaToss(onResult) {
+  if (!temple3d || temple3d.isBwaTossing) return false;
   setDockStatus("🌓 筊杯凌空旋轉拋擲中... 靜候神明聖諭...");
 
   temple3d.tossBwa(({ outcome1, outcome2 }) => {
@@ -180,12 +183,15 @@ function performBwaToss() {
       window.templeAudio.playBell(330);
       temple3d.spawn3DFloatingText("陰筊蓋杯", new THREE.Vector3(0, 1.2, 1.8));
     }
+    if (onResult) onResult(outcome1 !== outcome2 ? "holy" : (outcome1 === 0 && outcome2 === 0 ? "laugh" : "yin"));
   });
+  return true;
 }
 
 // 執行 3D 搖籤筒
-function performChiamShake() {
-  if (!temple3d || temple3d.isChiamShaking) return;
+// onDrawn（可選）：抽到籤後交給求籤儀式擲筊確認；沒有時照舊直接展開籤詩（快速求籤）
+function performChiamShake(onDrawn) {
+  if (!temple3d || temple3d.isChiamShaking) return false;
   setDockStatus("🎋 籤筒晃動中... 諸神感應賜籤...");
   window.templeAudio.playShakeChiam();
 
@@ -196,16 +202,20 @@ function performChiamShake() {
     const randomIndex = Math.floor(Math.random() * window.CHIAM_DATA.length);
     const chosen = window.CHIAM_DATA[randomIndex];
     state.selectedChiam = chosen;
-    recordChiamToHistory(chosen);
     window.emitRitual?.("chiam");
-
-    setDockStatus(`🎋 抽得第 ${chosen.id} 籤【${chosen.ganZhi}】${chosen.fortune}！正在展開靈籤捲軸...`);
     temple3d.spawn3DFloatingText(`第${chosen.id}籤 • ${chosen.ganZhi}`, new THREE.Vector3(1.4, 2.2, -0.3));
 
+    if (onDrawn) {
+      onDrawn(chosen);
+      return;
+    }
+    recordChiamToHistory(chosen);
+    setDockStatus(`🎋 抽得第 ${chosen.id} 籤【${chosen.ganZhi}】${chosen.fortune}！正在展開靈籤捲軸...`);
     setTimeout(() => {
       openChiamModal(chosen);
     }, 700);
   });
+  return true;
 }
 
 // 執行 3D 敲木魚（manual：親手敲擊才算每日功課，掛機不算）

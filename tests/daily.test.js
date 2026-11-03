@@ -43,7 +43,8 @@ module.exports = {
     const closeModals = () => p.evaluate(() => document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open")));
     await clickWait("#btnLightIncense");
     await clickWait("#btnThrowBwa", 3500);
-    await clickWait("#btnShakeChiam", 3500);
+    await clickWait("#btnShakeChiam", 300);
+    await clickWait("#btnChiamRitualQuick", 3500);   // 搖筒求籤先開儀式卡，這裡用快速求籤
     await closeModals();
     await clickWait("#btnKnockMuyu");
     await clickWait("#btnSubmitLantern");

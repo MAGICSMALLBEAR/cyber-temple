@@ -2254,3 +2254,101 @@ body.reduce-motion *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
 }
+
+/* 正統求籤儀式卡（位置與新手引導卡相同；儀式進行中先藏起引導卡） */
+.chiam-ritual-card {
+  position: fixed;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  width: min(92vw, 400px);
+  padding: 10px 14px 12px;
+  border-radius: 12px;
+  background: rgba(40, 12, 8, 0.95);
+  border: 1px solid var(--gold-bright);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 14px rgba(245, 197, 66, 0.35);
+  color: #f3e3c0;
+  z-index: 56;
+}
+
+.chiam-ritual-card[hidden],
+.ritual-question-row[hidden] {
+  display: none;
+}
+
+body.chiam-ritual-active .onboarding-card {
+  display: none;
+}
+
+body.hud-hidden .chiam-ritual-card {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ritual-steps {
+  display: flex;
+  gap: 6px;
+  margin: 2px 0 8px;
+}
+
+.ritual-step {
+  flex: 1;
+  text-align: center;
+  font-size: 0.76rem;
+  padding: 3px 0;
+  border-radius: 6px;
+  border: 1px dashed rgba(245, 197, 66, 0.35);
+  color: #b8996a;
+}
+
+.ritual-step.done {
+  background: rgba(245, 197, 66, 0.25);
+  border-style: solid;
+  color: #f3e3c0;
+}
+
+.ritual-step.current {
+  background: rgba(245, 197, 66, 0.85);
+  border: 1px solid var(--gold-bright);
+  color: #3b0d0d;
+  font-weight: 700;
+}
+
+.ritual-question-row {
+  margin-top: 8px;
+}
+
+.ritual-question-row input {
+  width: 100%;
+}
+
+.ritual-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ritual-actions .btn-dock-action {
+  flex: 1;
+  justify-content: center;
+}
+
+.ritual-actions .btn-dock-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.ritual-actions .ritual-quick {
+  flex: 0 0 auto;
+  background: #33150d;
+}
+
+@media (max-width: 860px) {
+  /* 窄螢幕：在搖桿上方，並從左側動作列（約 100px 寬）的右邊開始排，避免蓋到動作按鈕 */
+  .chiam-ritual-card {
+    bottom: 245px;
+    left: 110px;
+    transform: none;
+    width: min(calc(100vw - 118px), 400px);
+  }
+}

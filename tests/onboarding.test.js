@@ -42,6 +42,7 @@ module.exports = {
     await p.evaluate(() => document.getElementById("btnThrowBwa").click());
     check("擲筊後到第 3 步", await waitFor(async () => (await card()).progress.includes("3 / 4"), { timeout: 6000 }));
     await p.evaluate(() => document.getElementById("btnShakeChiam").click());
+    await p.evaluate(() => document.getElementById("btnChiamRitualQuick").click());   // 儀式卡改用快速求籤
     check("求籤後到第 4 步，籤詩卷打開", await waitFor(async () => (await card()).progress.includes("4 / 4") && await p.evaluate(() => document.getElementById("chiamModal").classList.contains("open")), { timeout: 8000 }));
     check("第 4 步沒有要發光的按鈕", (await target()).length === 0);
 

@@ -13,6 +13,7 @@ const SUITES = [
   "daily.test.js",
   "deities.test.js",
   "onboarding.test.js",
+  "chiam-ritual.test.js",
   "save-data.test.js",
   "quality.test.js",
   "sound-motion.test.js",

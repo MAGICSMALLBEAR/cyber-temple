@@ -158,6 +158,23 @@
   <!-- 即時祈願飛天彈幕層 -->
   <div class="danmaku-container" id="danmakuContainer"></div>
 
+  <!-- 正統求籤儀式卡：擲筊請示 → 搖籤 → 擲筊確認（不擋住 3D 動畫） -->
+  <div class="chiam-ritual-card" id="chiamRitualCard" hidden role="dialog" aria-label="求籤儀式">
+    <div class="onboarding-head">
+      <span>🎋 誠心求籤</span>
+      <button class="onboarding-skip" id="btnChiamRitualClose" title="結束求籤" aria-label="結束求籤">✕</button>
+    </div>
+    <div class="ritual-steps" id="chiamRitualSteps"></div>
+    <div class="onboarding-hint" id="chiamRitualMessage" aria-live="polite"></div>
+    <div class="ritual-question-row" id="chiamRitualQuestionRow">
+      <input type="text" class="temple-input" id="chiamRitualQuestion" maxlength="80" placeholder="想問的事（可不填，會帶進 AI 解籤）">
+    </div>
+    <div class="ritual-actions">
+      <button class="btn-dock-action" id="btnChiamRitualPrimary">🌓 擲筊請示</button>
+      <button class="btn-dock-action ritual-quick" id="btnChiamRitualQuick" title="不擲筊，直接抽一支籤">⚡ 快速求籤</button>
+    </div>
+  </div>
+
   <!-- 新手引導任務卡（第一次來的玩家才會出現） -->
   <div class="onboarding-card" id="onboardingCard" hidden role="status" aria-live="polite">
     <div class="onboarding-head">
@@ -2084,6 +2101,7 @@
   <script src="app/controls.js"></script>
   <script src="app/rituals.js"></script>
   <script src="app/chiam.js"></script>
+  <script src="app/chiam-ritual.js"></script>
   <script src="app/ema.js"></script>
   <script src="app/passport.js"></script>
   <script src="app/side-halls.js"></script>

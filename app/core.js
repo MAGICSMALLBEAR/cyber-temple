@@ -82,6 +82,9 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3.4 功德存檔匯出／匯入
   if (window.templeSave) window.templeSave.init();
 
+  // 3.44 正統求籤儀式卡
+  if (window.chiamRitual) window.chiamRitual.init();
+
   // 3.45 新手引導（是否為新玩家已在每日簽到發功德之前判定）
   if (window.templeOnboarding) window.templeOnboarding.init();
 

@@ -6,7 +6,7 @@ const ONBOARDING_REWARD = 88;
 const ONBOARDING_STEPS = [
   { type: "incense", title: "點燃三炷清香", hint: "按下方「🔥 點燃清香」，或走到香爐前按 [E]", target: "btnLightIncense" },
   { type: "bwa", title: "向神明擲筊請示", hint: "按「🌓 誠心擲筊」，聖筊代表神明應允", target: "btnThrowBwa" },
-  { type: "chiam", title: "搖籤筒求一支籤", hint: "按「🎋 搖筒求籤」，心中默念想問的事", target: "btnShakeChiam" },
+  { type: "chiam", title: "搖籤筒求一支籤", hint: "按「🎋 搖筒求籤」，依指示擲筊請示後搖出一支籤", target: "btnShakeChiam" },
   { type: "readChiam", title: "讀完你的籤詩", hint: "看完籤詩與解說後，關閉籤詩卷", target: null }
 ];
 
