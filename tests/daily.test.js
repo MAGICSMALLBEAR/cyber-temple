@@ -122,5 +122,30 @@ module.exports = {
     await q.evaluate(() => window.emitRitual("incense", { deity: "mazu" }));
     check("在媽祖前點香完成節慶功課", await q.evaluate(() => window.dailyPractice.data.done.includes("festival")));
     await b2.close();
+
+    // --- 節氣日：2026/12/22 冬至 ---
+    const b3 = await launch();
+    const c3 = await newContext(b3);
+    await c3.clock.setFixedTime(new Date(2026, 11, 22, 10, 0, 0));
+    const w = await c3.newPage();
+    await w.goto(base);
+    await w.click("#btnOpenDaily");
+    check("冬至當天面板顯示今日節氣", (await w.$eval("#dailySolarTerm", e => e.textContent)).includes("今日節氣：冬至"), await w.$eval("#dailySolarTerm", e => e.textContent));
+    check("冬至當天多一項節氣功課", await w.evaluate(() => window.dailyPractice.tasks.some(t => t.id === "solarTerm")));
+    await w.click("#dailyModalClose");
+    await w.evaluate(() => document.getElementById("btnSubmitLantern").click());
+    await w.waitForTimeout(600);
+    check("點燈完成節氣功課", await w.evaluate(() => window.dailyPractice.data.done.includes("solarTerm")));
+    await b3.close();
+
+    // --- 非節氣日：面板顯示下一個節氣 ---
+    const b4 = await launch();
+    const c4 = await newContext(b4);
+    await c4.clock.setFixedTime(new Date(2026, 11, 10, 10, 0, 0));
+    const v = await c4.newPage();
+    await v.goto(base);
+    await v.click("#btnOpenDaily");
+    check("12/10 顯示下一個節氣是 12/22 冬至", (await v.$eval("#dailySolarTerm", e => e.textContent)).includes("下一個節氣：冬至（12/22"), await v.$eval("#dailySolarTerm", e => e.textContent));
+    await b4.close();
   }
 };

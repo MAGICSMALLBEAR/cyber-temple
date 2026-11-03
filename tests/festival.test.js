@@ -18,7 +18,7 @@ function loadDaily() {
 }
 
 module.exports = {
-  name: "農曆節慶換算",
+  name: "農曆節慶與二十四節氣",
   async run({ check }) {
     const dp = loadDaily();
     const d = (y, m, day) => new Date(y, m - 1, day, 12);
@@ -71,6 +71,27 @@ module.exports = {
 
     const t1 = dp.tasks.map(t => t.id).join(), t2 = dp.tasks.map(t => t.id).join();
     check("同一天抽到的功課固定", t1 === t2);
-    check("每天 3 項功課（非節慶日）", dp.festivalOf(new Date()) ? true : dp.tasks.length === 3, String(dp.tasks.length));
+    check("每天 3 項功課（非節慶、非節氣日）", dp.festivalOf(new Date()) || dp.solarTerm ? true : dp.tasks.length === 3, String(dp.tasks.length));
+
+    // 二十四節氣：與已知天文時刻（UTC）比對，誤差需在 30 分鐘內，且台灣日期正確
+    const KNOWN_TERMS = [
+      ["春分", "2024-03-20T03:06:00Z"], ["夏至", "2024-06-20T20:51:00Z"], ["秋分", "2024-09-22T12:44:00Z"], ["冬至", "2024-12-21T09:20:00Z"],
+      ["春分", "2025-03-20T09:01:00Z"], ["夏至", "2025-06-21T02:42:00Z"], ["秋分", "2025-09-22T18:19:00Z"], ["冬至", "2025-12-21T15:03:00Z"]
+    ];
+    for (const [name, iso] of KNOWN_TERMS) {
+      const t = Date.parse(iso);
+      const tw = new Date(t + 8 * 3600 * 1000);
+      const day = d(tw.getUTCFullYear(), tw.getUTCMonth() + 1, tw.getUTCDate());
+      const r = dp.solarTermOf(day);
+      const diff = r ? Math.round((r.at - t) / 60000) : null;
+      check(`${iso.slice(0, 10)}（台灣 ${day.getMonth() + 1}/${day.getDate()}）是${name}`, r && r.name === name && Math.abs(diff) <= 30, r ? `${r.name}，差 ${diff} 分鐘` : "無");
+    }
+    const terms2026 = [];
+    for (let x = d(2026, 1, 1); x.getFullYear() < 2027; x.setDate(x.getDate() + 1)) {
+      const r = dp.solarTermOf(x);
+      if (r) terms2026.push(r.name);
+    }
+    check("2026 年剛好 24 個節氣且不重複", terms2026.length === 24 && new Set(terms2026).size === 24, terms2026.join(""));
+    check("2026 年第一個節氣是小寒、最後是冬至", terms2026[0] === "小寒" && terms2026[23] === "冬至");
   }
 };

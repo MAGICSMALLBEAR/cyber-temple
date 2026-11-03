@@ -96,6 +96,56 @@ function festivalOf(date) {
   return null;
 }
 
+// ---------- 二十四節氣 ----------
+// 節氣由太陽視黃經決定（每 15° 一個），與農曆無關。用 Meeus《天文算法》低精度太陽位置公式，
+// 誤差約 0.01°（約 15 分鐘），以台灣時間（UTC+8）判定落在哪一天。
+const SOLAR_TERMS = [
+  "春分", "清明", "穀雨", "立夏", "小滿", "芒種", "夏至", "小暑", "大暑", "立秋", "處暑", "白露",
+  "秋分", "寒露", "霜降", "立冬", "小雪", "大雪", "冬至", "小寒", "大寒", "立春", "雨水", "驚蟄"
+];  // 索引 i 對應黃經 i × 15°
+const SOLAR_TERM_NOTES = {
+  "立春": "春季開始，萬物復甦，宜立下新年的願望。",
+  "清明": "慎終追遠、掃墓祭祖的時節，緬懷先人。",
+  "立夏": "夏季開始，天氣轉熱，注意養心安神。",
+  "夏至": "白晝最長的一天，陽氣最盛。",
+  "立秋": "秋季開始，暑氣漸退，宜收斂心神。",
+  "秋分": "晝夜等長，陰陽平衡，宜感恩收成。",
+  "立冬": "冬季開始，宜進補養藏、休養生息。",
+  "冬至": "白晝最短的一天，冬至大如年，吃湯圓團圓。"
+};
+const TW_OFFSET_MS = 8 * 3600 * 1000;
+
+function sunLongitude(ms) {
+  const T = (ms / 86400000 + 2440587.5 - 2451545.0) / 36525;
+  const rad = Math.PI / 180;
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+  const M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) * rad;
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M)
+    + (0.019993 - 0.000101 * T) * Math.sin(2 * M) + 0.000289 * Math.sin(3 * M);
+  const omega = (125.04 - 1934.136 * T) * rad;
+  const lambda = L0 + C - 0.00569 - 0.00478 * Math.sin(omega);
+  return ((lambda % 360) + 360) % 360;
+}
+
+// 該日（台灣時間 00:00–24:00）內若有節氣交接，回傳 { name, index, at }；at 為交接時刻（毫秒）
+function solarTermOf(date) {
+  const dayStart = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - TW_OFFSET_MS;
+  const dayEnd = dayStart + 86400000;
+  const a = Math.floor(sunLongitude(dayStart) / 15);
+  const b = Math.floor(sunLongitude(dayEnd) / 15);
+  if (a === b) return null;
+  const index = b % 24;
+  const target = index * 15;
+  // 二分搜尋交接時刻（太陽一天約走 1°，誤差到 1 分鐘內即可）
+  let lo = dayStart, hi = dayEnd;
+  const past = ms => ((sunLongitude(ms) - target + 360) % 360) < 180;
+  for (let i = 0; i < 20; i++) {
+    const mid = (lo + hi) / 2;
+    if (past(mid)) hi = mid; else lo = mid;
+  }
+  return { name: SOLAR_TERMS[index], index, at: hi, note: SOLAR_TERM_NOTES[SOLAR_TERMS[index]] || "" };
+}
+
 function seededPick(seedText, pool, count) {
   let h = 2166136261;
   for (const ch of seedText) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
@@ -156,7 +206,25 @@ class DailyPractice {
     } else if (f) {
       list.push({ id: "festival", type: "incense", goal: 1, icon: "🏮", text: `節慶功課：${f.name.split(" • ")[0]}上香敬神`, festival: true });
     }
+    // 節氣當天多一項點燈功課（與節慶可同時出現）
+    const term = this.solarTerm;
+    if (term) {
+      list.push({ id: "solarTerm", type: "lantern", goal: 1, icon: "🌿", text: `節氣功課：${term.name}點一盞光明燈，順應時節`, festival: true });
+    }
     return list;
+  }
+
+  get solarTerm() {
+    return solarTermOf(this.today);
+  }
+
+  nextSolarTerm() {
+    for (let i = 1; i <= 20; i++) {
+      const d = addDays(this.today, i);
+      const t = solarTermOf(d);
+      if (t) return { ...t, inDays: i, date: d };
+    }
+    return null;
   }
 
   nextFestival() {
@@ -188,7 +256,8 @@ class DailyPractice {
     const reward = (20 + Math.min(ci.streak, 7) * 5) * this.multiplier;
     this.award(reward);
     const f = this.festival;
-    const festText = f ? `今天是【${f.name}】${this.multiplier > 1 ? "，功德加倍" : ""}！` : "";
+    const term = this.solarTerm;
+    const festText = (f ? `今天是【${f.name}】${this.multiplier > 1 ? "，功德加倍" : ""}！` : "") + (term ? `今日節氣：${term.name}。` : "");
     this.notify(`🗓️ 每日簽到：連續 ${ci.streak} 天，功德 +${reward}！${festText}`);
   }
 
@@ -263,6 +332,14 @@ class DailyPractice {
       ? `下一個節慶：${next.name}（${next.date.getMonth() + 1}/${next.date.getDate()}，還有 ${next.inDays} 天）`
       : (lunarFormatter ? "" : "此瀏覽器不支援農曆換算，節慶功能暫停"));
 
+    const term = this.solarTerm;
+    if (term) {
+      set("dailySolarTerm", `🌿 今日節氣：${term.name}${term.note ? "，" + term.note : ""}`);
+    } else {
+      const nt = this.nextSolarTerm();
+      set("dailySolarTerm", nt ? `🌿 下一個節氣：${nt.name}（${nt.date.getMonth() + 1}/${nt.date.getDate()}，還有 ${nt.inDays} 天）` : "");
+    }
+
     const ci = this.data.checkIn;
     set("dailyStreak", ci.streak);
     set("dailyBestStreak", ci.best);
@@ -317,3 +394,5 @@ window.dailyPractice = new DailyPractice();
 // 供測試與除錯使用
 window.dailyPractice.toLunar = toLunar;
 window.dailyPractice.festivalOf = festivalOf;
+window.dailyPractice.solarTermOf = solarTermOf;
+window.dailyPractice.sunLongitude = sunLongitude;
