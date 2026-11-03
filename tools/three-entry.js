@@ -1,11 +1,10 @@
-// tools/three-entry.js - 把 Three.js（ES 模組）打包成一支傳統 <script>，掛到 window.THREE
+// tools/three-entry.js - 把 Three.js（ES 模組）與 OrbitControls 打包成一支傳統 <script>，掛到 window.THREE
 // 重新產生：npm install && npm run build:three  →  輸出 libs/three.bundle.min.js
 //
 // 專案其他腳本都是傳統 <script>、透過全域 THREE 互相使用；新版 Three.js 只提供 ES 模組，
 // 所以在這裡打包，並補上與 r128 時代一致的外觀設定，其餘程式不用改。
 import * as THREE_NS from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { VRButton } from "three/addons/webxr/VRButton.js";
 
 // 1) 色彩：r128 沒有色彩管理，十六進位顏色直接當線性值使用；關掉以維持原本的配色
 THREE_NS.ColorManagement.enabled = false;
@@ -78,6 +77,5 @@ window.THREE = Object.freeze({
   PointLight,
   SpotLight,
   OrbitControls,
-  VRButton,
   LEGACY_LIGHT_SCALE
 });

@@ -186,8 +186,10 @@ class Temple3DScene {
       }
     });
 
-    // 8. 啟動主渲染循環
-    this.animate();
+    // 8. VR 模式（只在偵測到頭盔時顯示按鈕）與主渲染循環
+    //    用 setAnimationLoop：平常等同 requestAnimationFrame，進入 VR 時由頭盔控制更新頻率
+    this.setupXR();
+    this.renderer.setAnimationLoop(() => this.animate());
   }
 
   setupLighting() {
@@ -595,7 +597,6 @@ class Temple3DScene {
   }
 
   animate() {
-    requestAnimationFrame(() => this.animate());
 
     // 科儀過程中會動態新增點光源（化金紙、點香），低畫質時定期關掉
     this.qualityFrame = (this.qualityFrame || 0) + 1;
@@ -632,7 +633,9 @@ class Temple3DScene {
       }
 
       // 視角鏡頭平滑跟隨角色 (第一人稱或第 3 人稱)
-      if (this.isFirstPerson) {
+      if (this.isXR) {
+        // VR 中鏡頭由頭盔控制，不跟隨分身
+      } else if (this.isFirstPerson) {
         // 第一人稱直接緊貼分身眼部高度 (y = 1.05)
         const eyePos = new THREE.Vector3(this.avatar.position.x, this.avatar.position.y + 1.05, this.avatar.position.z);
         const deltaEye = new THREE.Vector3().subVectors(eyePos, this.camera.position);
@@ -916,7 +919,7 @@ class Temple3DScene {
     }
 
     // 10. 攝影機視角平滑插值 (Lerp)
-    if (this.targetCameraPos && this.targetLookAt) {
+    if (!this.isXR && this.targetCameraPos && this.targetLookAt) {
       this.camera.position.lerp(this.targetCameraPos, 0.08);
       this.controls.target.lerp(this.targetLookAt, 0.08);
       if (this.camera.position.distanceTo(this.targetCameraPos) < 0.04) {
@@ -927,7 +930,8 @@ class Temple3DScene {
       }
     }
 
-    this.controls.update();
+    // VR 中鏡頭由頭盔控制，不讓滑鼠視角控制器改動
+    if (!this.isXR) this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }
