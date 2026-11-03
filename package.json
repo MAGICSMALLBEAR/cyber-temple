@@ -5,6 +5,11 @@
   "description": "賽博虛擬神殿 3D",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/run-all.js"
+    "test": "node tests/run-all.js",
+    "build:three": "esbuild tools/three-entry.js --bundle --minify --format=iife --legal-comments=inline --target=es2020 --outfile=libs/three.bundle.min.js"
+  },
+  "devDependencies": {
+    "three": "0.187.0",
+    "esbuild": "^0.28.2"
   }
 }

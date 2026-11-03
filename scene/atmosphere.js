@@ -248,7 +248,9 @@ class TempleAtmosphereMixin {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.maxPixelRatio));
     this.onWindowResize();
 
-    const shadowType = preset.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    // r187 已移除 PCFSoftShadowMap，柔和陰影改以 PCF 陰影的模糊半徑實現
+    const shadowType = THREE.PCFShadowMap;
+    [this.sunMoonLight, this.mainSpot].forEach(light => { if (light) light.shadow.radius = preset.softShadows ? 4 : 1; });
     const shadowsChanged = this.renderer.shadowMap.enabled !== preset.shadows || this.renderer.shadowMap.type !== shadowType;
     this.renderer.shadowMap.enabled = preset.shadows;
     this.renderer.shadowMap.type = shadowType;

@@ -7,6 +7,7 @@ const { startServer, closeAll, Checker } = require("./helpers");
 const SUITES = [
   "server.test.js",
   "festival.test.js",
+  "three.test.js",
   "click-through.test.js",
   "daily.test.js",
   "deities.test.js",

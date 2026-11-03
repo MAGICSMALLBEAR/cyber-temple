@@ -18,7 +18,7 @@ module.exports = {
       t.scene.traverse(o => { if (o.isPointLight) { lights++; if (o.visible) visible++; } });
       return {
         mode: templeQuality.mode, level: templeQuality.level, pr: r.getPixelRatio(), shadows: r.shadowMap.enabled,
-        soft: r.shadowMap.type === THREE.PCFSoftShadowMap, sun: t.sunMoonLight.shadow.mapSize.width,
+        soft: t.sunMoonLight.shadow.radius > 1, sun: t.sunMoonLight.shadow.mapSize.width,
         stars: t.starPoints.geometry.drawRange.count, dust: t.dustPoints.geometry.drawRange.count,
         weather: t.weatherPoints ? t.weatherPoints.geometry.drawRange.count : null, lights, visible,
         aa: r.getContext().getContextAttributes().antialias

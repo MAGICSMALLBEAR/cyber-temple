@@ -16,6 +16,7 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 | `festival.test.js` | 農曆換算與節慶日期、閏月、節慶表每筆對得到神尊；二十四節氣與已知天文時刻比對（誤差 30 分鐘內） |
 | `deities.test.js` | 8 位神尊切換、法器、藏經閣列傳、關公紅臉還原、神尊聖誕的節慶功課 |
 | `onboarding.test.js` | 新手引導四步、順序錯不前進、完成給功德、略過、老玩家不顯示、桌機與手機都不擋按鈕和搖桿 |
+| `three.test.js` | Three.js 版本、r128 外觀相容層（燈光強度與衰減、色彩）、OrbitControls、載入與切換時無警告 |
 | `click-through.test.js` | 打開萬寶閣每張卡片、點遍視窗內按鈕，不能有任何 JS 錯誤或載入失敗 |
 | `daily.test.js` | 簽到、各科儀通報、掛機不算功課、獎勵不重複、連續簽到、節慶加倍、節氣功課 |
 | `save-data.test.js` | 存檔匯出內容、不含 API Key、匯入還原、壞檔拒絕 |
@@ -29,6 +30,10 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 - 測試用軟體繪圖跑 3D（不需顯示卡），所以「自動畫質」一定會選「低」，幀率數字也只能拿來做相對比較。
 - **新增 JS 檔時**，`pwa.test.js` 會檢查它有沒有加進 `sw.js` 的預存清單，忘了加會失敗。
 - 新功能請在對應的 `*.test.js` 加檢查；新的一組測試要加進 `run-all.js` 的 `SUITES`。
+
+## 持續整合
+
+`.github/workflows/test.yml`：專案放上 GitHub 後，每次推送與 Pull Request 都會自動跑 `npm test`，並檢查 `libs/three.bundle.min.js` 是否由目前的 `tools/three-entry.js` 打包（改了打包設定卻忘了執行 `npm run build:three` 會失敗）。
 
 ## 真機驗收
 
