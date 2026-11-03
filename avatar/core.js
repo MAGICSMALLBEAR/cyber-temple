@@ -644,14 +644,34 @@ class TempleAvatarSystem {
       const isSprint = (this.isSprinting || this.keys.shift);
       const curSpeed = isSprint ? this.sprintSpeed : this.baseSpeed;
       const step = moveDir.clone().multiplyScalar(curSpeed * dt);
-      this.position.add(step);
 
       // 限制大殿與宏偉三進廟埕活動範圍
       // 大殿內 (Z <= 5.8): 寬度限制 X: ±3.8, 深度 Z: -2.8 ~ 5.8
       // 戶外宏偉廟埕 (Z > 5.8): 寬度大幅擴展至 X: ±17.5, 深度貫通至山門階梯 Z: 41.5
-      const maxSide = this.position.z > 5.8 ? 17.5 : 3.8;
-      this.position.x = Math.max(-maxSide, Math.min(maxSide, this.position.x));
-      this.position.z = Math.max(-2.8, Math.min(41.5, this.position.z));
+      const clampTo = (x, z) => {
+        const maxSide = z > 5.8 ? 17.5 : 3.8;
+        return [Math.max(-maxSide, Math.min(maxSide, x)), Math.max(-2.8, Math.min(41.5, z))];
+      };
+      // 碰撞：先試整步；撞到就沿牆滑（只走 X 或只走 Z）；都走不了就停下。已經卡在障礙裡時允許走出來
+      const blocked = this.isBlockedAt || (() => false);
+      const free = (x, z) => !blocked(x, z);
+      const stuck = blocked(this.position.x, this.position.z);
+      const tries = [
+        clampTo(this.position.x + step.x, this.position.z + step.z),
+        clampTo(this.position.x + step.x, this.position.z),
+        clampTo(this.position.x, this.position.z + step.z)
+      ];
+      // 備選必須真的有移動（正面撞牆時「只走 X」的位移是 0，原地不動不算找到路）
+      const moves = ([x, z]) => Math.abs(x - this.position.x) + Math.abs(z - this.position.z) > 1e-6;
+      const next = stuck ? tries[0] : tries.find(c => moves(c) && free(c[0], c[1]));
+      if (next) {
+        this.position.x = next[0];
+        this.position.z = next[1];
+      } else if (this.targetPos) {
+        // 點地面走路被擋住：停下來，不在原地一直踏步
+        this.targetPos = null;
+        this.targetMarker.material.opacity = 0;
+      }
 
       // 角色平滑轉向行進方向
       const targetAngle = Math.atan2(moveDir.x, moveDir.z);
@@ -663,6 +683,9 @@ class TempleAvatarSystem {
       }
     }
 
+    // 走上橋面等高台時平順抬高
+    const groundY = this.walkHeightAt ? this.walkHeightAt(this.position.x, this.position.z) : 0;
+    this.position.y += (groundY - this.position.y) * Math.min(1, dt * 12);
     this.playerGroup.position.copy(this.position);
 
     // 更新步步生蓮踏蓮印記

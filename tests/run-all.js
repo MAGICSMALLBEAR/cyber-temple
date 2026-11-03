@@ -19,6 +19,7 @@ const SUITES = [
   "quality.test.js",
   "sound-motion.test.js",
   "parade.test.js",
+  "collision.test.js",
   "live-wall.test.js",
   "pwa.test.js",
   "static-hosting.test.js"

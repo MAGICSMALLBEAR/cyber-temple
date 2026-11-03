@@ -84,16 +84,22 @@ async function newContext(browser, options = {}) {
   return ctx;
 }
 
-// 在 127.0.0.1 上確認埠號沒被占用：有些程式只聽 IPv4，若只在 IPv6 檢查，瀏覽器可能連到別人的程式而卡住
-function freePort() {
-  return new Promise((resolve, reject) => {
+// 在 127.0.0.1 上確認埠號沒被占用：有些程式只聽 IPv4，若只在 IPv6 檢查，瀏覽器可能連到別人的程式而卡住。
+// 只在 20000–40000 之間挑：系統隨機給的埠可能是 Chrome 封鎖的「不安全埠」（例如 6000），頁面會打不開。
+function tryPort(port) {
+  return new Promise(resolve => {
     const srv = net.createServer();
-    srv.listen(0, "127.0.0.1", () => {
-      const { port } = srv.address();
-      srv.close(() => resolve(port));
-    });
-    srv.on("error", reject);
+    srv.once("error", () => resolve(false));
+    srv.listen(port, "127.0.0.1", () => srv.close(() => resolve(true)));
   });
+}
+
+async function freePort() {
+  for (let i = 0; i < 50; i++) {
+    const port = 20000 + Math.floor(Math.random() * 20000);
+    if (await tryPort(port)) return port;
+  }
+  throw new Error("找不到可用的埠號");
 }
 
 function httpGet(url) {
@@ -161,4 +167,4 @@ class Checker {
   }
 }
 
-module.exports = { ROOT, launch, launchPersistent, newContext, closeAll, startServer, waitFor, sleep, makeTmpDir, Checker };
+module.exports = { ROOT, launch, launchPersistent, newContext, closeAll, startServer, freePort, waitFor, sleep, makeTmpDir, Checker };

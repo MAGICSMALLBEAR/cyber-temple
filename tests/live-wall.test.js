@@ -15,7 +15,8 @@ module.exports = {
     const text = (pg, id) => pg.$eval("#" + id, el => el.textContent.trim());
     const feed = pg => pg.$$eval("#liveWallFeed .wall-feed-item", els => els.map(e => e.textContent));
     // 分身心跳約 1.8 秒一次，在線人數要等幾秒才同步
-    const online = async (pg, n) => waitFor(async () => (await text(pg, "hudOnlineCount")) === String(n), { timeout: 12000 });
+    // 電腦忙碌時心跳會變慢，給足時間（實測整台電腦滿載時 12 秒不夠）
+    const online = async (pg, n) => waitFor(async () => (await text(pg, "hudOnlineCount")) === String(n), { timeout: 25000 });
 
     check("今日香火從 0 起算（不是假數字）", (await text(A, "statTodayIncense")) === "0", await text(A, "statTodayIncense"));
     check("在線 2 人（自己＋另一台）", await online(A, 2), await text(A, "hudOnlineCount"));

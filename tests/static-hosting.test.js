@@ -4,12 +4,13 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 const { execFileSync } = require("child_process");
-const { ROOT, launch, newContext, makeTmpDir } = require("./helpers");
+const { ROOT, launch, newContext, makeTmpDir, freePort } = require("./helpers");
 
 const PREFIX = "/virtual-temple/";
 const MIME = { ".html": "text/html; charset=UTF-8", ".js": "application/javascript; charset=UTF-8", ".css": "text/css; charset=UTF-8", ".png": "image/png", ".webmanifest": "application/manifest+json" };
 
-function serveStatic(dir) {
+async function serveStatic(dir) {
+  const port = await freePort();   // 避開 Chrome 封鎖的不安全埠
   return new Promise(resolve => {
     const srv = http.createServer((req, res) => {
       const url = decodeURIComponent(new URL(req.url, "http://x").pathname);
@@ -20,7 +21,7 @@ function serveStatic(dir) {
       res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" });
       fs.createReadStream(file).pipe(res);
     });
-    srv.listen(0, "127.0.0.1", () => resolve({ base: `http://127.0.0.1:${srv.address().port}${PREFIX}`, stop: () => srv.close() }));
+    srv.listen(port, "127.0.0.1", () => resolve({ base: `http://127.0.0.1:${port}${PREFIX}`, stop: () => srv.close() }));
   });
 }
 

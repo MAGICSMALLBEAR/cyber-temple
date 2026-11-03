@@ -189,6 +189,8 @@ class Temple3DScene {
     // 8. VR 模式（只在偵測到頭盔時顯示按鈕）與主渲染循環
     //    用 setAnimationLoop：平常等同 requestAnimationFrame，進入 VR 時由頭盔控制更新頻率
     this.setupXR();
+    // 角色碰撞：所有建築、分身與 NPC 都建好後才整理碰撞方塊
+    this.buildCollisionMap();
     this.renderer.setAnimationLoop(() => this.animate());
   }
 

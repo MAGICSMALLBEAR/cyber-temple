@@ -75,6 +75,7 @@ class TempleCourtyardMixin {
     water.rotation.x = -Math.PI / 2;
     water.position.y = 0.35;
     this.wishingPond.add(water);
+    this.pondWater = water;   // 碰撞：水面不能走（橋面那一條除外）
 
     // 跨池九曲石拱橋 (3D 實體可走踏拱橋)
     const bridgeGroup = new THREE.Group();
@@ -83,7 +84,9 @@ class TempleCourtyardMixin {
       new THREE.MeshStandardMaterial({ color: 0xd8d0c8, roughness: 0.6 })
     );
     bridgeArch.position.set(0, 0.55, 0);
+    bridgeArch.userData.noCollision = true;   // 橋面可走，走上去時把角色抬到橋面高度
     bridgeGroup.add(bridgeArch);
+    this.pondBridgeDeck = bridgeArch;
 
     // 拱橋欄杆
     [-0.8, 0.8].forEach(bz => {
