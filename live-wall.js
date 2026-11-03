@@ -3,6 +3,19 @@
 // 所有數字只計真實操作：在線＝自己＋連線中的同行分身；今日香火／點燈＝本機今日＋本次連線收到的同行
 
 const WALL_STATS_KEY = "temple_wall_today";
+
+// 偵測有沒有即時伺服器（server.js）。放在 GitHub Pages 等靜態空間時沒有，就不建立 SSE、不送廣播，改為單機模式。
+// 有些靜態主機找不到網址時會回 200 的首頁，所以要確認回應真的是 {"ok":true}。香火牆與多人同行分身共用這個結果。
+window.templeServer = {
+  available: false,
+  ready: (window.location.protocol.startsWith("http")
+    ? fetch("/api/ping", { cache: "no-store" })
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => !!(j && j.ok === true))
+        .catch(() => false)
+    : Promise.resolve(false))
+};
+window.templeServer.ready.then(ok => { window.templeServer.available = ok; });
 const WALL_TEXT_MAX = 200;
 
 // 示範祈願：只用於飛天彈幕點綴，一律標示「示範」，不冒充真人
@@ -99,7 +112,11 @@ class LiveTempleWall {
       this.channel = new BroadcastChannel("temple_realtime_stream");
       this.channel.onmessage = (event) => this.receive(event.data);
     }
-    if (window.location.protocol.startsWith("http") && "EventSource" in window) {
+    window.templeServer.ready.then(ok => {
+      if (!ok || !("EventSource" in window)) {
+        this.showNoServerNote();
+        return;
+      }
       try {
         this.eventSource = new EventSource("/api/events");
         this.eventSource.onmessage = (event) => {
@@ -108,7 +125,12 @@ class LiveTempleWall {
           } catch (e) {}
         };
       } catch (e) {}
-    }
+    });
+  }
+
+  showNoServerNote() {
+    const note = document.getElementById("wallConnectionNote");
+    if (note) note.textContent = "目前沒有連線伺服器，只會同步同一個瀏覽器的分頁。要和其他裝置同行，請用「啟動神殿.bat」開啟，或部署到有執行 server.js 的主機。";
   }
 
   send(type, payload) {

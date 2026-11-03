@@ -51,10 +51,27 @@ module.exports = {
     await ok("/server.js", 403, "擋 server.js 原始碼");
     await ok("/%E0%A4%A", 400, "錯誤的網址編碼回 400");
 
+    const ping = await request(base, "/api/ping");
+    check("連線偵測 /api/ping 回 {ok:true}", ping.status === 200 && JSON.parse(ping.body).ok === true);
+    await ok("/tests/run-all.js", 403, "擋 tests 資料夾");
+    await ok("/tools/three-entry.js", 403, "擋 tools 資料夾");
+    await ok("/node_modules/three/package.json", 403, "擋 node_modules");
+    await ok("/package.json", 403, "擋 package.json");
+
+    const bad = await request(base, "/api/broadcast", { method: "POST", body: '{"a":1}\n\ndata: {"evil":1}' });
+    check("不合法 JSON（夾帶換行偽造事件）被拒收", bad.status === 400, `→ ${bad.status}`);
+
     const small = await request(base, "/api/broadcast", { method: "POST", body: '{"type":"PING"}' });
     check("一般廣播成功", small.status === 200);
     const big = await request(base, "/api/broadcast", { method: "POST", body: "a".repeat(100000) });
     check("超過 64KB 的廣播被拒絕", big.status !== 200, `→ ${big.status || "連線中斷"}`);
+
+    // 頻率限制：同一來源短時間連發 80 則，超過可累積的 40 則後要回 429
+    const statuses = [];
+    for (let i = 0; i < 80; i++) statuses.push((await request(base, "/api/broadcast", { method: "POST", body: '{"type":"FLOOD"}' })).status);
+    const limited = statuses.filter(x => x === 429).length;
+    check("連發廣播超過上限會被限制", limited > 0 && statuses.slice(0, 30).every(x => x === 200), `${limited} 則被擋；前 30 則：${statuses.slice(0, 30).join(",")}`);
+    await new Promise(r => setTimeout(r, 2500));   // 等令牌補回，避免影響後面的測試
 
     fs.rmSync(secretDir, { recursive: true, force: true });
   }

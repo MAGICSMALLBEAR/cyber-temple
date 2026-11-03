@@ -99,8 +99,10 @@ class AvatarCompanionsMixin {
       });
     }
 
-    // 支援 HTTP 本地伺服器 SSE 廣播同步
-    if (typeof window !== "undefined" && window.location && window.location.protocol.startsWith("http")) {
+    // 有即時伺服器時才用 SSE 跨裝置同步（偵測結果見 live-wall.js 的 window.templeServer）
+    const serverReady = window.templeServer ? window.templeServer.ready : Promise.resolve(false);
+    serverReady.then(ok => {
+      if (!ok) return;
       try {
         const evtSource = new EventSource("/api/events");
         evtSource.onmessage = (event) => {
@@ -115,7 +117,7 @@ class AvatarCompanionsMixin {
           } catch (e) {}
         };
       } catch (err) {}
-    }
+    });
   }
 
   // 廣播本機角色狀態
@@ -150,8 +152,8 @@ class AvatarCompanionsMixin {
       this.channel.postMessage(payload);
     }
 
-    // 若透過 HTTP 伺服器啟動，向後端發送廣播 (供不同電腦/手機同頻)
-    if (typeof window !== "undefined" && window.location && window.location.protocol.startsWith("http")) {
+    // 有即時伺服器時，向後端發送廣播 (供不同電腦/手機同頻)
+    if (window.templeServer && window.templeServer.available) {
       fetch("/api/broadcast", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

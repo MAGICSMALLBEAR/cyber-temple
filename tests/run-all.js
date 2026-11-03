@@ -18,7 +18,8 @@ const SUITES = [
   "sound-motion.test.js",
   "parade.test.js",
   "live-wall.test.js",
-  "pwa.test.js"
+  "pwa.test.js",
+  "static-hosting.test.js"
 ];
 
 (async () => {

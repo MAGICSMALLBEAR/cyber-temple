@@ -12,7 +12,7 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 
 | 檔案 | 測什麼 |
 | :--- | :--- |
-| `server.test.js` | 伺服器只能讀專案資料夾、擋 `.git` 與 `server.js`、廣播大小上限 |
+| `server.test.js` | 伺服器只能讀專案資料夾、擋 `.git`／`server.js`／`tests`／`tools`／`node_modules`、連線偵測、廣播大小與頻率上限、拒收不合法 JSON |
 | `festival.test.js` | 農曆換算與節慶日期、閏月、節慶表每筆對得到神尊；二十四節氣與已知天文時刻比對（誤差 30 分鐘內） |
 | `deities.test.js` | 8 位神尊切換、法器、藏經閣列傳、關公紅臉還原、神尊聖誕的節慶功課 |
 | `onboarding.test.js` | 新手引導四步、順序錯不前進、完成給功德、略過、老玩家不顯示、桌機與手機都不擋按鈕和搖桿 |
@@ -26,6 +26,7 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 | `parade.test.js` | 開場鏡頭不被神轎擋住、遶境與鑽轎腳、回鑾 |
 | `live-wall.test.js` | 兩台裝置互相看到祈願與點香、在線人數、去重、擋 HTML 注入、跨日歸零 |
 | `pwa.test.js` | 預存清單完整、可安裝、斷網可開、字型離線可用 |
+| `static-hosting.test.js` | 用 `tools/build-site.js` 產生的網站放在子路徑、沒有伺服器時正常運作（不連 SSE、不送廣播、香火牆說明原因），且不含測試與伺服器程式 |
 
 **注意：**
 - 測試用軟體繪圖跑 3D（不需顯示卡），所以「自動畫質」一定會選「低」，幀率數字也只能拿來做相對比較。

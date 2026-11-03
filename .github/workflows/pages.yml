@@ -1,0 +1,42 @@
+# 部署到 GitHub Pages（只能手動觸發，推送程式碼不會自動公開）
+# 使用前：repo 的 Settings → Pages → Source 選「GitHub Actions」；免費帳號的 Pages 需要公開 repo
+# 觸發：GitHub 網頁的 Actions → 「部署到 GitHub Pages」→ Run workflow，或 gh workflow run pages.yml
+# 注意：GitHub Pages 是靜態空間，沒有 server.js，多人同行與跨裝置香火牆不會運作（單人功能都正常）
+name: 部署到 GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: 整理要公開的檔案（以 sw.js 預存清單為準）
+        run: node tools/build-site.js _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

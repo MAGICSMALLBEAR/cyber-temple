@@ -1,0 +1,15 @@
+# Render 雲端主機設定（Blueprint）：執行 server.js，多人同行與跨裝置香火牆都保留
+# 使用方式見 DEPLOY.md。Render 會自動提供 PORT 環境變數與 https 網址。
+services:
+  - type: web
+    name: virtual-temple
+    runtime: node
+    plan: free
+    # server.js 零依賴、Three.js 已打包在 libs/，不需要建置
+    buildCommand: echo "不需要建置"
+    startCommand: node server.js
+    healthCheckPath: /api/ping
+    envVars:
+      # Render 在反向代理後面，用 X-Forwarded-For 辨識來源才能正確限制廣播頻率
+      - key: TRUST_PROXY
+        value: "1"
