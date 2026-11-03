@@ -266,9 +266,24 @@ function bindSoundToggles() {
   });
 
   document.getElementById("btnToggleMute").addEventListener("click", (e) => {
-    window.templeAudio.isMuted = !window.templeAudio.isMuted;
+    window.templeAudio.setMuted(!window.templeAudio.isMuted);
     e.currentTarget.innerText = window.templeAudio.isMuted ? "🔇 靜音" : "🔊 音效";
     e.currentTarget.classList.toggle("muted", window.templeAudio.isMuted);
+    const menuBtn = document.getElementById("btnSoundMenu");
+    if (menuBtn) menuBtn.textContent = window.templeAudio.isMuted ? "🔇 靜音中" : "🔊 聲音";
+  });
+
+  // 三軌音量滑桿
+  document.querySelectorAll("#soundMenuPanel input[data-track]").forEach(slider => {
+    const track = slider.dataset.track;
+    const out = document.querySelector(`#soundMenuPanel output[data-track-value="${track}"]`);
+    const show = () => { if (out) out.textContent = `${slider.value}%`; };
+    slider.value = Math.round(window.templeAudio.volumes[track] * 100);
+    show();
+    slider.addEventListener("input", () => {
+      window.templeAudio.setVolume(track, slider.value / 100);
+      show();
+    });
   });
 
 }
@@ -301,10 +316,29 @@ function bindModernUIShell() {
   document.fonts?.ready.then(layoutBelowHeader);
   const $ = (id) => document.getElementById(id);
   const closeAllDropdowns = (except) => {
-    ["deityDropdownMenu", "cameraNavDropdown"].forEach(id => {
+    ["deityDropdownMenu", "cameraNavDropdown", "soundMenuPanel"].forEach(id => {
       if (id !== except) $(id)?.classList.remove("open");
     });
+    if (except !== "soundMenuPanel") $("btnSoundMenu")?.setAttribute("aria-expanded", "false");
   };
+
+  // --- 聲音面板：固定定位，打開時對齊到按鈕下方並避免超出螢幕 ---
+  const soundBtn = $("btnSoundMenu");
+  const soundPanel = $("soundMenuPanel");
+  if (soundBtn && soundPanel) {
+    soundBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeAllDropdowns("soundMenuPanel");
+      const open = soundPanel.classList.toggle("open");
+      soundBtn.setAttribute("aria-expanded", String(open));
+      if (open) {
+        const r = soundBtn.getBoundingClientRect();
+        const w = soundPanel.offsetWidth;
+        soundPanel.style.top = `${Math.round(r.bottom + 6)}px`;
+        soundPanel.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)))}px`;
+      }
+    });
+  }
 
   // --- 神尊下拉選單 ---
   const deityBtn = $("deityDropdownBtn");
@@ -350,7 +384,7 @@ function bindModernUIShell() {
   }
 
   document.addEventListener("click", (e) => {
-    if (!e.target.closest(".deity-dropdown-container") && !e.target.closest(".camera-nav-container")) {
+    if (!e.target.closest(".deity-dropdown-container") && !e.target.closest(".camera-nav-container") && !e.target.closest("#soundMenuPanel")) {
       closeAllDropdowns();
     }
   });

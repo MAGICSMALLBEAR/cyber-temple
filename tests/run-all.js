@@ -13,6 +13,7 @@ const SUITES = [
   "onboarding.test.js",
   "save-data.test.js",
   "quality.test.js",
+  "sound-motion.test.js",
   "parade.test.js",
   "live-wall.test.js",
   "pwa.test.js"

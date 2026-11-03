@@ -134,3 +134,36 @@ const templeQuality = {
 };
 
 window.templeQuality = templeQuality;
+
+const MOTION_KEY = "temple_reduce_motion";
+
+const templeMotion = {
+  get systemPrefersReduced() {
+    return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  },
+
+  get reduced() {
+    const saved = localStorage.getItem(MOTION_KEY);
+    return saved === null ? this.systemPrefersReduced : saved === "on";
+  },
+
+  set(on) {
+    localStorage.setItem(MOTION_KEY, on ? "on" : "off");
+    this.apply();
+  },
+
+  apply() {
+    const on = this.reduced;
+    document.body.classList.toggle("reduce-motion", on);
+    if (window.temple3d && window.temple3d.setReducedMotion) window.temple3d.setReducedMotion(on);
+    const box = document.getElementById("chkReduceMotion");
+    if (box) box.checked = on;
+  },
+
+  init() {
+    document.getElementById("chkReduceMotion")?.addEventListener("change", (e) => this.set(e.target.checked));
+    this.apply();
+  }
+};
+
+window.templeMotion = templeMotion;

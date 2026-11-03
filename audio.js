@@ -5,6 +5,11 @@ class TempleAudioEngine {
   constructor() {
     this.ctx = null;
     this.isMuted = false;
+    // 三軌音量（0–1）：背景音（禪音、禪修混音、雨聲）、科儀音效、語音開示
+    this.volumes = { music: 0.8, sfx: 1, voice: 1 };
+    try {
+      Object.assign(this.volumes, JSON.parse(localStorage.getItem("temple_audio_volumes") || "{}"));
+    } catch (e) {}
     this.bgmOscs = [];
     this.isBgmPlaying = false;
     this.listenerPos = { x: 0, y: 0, z: 0 };
@@ -14,10 +19,44 @@ class TempleAudioEngine {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioCtx();
+      this.musicBus = this.ctx.createGain();
+      this.sfxBus = this.ctx.createGain();
+      this.musicBus.connect(this.ctx.destination);
+      this.sfxBus.connect(this.ctx.destination);
+      this.applyBusVolumes(0);
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  // 靜音時兩條匯流排都歸零（連已在播的背景音也停），並中止語音
+  applyBusVolumes(rampSeconds = 0.15) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [[this.musicBus, this.volumes.music], [this.sfxBus, this.volumes.sfx]].forEach(([bus, vol]) => {
+      const target = this.isMuted ? 0 : vol;
+      bus.gain.cancelScheduledValues(now);
+      if (rampSeconds > 0) {
+        bus.gain.setValueAtTime(bus.gain.value, now);
+        bus.gain.linearRampToValueAtTime(target, now + rampSeconds);
+      } else {
+        bus.gain.setValueAtTime(target, now);
+      }
+    });
+  }
+
+  setVolume(track, value) {
+    if (!(track in this.volumes)) return;
+    this.volumes[track] = Math.max(0, Math.min(1, Number(value)));
+    localStorage.setItem("temple_audio_volumes", JSON.stringify(this.volumes));
+    this.applyBusVolumes();
+  }
+
+  setMuted(muted) {
+    this.isMuted = !!muted;
+    this.applyBusVolumes();
+    if (this.isMuted) this.stopSpeaking();
   }
 
   // 設定聽者位置 (供 3D 空間定位音效衰減計算)
@@ -53,7 +92,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
 
     osc.start(now);
     osc.stop(now + 0.13);
@@ -80,7 +119,7 @@ class TempleAudioEngine {
 
     noise.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    noiseGain.connect(this.sfxBus);
 
     noise.start(now);
   }
@@ -112,7 +151,7 @@ class TempleAudioEngine {
       gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
 
       osc.start(now);
       osc.stop(now + duration);
@@ -136,7 +175,7 @@ class TempleAudioEngine {
       gain.gain.exponentialRampToValueAtTime(p.gain * spatialGain, now + 0.01);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
       osc.start(now);
       osc.stop(now + duration);
     });
@@ -168,7 +207,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
 
     osc.start(time);
     osc.stop(time + 0.05);
@@ -199,7 +238,7 @@ class TempleAudioEngine {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     noise.start(now);
   }
 
@@ -231,7 +270,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     osc.start(now);
     osc.stop(now + 0.045);
   }
@@ -251,7 +290,7 @@ class TempleAudioEngine {
     coinGain.gain.setValueAtTime(0.35, now);
     coinGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
     coinOsc.connect(coinGain);
-    coinGain.connect(this.ctx.destination);
+    coinGain.connect(this.sfxBus);
     coinOsc.start(now);
     coinOsc.stop(now + 0.19);
 
@@ -277,7 +316,7 @@ class TempleAudioEngine {
 
     sNoise.connect(sFilter);
     sFilter.connect(sGain);
-    sGain.connect(this.ctx.destination);
+    sGain.connect(this.sfxBus);
     sNoise.start(splashTime);
   }
 
@@ -311,7 +350,7 @@ class TempleAudioEngine {
 
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     noise.start(now);
   }
 
@@ -334,7 +373,8 @@ class TempleAudioEngine {
     const utter = new SpeechSynthesisUtterance(cleanText);
     utter.rate = 0.88;   // 緩慢悠遠
     utter.pitch = 0.95;  // 沉穩祥和
-    utter.volume = 1.0;
+    utter.volume = this.volumes.voice;
+    if (utter.volume <= 0) return;
 
     // 尋求繁體中文語音庫
     const voices = window.speechSynthesis.getVoices();
@@ -369,7 +409,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     osc.start(now);
     osc.stop(now + 0.13);
 
@@ -434,7 +474,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
 
     osc.start(now);
     osc.stop(now + 0.75);
@@ -478,7 +518,7 @@ class TempleAudioEngine {
       gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
 
       osc.start(now);
       osc.stop(now + dur);
@@ -493,7 +533,7 @@ class TempleAudioEngine {
     strikeGain.gain.setValueAtTime(0.5, now);
     strikeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
     strikeOsc.connect(strikeGain);
-    strikeGain.connect(this.ctx.destination);
+    strikeGain.connect(this.sfxBus);
     strikeOsc.start(now);
     strikeOsc.stop(now + 0.1);
   }
@@ -517,7 +557,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.0005, now + dur);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     osc.start(now);
     osc.stop(now + dur);
 
@@ -530,7 +570,7 @@ class TempleAudioEngine {
     snapGain.gain.setValueAtTime(0.4, now);
     snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
     snapOsc.connect(snapGain);
-    snapGain.connect(this.ctx.destination);
+    snapGain.connect(this.sfxBus);
     snapOsc.start(now);
     snapOsc.stop(now + 0.08);
   }
@@ -564,7 +604,7 @@ class TempleAudioEngine {
 
         noise.connect(filter);
         filter.connect(popGain);
-        popGain.connect(this.ctx.destination);
+        popGain.connect(this.sfxBus);
         noise.start(now);
       }, delay * 1000);
     }
@@ -612,7 +652,7 @@ class TempleAudioEngine {
 
         osc.connect(filter);
         filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(now);
         osc.stop(now + d + 0.05);
 
@@ -643,7 +683,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.18, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(t);
         osc.stop(t + 0.2);
       }, i * 90);
@@ -686,7 +726,7 @@ class TempleAudioEngine {
 
     this.rainSource.connect(this.rainFilter);
     this.rainFilter.connect(this.rainGain);
-    this.rainGain.connect(this.ctx.destination);
+    this.rainGain.connect(this.musicBus);
     this.rainSource.start();
   }
 
@@ -718,7 +758,7 @@ class TempleAudioEngine {
     gain.gain.setValueAtTime(0.35, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     osc.start(now);
     osc.stop(now + 0.045);
 
@@ -734,7 +774,7 @@ class TempleAudioEngine {
     noiseGain.gain.setValueAtTime(0.15, now + 0.02);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
     noise.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    noiseGain.connect(this.sfxBus);
     noise.start(now + 0.02);
   }
 
@@ -754,7 +794,7 @@ class TempleAudioEngine {
       gain.gain.setValueAtTime(0.35, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
       osc.start(now);
       osc.stop(now + 0.085);
     } else if (type === 'bell') {
@@ -769,7 +809,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(vol, now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(now);
         osc.stop(now + 1.65);
       });
@@ -784,7 +824,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.12, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(t);
         osc.stop(t + 0.38);
       });
@@ -803,7 +843,7 @@ class TempleAudioEngine {
     gongGain.gain.setValueAtTime(0.4, now);
     gongGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.8);
     gong.connect(gongGain);
-    gongGain.connect(this.ctx.destination);
+    gongGain.connect(this.sfxBus);
     gong.start(now);
     gong.stop(now + 3.9);
 
@@ -814,7 +854,7 @@ class TempleAudioEngine {
     gain.gain.setValueAtTime(0.25, now + 0.1);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.5);
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     osc.start(now + 0.1);
     osc.stop(now + 2.6);
   }
@@ -845,7 +885,7 @@ class TempleAudioEngine {
       purrGain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
 
       purrOsc.connect(purrGain);
-      purrGain.connect(this.ctx.destination);
+      purrGain.connect(this.sfxBus);
 
       modOsc.start(now);
       purrOsc.start(now);
@@ -863,7 +903,7 @@ class TempleAudioEngine {
       coinGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
 
       coinOsc.connect(coinGain);
-      coinGain.connect(this.ctx.destination);
+      coinGain.connect(this.sfxBus);
       coinOsc.start(now + 0.15);
       coinOsc.stop(now + 0.75);
     } else if (type === 'turtle') {
@@ -876,7 +916,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.18, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(now);
         osc.stop(now + 1.25);
       });
@@ -891,7 +931,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.15, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(t);
         osc.stop(t + 0.48);
       });
@@ -927,7 +967,7 @@ class TempleAudioEngine {
 
     noise.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(this.ctx.destination);
+    noiseGain.connect(this.sfxBus);
     noise.start(now);
 
     // 2. 639Hz 願力感通心輪和聲 (Solfeggio 639Hz Harmonic)
@@ -940,7 +980,7 @@ class TempleAudioEngine {
       gain.gain.linearRampToValueAtTime(0.18 / (idx + 1), now + 0.8);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
       osc.start(now + 0.3);
       osc.stop(now + 3.3);
     });
@@ -961,7 +1001,7 @@ class TempleAudioEngine {
     gain.gain.setValueAtTime(0.25, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     osc.start(now);
     osc.stop(now + 0.35);
 
@@ -973,7 +1013,7 @@ class TempleAudioEngine {
     bellGain.gain.setValueAtTime(0.12, now + 0.15);
     bellGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
     bell.connect(bellGain);
-    bellGain.connect(this.ctx.destination);
+    bellGain.connect(this.sfxBus);
     bell.start(now + 0.15);
     bell.stop(now + 1.85);
   }
@@ -996,7 +1036,7 @@ class TempleAudioEngine {
       }
     };
     this.zenMixer.masterGain.gain.setValueAtTime(0.85, this.ctx.currentTime);
-    this.zenMixer.masterGain.connect(this.ctx.destination);
+    this.zenMixer.masterGain.connect(this.musicBus);
 
     // 連接各軌到 masterGain
     Object.values(this.zenMixer.tracks).forEach(t => {
@@ -1241,7 +1281,7 @@ class TempleAudioEngine {
 
       gain.gain.setValueAtTime(0.015 / (idx + 1), now);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.musicBus);
       osc.start(now);
       this.bgmOscs.push({ osc, gain });
     });
@@ -1274,7 +1314,7 @@ class TempleAudioEngine {
       gain.gain.setValueAtTime(0.2, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
       osc.start(now);
       osc.stop(now + 0.75);
     } else if (streak <= 4) {
@@ -1288,7 +1328,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.22, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(t);
         osc.stop(t + 0.9);
       });
@@ -1304,7 +1344,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.18, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(t);
         osc.stop(t + 1.25);
       });
@@ -1320,7 +1360,7 @@ class TempleAudioEngine {
         gain.gain.setValueAtTime(0.24 / (idx + 1), t);
         gain.gain.exponentialRampToValueAtTime(0.0001, t + 2.5);
         osc.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.sfxBus);
         osc.start(t);
         osc.stop(t + 2.6);
       });
@@ -1341,7 +1381,7 @@ class TempleAudioEngine {
     gongGain.gain.setValueAtTime(0.45, now);
     gongGain.gain.exponentialRampToValueAtTime(0.0001, now + 3.5);
     gong.connect(gongGain);
-    gongGain.connect(this.ctx.destination);
+    gongGain.connect(this.sfxBus);
     gong.start(now);
     gong.stop(now + 3.6);
 
@@ -1356,7 +1396,7 @@ class TempleAudioEngine {
       gain.gain.setValueAtTime(0.18, t);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.sfxBus);
       osc.start(t);
       osc.stop(t + 2.3);
     });
@@ -1386,7 +1426,7 @@ class TempleAudioEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.sfxBus);
     noise.start(now);
   }
 }

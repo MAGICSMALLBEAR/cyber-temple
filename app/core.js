@@ -75,8 +75,9 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 3.3 畫質設定選單（場景本身在 Temple3DScene 建立時已套用畫質）
+  // 3.3 畫質設定選單（場景本身在 Temple3DScene 建立時已套用畫質）與減少動態
   if (window.templeQuality) window.templeQuality.init();
+  if (window.templeMotion) window.templeMotion.init();
 
   // 3.4 功德存檔匯出／匯入
   if (window.templeSave) window.templeSave.init();

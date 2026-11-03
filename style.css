@@ -2167,3 +2167,90 @@ body.hud-hidden .hud-exit-btn { display: block; }
     bottom: 245px;
   }
 }
+
+/* 聲音面板 */
+.sound-menu-panel {
+  position: fixed;
+  top: 70px;
+  left: 8px;
+  width: 260px;
+  display: none;
+  padding: 10px 12px;
+  background: rgba(22, 7, 7, 0.96);
+  border: 1px solid rgba(245, 197, 66, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+  z-index: 130;
+}
+
+.sound-menu-panel.open {
+  display: block;
+}
+
+.sound-toggle-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sound-toggle-row .btn-header {
+  flex: 1;
+  justify-content: center;
+}
+
+.sound-slider-row {
+  display: grid;
+  grid-template-columns: 4.5em 1fr 3em;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  color: #f3e3c0;
+  margin: 4px 0;
+}
+
+.sound-slider-row input[type="range"] {
+  width: 100%;
+  accent-color: var(--gold-primary);
+}
+
+.sound-slider-row output {
+  text-align: right;
+  color: #c9a76e;
+  font-size: 0.78rem;
+}
+
+/* 設定：減少動態效果 */
+.reduce-motion-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 14px;
+  font-size: 0.86rem;
+  color: #f3e3c0;
+  cursor: pointer;
+}
+
+.reduce-motion-row small {
+  display: block;
+  color: #b8996a;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.reduce-motion-row input {
+  margin-top: 3px;
+  accent-color: var(--gold-primary);
+}
+
+/* 減少動態：飛行彈幕不顯示（祈願仍可在香火牆查看），介面動畫與過場縮到瞬間 */
+body.reduce-motion .danmaku-container {
+  display: none;
+}
+
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}

@@ -278,8 +278,15 @@ class TempleAtmosphereMixin {
     [this.starPoints, this.dustPoints, this.weatherPoints].forEach(points => {
       if (!points) return;
       const total = points.geometry.attributes.position.count;
-      points.geometry.setDrawRange(0, Math.max(1, Math.floor(total * factor)));
+      // 減少動態：飄動與落下的粒子（金塵、雨、花瓣）不畫
+      const moving = points === this.dustPoints || points === this.weatherPoints;
+      points.geometry.setDrawRange(0, this.reduceMotion && moving ? 0 : Math.max(1, Math.floor(total * factor)));
     });
+  }
+
+  setReducedMotion(on) {
+    this.reduceMotion = !!on;
+    this.applyParticleBudget();
   }
 
   // 低畫質關掉裝飾用點光源（每盞點光源都會增加每個像素的計算），只留神像主光

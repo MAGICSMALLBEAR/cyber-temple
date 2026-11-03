@@ -96,8 +96,7 @@
         </select>
       </div>
       <button class="btn-header" id="btnToggleWeather" title="切換宮廟天候氛圍">🌧️ 晴空</button>
-      <button class="btn-header" id="btnToggleBGM" title="禪音背景音開關">🎵 禪音</button>
-      <button class="btn-header" id="btnToggleMute" title="音效開關">🔊 音效</button>
+      <button class="btn-header" id="btnSoundMenu" title="聲音與音量：禪音、靜音、三軌音量" aria-haspopup="true" aria-expanded="false">🔊 聲音</button>
       <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
       <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶" aria-label="每日修行">🗓️<span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
       <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態" aria-label="即時香火牆">🏮<span class="hud-online-pill" id="hudOnlineCount">1</span></button>
@@ -167,6 +166,30 @@
     <div class="onboarding-title" id="onboardingTitle"></div>
     <div class="onboarding-hint" id="onboardingHint"></div>
     <div class="onboarding-dots" id="onboardingDots"></div>
+  </div>
+
+  <!-- 聲音面板（放在最外層，避免被可橫向捲動的頂部列裁切；打開時對齊到「🔊 聲音」按鈕下方） -->
+  <div class="sound-menu-panel" id="soundMenuPanel" role="dialog" aria-label="聲音與音量">
+    <div class="sound-toggle-row">
+      <button class="btn-header" id="btnToggleBGM" title="禪音背景音開關">🎵 禪音</button>
+      <button class="btn-header" id="btnToggleMute" title="全部靜音">🔊 音效</button>
+    </div>
+    <label class="sound-slider-row">
+      <span>背景音</span>
+      <input type="range" min="0" max="100" step="5" data-track="music" aria-label="背景音音量">
+      <output data-track-value="music"></output>
+    </label>
+    <label class="sound-slider-row">
+      <span>科儀音效</span>
+      <input type="range" min="0" max="100" step="5" data-track="sfx" aria-label="科儀音效音量">
+      <output data-track-value="sfx"></output>
+    </label>
+    <label class="sound-slider-row">
+      <span>語音開示</span>
+      <input type="range" min="0" max="100" step="5" data-track="voice" aria-label="語音開示音量">
+      <output data-track-value="voice"></output>
+    </label>
+    <div class="wall-footnote" style="margin: 6px 0 0;">背景音含禪音、禪修混音與雨聲；語音開示是神明聖諭朗讀。</div>
   </div>
 
   <!-- 同行善信廣播通知（點香、三聖筊） -->
@@ -428,6 +451,10 @@
         <span class="wall-footnote" id="qualityFps" style="margin: 0; white-space: nowrap;">量測中…</span>
       </div>
       <div class="wall-footnote" id="qualityNote">自動模式會依電腦效能選擇，畫面持續不順時自動調低一級。畫質變更立即生效。</div>
+      <label class="reduce-motion-row">
+        <input type="checkbox" id="chkReduceMotion">
+        <span>減少動態效果<small>（不顯示飛過畫面的彈幕、關閉介面動畫與飄落粒子；容易暈 3D 時建議開啟，預設跟隨系統設定）</small></span>
+      </label>
 
       <div style="display: flex; gap: 10px;">
         <button class="btn-dock-action" id="btnSaveSettings" style="flex: 1; justify-content: center;">
