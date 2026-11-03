@@ -81,6 +81,9 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3.4 功德存檔匯出／匯入
   if (window.templeSave) window.templeSave.init();
 
+  // 3.45 新手引導（是否為新玩家已在每日簽到發功德之前判定）
+  if (window.templeOnboarding) window.templeOnboarding.init();
+
   // 3.5 每日修行（自動簽到需要 addMerit 與通知條，放在香火牆之後）
   if (window.dailyPractice) {
     window.dailyPractice.init({ getDeity: () => state.currentDeity });

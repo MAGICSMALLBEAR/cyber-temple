@@ -158,6 +158,17 @@
   <!-- 即時祈願飛天彈幕層 -->
   <div class="danmaku-container" id="danmakuContainer"></div>
 
+  <!-- 新手引導任務卡（第一次來的玩家才會出現） -->
+  <div class="onboarding-card" id="onboardingCard" hidden role="status" aria-live="polite">
+    <div class="onboarding-head">
+      <span id="onboardingProgress">新手參拜</span>
+      <button class="onboarding-skip" id="btnOnboardingSkip" title="不需要引導">略過</button>
+    </div>
+    <div class="onboarding-title" id="onboardingTitle"></div>
+    <div class="onboarding-hint" id="onboardingHint"></div>
+    <div class="onboarding-dots" id="onboardingDots"></div>
+  </div>
+
   <!-- 同行善信廣播通知（點香、三聖筊） -->
   <div class="temple-broadcast-notice" id="templeBroadcastNotice" role="status" aria-live="polite"></div>
 
@@ -2018,6 +2029,7 @@
   <script src="libs/OrbitControls.js"></script>
   <script src="audio.js"></script>
   <script src="daily.js"></script>
+  <script src="onboarding.js"></script>
   <script src="save-data.js"></script>
   <script src="quality.js"></script>
   <script src="chiam-data.js"></script>

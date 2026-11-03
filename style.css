@@ -1863,6 +1863,7 @@ body.hud-hidden .temple-border-top,
 body.hud-hidden .camera-nav-container,
 body.hud-hidden .avatar-action-bar,
 body.hud-hidden .temple-dock-container,
+body.hud-hidden .onboarding-card,
 body.hud-hidden #virtualJoystickZone {
   opacity: 0;
   pointer-events: none !important;
@@ -2069,4 +2070,100 @@ body.hud-hidden .hud-exit-btn { display: block; }
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 12px;
+}
+
+/* 新手引導任務卡：放在底部按鈕列上方 */
+.onboarding-card {
+  position: fixed;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  width: min(92vw, 360px);
+  padding: 10px 14px 12px;
+  border-radius: 12px;
+  background: rgba(40, 12, 8, 0.94);
+  border: 1px solid var(--gold-bright);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), 0 0 14px rgba(245, 197, 66, 0.35);
+  color: #f3e3c0;
+  z-index: 55;
+}
+
+.onboarding-card[hidden] {
+  display: none;
+}
+
+.onboarding-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.76rem;
+  color: #c9a76e;
+  margin-bottom: 4px;
+}
+
+.onboarding-skip {
+  background: none;
+  border: none;
+  color: #c9a76e;
+  font-size: 0.76rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.onboarding-title {
+  color: var(--gold-bright);
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin-bottom: 2px;
+}
+
+.onboarding-hint {
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.onboarding-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.onboarding-dot {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.onboarding-dot.done {
+  background: var(--gold-primary);
+}
+
+.onboarding-dot.current {
+  background: var(--gold-bright);
+  box-shadow: 0 0 6px var(--gold-bright);
+}
+
+/* 引導中要按的按鈕：金光呼吸提示 */
+.onboarding-target {
+  animation: onboardingPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes onboardingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 232, 133, 0.0); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 232, 133, 0.75), 0 0 16px rgba(255, 232, 133, 0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-target {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(255, 232, 133, 0.8);
+  }
+}
+
+/* 窄螢幕：左下有虛擬搖桿，引導卡移到搖桿上方 */
+@media (max-width: 860px) {
+  .onboarding-card {
+    bottom: 245px;
+  }
 }

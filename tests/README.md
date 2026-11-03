@@ -15,6 +15,7 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 | `server.test.js` | 伺服器只能讀專案資料夾、擋 `.git` 與 `server.js`、廣播大小上限 |
 | `festival.test.js` | 農曆換算與節慶日期、閏月、節慶表每筆對得到神尊；二十四節氣與已知天文時刻比對（誤差 30 分鐘內） |
 | `deities.test.js` | 8 位神尊切換、法器、藏經閣列傳、關公紅臉還原、神尊聖誕的節慶功課 |
+| `onboarding.test.js` | 新手引導四步、順序錯不前進、完成給功德、略過、老玩家不顯示、桌機與手機都不擋按鈕和搖桿 |
 | `click-through.test.js` | 打開萬寶閣每張卡片、點遍視窗內按鈕，不能有任何 JS 錯誤或載入失敗 |
 | `daily.test.js` | 簽到、各科儀通報、掛機不算功課、獎勵不重複、連續簽到、節慶加倍、節氣功課 |
 | `save-data.test.js` | 存檔匯出內容、不含 API Key、匯入還原、壞檔拒絕 |
