@@ -18,6 +18,69 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- 載入畫面：放在最前面，程式下載與 3D 場景建造期間顯示，畫出第一個畫面後淡出 -->
+  <div class="temple-loader" id="templeLoader" role="status" aria-live="polite">
+    <div class="loader-plaque">
+      <div class="loader-title">賽博神殿</div>
+      <div class="loader-subtitle">3D 沉浸元宇宙</div>
+    </div>
+    <div class="loader-bar"><div></div></div>
+    <div class="loader-status" id="templeLoaderStatus">正在迎請神明，開啟廟門……</div>
+    <div class="loader-tip" id="templeLoaderTip"></div>
+    <button class="btn-dock-action loader-retry" id="templeLoaderRetry" hidden onclick="location.reload()">🔄 重新整理</button>
+  </div>
+  <script>
+    // 載入畫面：輪播參拜小提示；初始化完成時由 app/core.js 呼叫 templeLoader.done()
+    (function () {
+      var tips = [
+        "筊杯一平一凸是聖筊，代表神明應允；兩片平面都朝上是笑筊，兩片都蓋著是陰筊。",
+        "求籤前先擲筊請示，抽到籤後再擲筊確認，聖筊才算是這支籤。",
+        "每天第一次來會自動簽到，連續天數越多，功德越多。",
+        "神明聖誕等大節慶當天，簽到與每日功課功德加倍。",
+        "按 H 可以隱藏所有介面，專心參拜；按 Tab 打開宮廟萬寶閣。",
+        "功德進度存在這個瀏覽器裡，記得到護照「匯出存檔」備份。"
+      ];
+      var tipEl = document.getElementById("templeLoaderTip");
+      var i = Math.floor(Math.random() * tips.length);
+      function showTip() { tipEl.textContent = "💡 " + tips[i % tips.length]; i++; }
+      showTip();
+      var tipTimer = setInterval(showTip, 3500);
+      var slowTimer = setTimeout(function () {
+        document.getElementById("templeLoaderStatus").textContent = "載入時間比平常久，可能是網路較慢，請再稍候……";
+      }, 15000);
+      var finished = false;
+      function fail() {
+        if (finished) return;
+        clearInterval(tipTimer);
+        clearTimeout(slowTimer);   // 否則 15 秒後「網路較慢」的提示會蓋掉錯誤訊息
+        document.getElementById("templeLoaderStatus").textContent = "神殿載入時發生問題，請重新整理再試一次。";
+        document.getElementById("templeLoaderRetry").hidden = false;
+      }
+      // 初始化前出錯（例如某支程式載入失敗）就停在錯誤提示，不讓人對著載入畫面空等
+      window.addEventListener("error", fail);
+      // 某支程式沒下載成功時不會有執行錯誤，初始化也不會跑：全部資源載完 3 秒後仍未完成就視為失敗
+      window.addEventListener("load", function () {
+        setTimeout(function () { if (!finished) fail(); }, 3000);
+      });
+      window.templeLoader = {
+        done: function () {
+          if (finished) return;
+          finished = true;
+          clearInterval(tipTimer);
+          clearTimeout(slowTimer);
+          window.removeEventListener("error", fail);
+          var el = document.getElementById("templeLoader");
+          // 等兩個畫格，確定 3D 場景已畫出來再淡出
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              el.classList.add("hide");
+              setTimeout(function () { el.remove(); }, 700);
+            });
+          });
+        }
+      };
+    })();
+  </script>
   <!-- 頂部祥雲飾條 -->
   <div class="temple-border-top"></div>
 

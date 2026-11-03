@@ -2352,3 +2352,92 @@ body.hud-hidden .chiam-ritual-card {
     width: min(calc(100vw - 118px), 400px);
   }
 }
+
+/* 載入畫面 */
+.temple-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: radial-gradient(ellipse at center, #5a1410 0%, #250605 70%, #140303 100%);
+  color: #f3e3c0;
+  text-align: center;
+  transition: opacity 0.6s ease;
+}
+
+.temple-loader.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loader-plaque {
+  padding: 14px 28px;
+  border: 3px double var(--gold-primary);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 24px rgba(245, 197, 66, 0.25);
+}
+
+.loader-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.5em;
+  margin-right: -0.5em;
+  color: var(--gold-bright);
+}
+
+.loader-subtitle {
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  color: #c9a76e;
+}
+
+.loader-bar {
+  width: min(70vw, 280px);
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.loader-bar > div {
+  width: 35%;
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-bright), transparent);
+  animation: loaderSweep 1.4s ease-in-out infinite;
+}
+
+@keyframes loaderSweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+.loader-status {
+  font-size: 0.95rem;
+}
+
+.loader-tip {
+  max-width: 420px;
+  min-height: 3em;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #c9a76e;
+}
+
+.loader-retry[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-bar > div {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}

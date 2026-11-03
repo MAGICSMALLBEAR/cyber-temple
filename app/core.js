@@ -99,6 +99,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // 5. 綁定事件
   bindEvents();
+
+  // 6. 收起載入畫面（index.html 最前面的 templeLoader）
+  if (window.templeLoader) window.templeLoader.done();
 });
 
 function bindEvents() {
