@@ -7,6 +7,9 @@ const DEITIES = {
   wenchang: { id: "wenchang", name: "文昌梓潼帝君", title: "魁星點斗 • 金榜題名", blessing: "文思泉湧，心性專注，考運與事業大道亨通。" },
   caishen: { id: "caishen", name: "五路武財神 趙公明", title: "八方聚寶 • 財源滾滾", blessing: "正偏財運利祿亨通，誠信經商，生生不息。" },
   yuelao: { id: "yuelao", name: "月下老人 尊神", title: "千里姻緣 • 喜結良緣", blessing: "紅線暗引，天定良緣，有情人終成眷屬。" },
+  guanyin: { id: "guanyin", name: "觀世音菩薩", title: "大慈大悲 • 聞聲救苦", blessing: "楊枝甘露灑淨，心安無懼，眾苦離散，身心清涼。" },
+  guangong: { id: "guangong", name: "關聖帝君 恩主公", title: "忠義仁勇 • 伏魔護正", blessing: "正氣凜然，信義為本，事業守正必得貴人護持。" },
+  tudigong: { id: "tudigong", name: "福德正神 土地公", title: "守護鄉里 • 福德生財", blessing: "安家守土，五穀豐登，生意興隆，出入平安。" },
   guaiguai: { id: "guaiguai", name: "科技守護 綠色乖乖神", title: "伺服器乖乖 • 永無Bug", blessing: "主機綠燈長亮，部署零故障，代碼順暢神仙保佑！" }
 };
 

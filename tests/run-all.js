@@ -9,6 +9,7 @@ const SUITES = [
   "festival.test.js",
   "click-through.test.js",
   "daily.test.js",
+  "deities.test.js",
   "save-data.test.js",
   "quality.test.js",
   "parade.test.js",

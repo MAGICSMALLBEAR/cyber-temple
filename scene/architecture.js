@@ -553,7 +553,7 @@ class TempleArchitectureMixin {
     this.switchDeityStatue("mazu");
   }
 
-  // 神尊專屬法相切換 (媽祖/文昌/財神/月老/綠色乖乖)
+  // 神尊專屬法相切換 (媽祖/文昌/財神/月老/觀音/關公/土地公/綠色乖乖)
   switchDeityStatue(deityKey) {
     if (!this.throneGroup) return;
 
@@ -562,6 +562,14 @@ class TempleArchitectureMixin {
     this.deityAccessories = [];
 
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xfad050, metalness: 0.85, roughness: 0.2 });
+    // 頭部預設與金身共用材質；關公的紅臉會換成專用材質，切回其他神尊時還原
+    this.deityHead.material = this.deityStatue.material;
+    const addAccessory = (mesh, x, y, z) => {
+      mesh.position.set(x, y, z);
+      this.throneGroup.add(mesh);
+      this.deityAccessories.push(mesh);
+      return mesh;
+    };
 
     if (deityKey === "guaiguai") {
       // 科技守護神：正殿中央化身為巨型發光「綠色乖乖袋」雕像！
@@ -607,6 +615,52 @@ class TempleArchitectureMixin {
         brush.rotation.z = -0.4;
         this.throneGroup.add(brush);
         this.deityAccessories.push(brush);
+      } else if (deityKey === "guanyin") {
+        // 觀世音菩薩：手捧白玉淨瓶、斜插楊柳枝，坐粉色蓮座，柔白光環
+        const jadeMat = new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: 0.25, metalness: 0.1 });
+        const vaseProfile = [[0.0, 0.0], [0.09, 0.02], [0.13, 0.12], [0.11, 0.24], [0.05, 0.32], [0.04, 0.42], [0.07, 0.46], [0.0, 0.47]]
+          .map(([r, h]) => new THREE.Vector2(r, h));
+        addAccessory(new THREE.Mesh(new THREE.LatheGeometry(vaseProfile, 20), jadeMat), 0.38, 0.95, 0.55);
+        const willow = addAccessory(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.012, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0x5f9e3a })), 0.42, 1.65, 0.55);
+        willow.rotation.z = -0.35;
+        for (let i = 0; i < 5; i++) {
+          const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshStandardMaterial({ color: 0x7cc45a }));
+          leaf.scale.set(0.5, 1.6, 0.3);
+          addAccessory(leaf, 0.44 + i * 0.045, 1.5 + i * 0.07, 0.55).rotation.z = -0.6;
+        }
+        const lotus = addAccessory(new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.05, 0.22, 16), new THREE.MeshStandardMaterial({ color: 0xf6a6c1, roughness: 0.5 })), 0, 0.05, 0);
+        lotus.receiveShadow = true;
+        this.deityHalo.material.color.setHex(0xfff6e8);
+      } else if (deityKey === "guangong") {
+        // 關聖帝君：赤紅面容、黑色長鬚，身旁立青龍偃月刀
+        this.deityHead.material = new THREE.MeshStandardMaterial({ color: 0xb3261e, metalness: 0.3, roughness: 0.45 });
+        const beard = addAccessory(new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.7, 12), new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.9 })), 0, 1.5, 0.58);
+        beard.rotation.x = Math.PI - 0.12;
+        beard.scale.z = 0.45;
+        const darkSteel = new THREE.MeshStandardMaterial({ color: 0x2b3a2f, metalness: 0.6, roughness: 0.4 });
+        addAccessory(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 8), darkSteel), 0.95, 1.1, 0.25);
+        const bladeShape = new THREE.Shape();
+        bladeShape.moveTo(0, 0);
+        bladeShape.quadraticCurveTo(0.42, 0.12, 0.34, 0.62);
+        bladeShape.quadraticCurveTo(0.18, 0.3, 0, 0.26);
+        bladeShape.lineTo(0, 0);
+        const blade = addAccessory(new THREE.Mesh(new THREE.ExtrudeGeometry(bladeShape, { depth: 0.03, bevelEnabled: false }),
+          new THREE.MeshStandardMaterial({ color: 0xc9d6cf, metalness: 0.9, roughness: 0.15, side: THREE.DoubleSide })), 0.95, 2.05, 0.24);
+        addAccessory(new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.025, 8, 16), goldMat), 0.95, 2.07, 0.25);
+        this.deityHalo.material.color.setHex(0xffc27a);
+      } else if (deityKey === "tudigong") {
+        // 福德正神：白色長鬚，右手龍頭拐杖、左手金元寶
+        const beard = addAccessory(new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.75, 12), new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.95 })), 0, 1.47, 0.58);
+        beard.rotation.x = Math.PI - 0.12;
+        beard.scale.z = 0.45;
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.8 });
+        addAccessory(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 2.0, 8), woodMat), 0.82, 0.95, 0.35);
+        const crook = addAccessory(new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.035, 8, 16, Math.PI * 1.2), woodMat), 0.74, 1.98, 0.35);
+        crook.rotation.z = 0.2;
+        const yuanbaoGeo = new THREE.SphereGeometry(0.2, 16, 16);
+        yuanbaoGeo.scale(1.4, 0.7, 0.9);
+        addAccessory(new THREE.Mesh(yuanbaoGeo, new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9, roughness: 0.1 })), -0.45, 1.05, 0.6);
+        this.deityHalo.material.color.setHex(0xffe08a);
       } else if (deityKey === "yuelao") {
         // 月下老人：胸前紅繡球與良緣紅線繩
         const knot = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.05, 8, 16), new THREE.MeshStandardMaterial({ color: 0xdd1111, emissive: 0x550000 }));

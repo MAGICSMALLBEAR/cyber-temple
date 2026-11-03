@@ -13,6 +13,7 @@ function loadDaily() {
   };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(ROOT, "daily.js"), "utf8"), ctx);
+  ctx.window.dailyPractice.__ctx = ctx;
   return ctx.window.dailyPractice;
 }
 
@@ -51,8 +52,22 @@ module.exports = {
       if (f && !f.minor) major++;
       if (f && f.minor) minor++;
     }
-    check("2026 年大節慶 10 個", major === 10, String(major));
+    check("2026 年大節慶 16 個（含觀音、關公、土地公節慶）", major === 16, String(major));
     check("2026 年初一十五（扣掉與節慶重疊）21 天", minor === 21, String(minor));
+
+    // 節慶表的每一筆都要在一年內對得到農曆日期，且有神尊的節慶要對得到神尊名稱
+    const table = vm.runInContext("LUNAR_FESTIVALS", dp.__ctx);
+    const names = vm.runInContext("DEITY_NAMES", dp.__ctx);
+    const coreSrc = fs.readFileSync(path.join(ROOT, "app/core.js"), "utf8");
+    for (const f of table) {
+      let hit = null;
+      for (let x = d(2026, 1, 1); x < d(2027, 3, 1) && !hit; x.setDate(x.getDate() + 1)) {
+        const l = dp.toLunar(x);
+        if (!l.isLeap && l.month === f.m && l.day === f.d) hit = new Date(x);
+      }
+      check(`節慶「${f.name}」對得到農曆 ${f.m}/${f.d}`, hit && dp.festivalOf(hit).name === f.name, hit ? hit.toISOString().slice(0, 10) : "找不到");
+      if (f.deity) check(`節慶「${f.name}」的神尊 ${f.deity} 存在`, !!names[f.deity] && coreSrc.includes(`  ${f.deity}: { id: "${f.deity}"`));
+    }
 
     const t1 = dp.tasks.map(t => t.id).join(), t2 = dp.tasks.map(t => t.id).join();
     check("同一天抽到的功課固定", t1 === t2);

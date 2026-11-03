@@ -31,14 +31,20 @@ const LUNAR_FESTIVALS = [
   { m: 1, d: 5, name: "迎財神", deity: "caishen", desc: "正月初五接財神，五路進寶迎好運。" },
   { m: 1, d: 9, name: "天公生 • 玉皇大帝聖誕", desc: "天公爐前三鞠躬，答謝上蒼庇佑。" },
   { m: 1, d: 15, name: "元宵 • 上元天官賜福", desc: "上元佳節點燈祈福，天官賜福。" },
+  { m: 2, d: 2, name: "土地公聖誕 • 頭牙", deity: "tudigong", desc: "新年第一次作牙，商家犒賞、祈求整年生意興隆。" },
   { m: 2, d: 3, name: "文昌帝君聖誕", deity: "wenchang", desc: "學子祈求智慧開通、考運亨通的大日子。" },
+  { m: 2, d: 19, name: "觀世音菩薩聖誕", deity: "guanyin", desc: "大慈大悲觀世音菩薩誕辰，誦念聖號，祈求平安離苦。" },
   { m: 3, d: 23, name: "天上聖母媽祖聖誕", deity: "mazu", desc: "三月瘋媽祖，向媽祖祝壽祈求平安。" },
+  { m: 6, d: 19, name: "觀世音菩薩成道日", deity: "guanyin", desc: "紀念觀音菩薩成道，發慈悲心、行善布施。" },
+  { m: 6, d: 24, name: "關聖帝君聖誕", deity: "guangong", desc: "恩主公誕辰，祈求正氣護身、事業守正得貴人。" },
   { m: 7, d: 7, name: "七夕 • 月老情人節", deity: "yuelao", desc: "向月下老人祈求良緣、感情和睦。" },
   { m: 7, d: 15, name: "中元普渡", desc: "慈悲普施，超薦祖先，心存敬意。" },
-  { m: 8, d: 15, name: "中秋 • 月下老人聖誕", deity: "yuelao", desc: "月圓人團圓，月老聖誕祈求姻緣美滿。" }
+  { m: 8, d: 15, name: "中秋 • 月下老人聖誕", deity: "yuelao", desc: "月圓人團圓，月老聖誕祈求姻緣美滿。" },
+  { m: 9, d: 19, name: "觀世音菩薩出家日", deity: "guanyin", desc: "紀念觀音菩薩出家，靜心持誦、放下煩惱。" },
+  { m: 12, d: 16, name: "尾牙 • 土地公作牙", deity: "tudigong", desc: "一年最後一次作牙，感謝土地公一年來的庇佑。" }
 ];
 
-const DEITY_NAMES = { mazu: "媽祖", wenchang: "文昌帝君", caishen: "五路財神", yuelao: "月下老人", guaiguai: "乖乖神" };
+const DEITY_NAMES = { mazu: "媽祖", wenchang: "文昌帝君", caishen: "五路財神", yuelao: "月下老人", guanyin: "觀世音菩薩", guangong: "關聖帝君", tudigong: "土地公", guaiguai: "乖乖神" };
 const LUNAR_MONTHS = { "正月": 1, "二月": 2, "三月": 3, "四月": 4, "五月": 5, "六月": 6, "七月": 7, "八月": 8, "九月": 9, "十月": 10, "冬月": 11, "臘月": 12 };
 const LUNAR_MONTH_LABELS = ["", "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "臘月"];
 const LUNAR_DAY_NAMES = ["", "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
