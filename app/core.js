@@ -82,6 +82,9 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3.4 功德存檔匯出／匯入
   if (window.templeSave) window.templeSave.init();
 
+  // 3.43 換造型面板與表情動作面板
+  if (window.avatarStudio) window.avatarStudio.init();
+
   // 3.44 正統求籤儀式卡
   if (window.chiamRitual) window.chiamRitual.init();
 

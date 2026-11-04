@@ -145,6 +145,7 @@ class AvatarCompanionsMixin {
       ],
       rot: parseFloat(this.playerGroup.rotation.y.toFixed(3)),
       action: this.currentAction,
+      emote: this.emote,
       timestamp: Date.now()
     };
 
@@ -178,10 +179,28 @@ class AvatarCompanionsMixin {
       }
     }
 
+    // 對方換了造型：重建分身（保留位置與朝向）
+    const cfgKey = JSON.stringify(data.config || {});
+    if (peer.configKey !== undefined && peer.configKey !== cfgKey) {
+      const keep = { pos: peer.group.position.clone(), rot: peer.group.rotation.y, emote: peer.lastEmoteT };
+      this.scene.remove(peer.group);
+      const rebuilt = this.createPeerAvatarMesh(data.config || {}, data.id);
+      rebuilt.group.position.copy(keep.pos);
+      rebuilt.group.rotation.y = keep.rot;
+      rebuilt.lastEmoteT = keep.emote;
+      this.peers.set(data.id, rebuilt);
+      peer = rebuilt;
+    }
+    peer.configKey = cfgKey;
+
     peer.targetPos.set(data.pos[0], data.pos[1], data.pos[2]);
     peer.targetRot = data.rot;
     peer.action = data.action || "idle";
     peer.lastSeen = performance.now();
+    if (data.emote && AVATAR_EMOTES[data.emote.id] && data.emote.t !== peer.lastEmoteT) {
+      peer.lastEmoteT = data.emote.t;
+      if (Date.now() - data.emote.t < EMOTE_SECONDS * 1000) showEmoteBubble(peer, peer.group, data.emote.id);
+    }
   }
 
   // 構建連線信眾 3D 模型
@@ -190,7 +209,7 @@ class AvatarCompanionsMixin {
     peerGroup.name = `peer_${id}`;
 
     const robeColor = cfg.robeColor || "#3a7bd5";
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdfc4, roughness: 0.6 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: avatarSkinColor(cfg), roughness: 0.6 });
     const robeMat = new THREE.MeshStandardMaterial({ color: robeColor, roughness: 0.5 });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.7 });
 
@@ -212,15 +231,10 @@ class AvatarCompanionsMixin {
     peerGroup.add(head);
 
     // 臉部
-    const faceTex = this.createFaceTexture();
-    const faceMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.28, 0.28),
-      new THREE.MeshBasicMaterial({ map: faceTex, transparent: true })
-    );
-    faceMesh.position.set(0, 0.95, 0.22);
-    peerGroup.add(faceMesh);
+    head.add(createAvatarFaceMesh(this.createFaceTexture(cfg)));
 
-    // 頭飾 (布條或道冠)
+    // 髮型（對方的捏臉設定）與頭飾 (布條或道冠)
+    buildAvatarHair(head, cfg);
     if (cfg.hatType === "headband") {
       const hb = new THREE.Mesh(
         new THREE.CylinderGeometry(0.245, 0.245, 0.05, 16),
@@ -369,8 +383,16 @@ class AvatarCompanionsMixin {
   animatePeerLimbs(peer, time, dt) {
     const limbs = peer.limbs;
     if (!limbs || !limbs.armL) return;
+    updateEmoteBubble(peer, peer.group);
 
-    if (peer.action === "walk") {
+    if (peer.action !== peer.lastPoseAction) {
+      resetAvatarPose(limbs, peer.group);
+      peer.lastPoseAction = peer.action;
+    }
+
+    if (animateExpressiveAction(limbs, peer.group, peer.action, time)) {
+      // 對方正在做表情動作
+    } else if (peer.action === "walk") {
       const walkCycle = time * 8;
       limbs.legL.rotation.x = Math.sin(walkCycle) * 0.55;
       limbs.legR.rotation.x = -Math.sin(walkCycle) * 0.55;

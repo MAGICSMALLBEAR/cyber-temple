@@ -53,13 +53,18 @@ module.exports = {
       a.position.set(7.6, 0, 13.5);
       Object.keys(a.keys).forEach(k => { a.keys[k] = false; });
       a.keys.right = true;
-      let maxY = 0;
-      for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 60)); maxY = Math.max(maxY, a.position.y); }
+      let maxY = 0, maxDrawnY = 0;
+      for (let i = 0; i < 40; i++) {
+        await new Promise(r => setTimeout(r, 60));
+        maxY = Math.max(maxY, a.position.y);
+        maxDrawnY = Math.max(maxDrawnY, a.playerGroup.position.y);   // 畫面上實際畫出來的高度
+      }
       a.keys.right = false;
-      return { x: a.position.x, maxY };
+      return { x: a.position.x, maxY, maxDrawnY };
     });
     check("沿拱橋從西走到東", bridge.x > 15, `x=${bridge.x.toFixed(2)}`);
     check("走在橋上時站上橋面高度", bridge.maxY > 0.5, `最高 y=${bridge.maxY.toFixed(2)}`);
+    check("畫面上的分身也真的站在橋面上（不是陷在橋裡）", bridge.maxDrawnY > 0.5, `畫出的最高 y=${bridge.maxDrawnY.toFixed(2)}`);
 
     // 點地面走向牆：被擋住後停下，不在原地踏步
     const stopped = await p.evaluate(async () => {

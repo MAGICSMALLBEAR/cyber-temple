@@ -2441,3 +2441,161 @@ body.hud-hidden .chiam-ritual-card {
     opacity: 0.6;
   }
 }
+
+/* 換造型：右側面板，不蓋住 3D，邊改邊看分身 */
+.modal-overlay.avatar-studio {
+  background: transparent;
+  backdrop-filter: none;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.modal-overlay.avatar-studio .settings-modal {
+  pointer-events: auto;
+  width: min(400px, 94vw);
+  max-width: none;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  margin: 0;
+}
+
+.studio-view-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.studio-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid rgba(245, 197, 66, 0.3);
+  margin-bottom: 12px;
+}
+
+.studio-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #c9a76e;
+  padding: 6px 2px;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.studio-tab.active {
+  color: var(--gold-bright);
+  border-bottom-color: var(--gold-primary);
+  font-weight: 700;
+}
+
+.studio-page[hidden] {
+  display: none;
+}
+
+.studio-section {
+  margin-bottom: 12px;
+}
+
+.studio-label {
+  font-size: 0.82rem;
+  color: var(--gold-bright);
+  margin-bottom: 6px;
+}
+
+.studio-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.studio-options .btn-custom-pill {
+  padding: 5px 10px;
+  font-size: 0.8rem;
+}
+
+.studio-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+
+.studio-swatch.active {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 0 3px rgba(245, 197, 66, 0.45);
+}
+
+/* 表情與動作面板 */
+.emote-panel {
+  position: fixed;
+  left: 12px;
+  bottom: 120px;
+  width: min(340px, 94vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  display: none;
+  padding: 10px 12px 12px;
+  border-radius: 12px;
+  background: rgba(40, 12, 8, 0.96);
+  border: 1px solid var(--gold-bright);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+  color: #f3e3c0;
+  z-index: 130;
+}
+
+.emote-panel.open {
+  display: block;
+}
+
+.emote-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.emote-grid.action-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.emote-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 197, 66, 0.25);
+  background: rgba(0, 0, 0, 0.3);
+  color: #f3e3c0;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.emote-btn:hover {
+  border-color: var(--gold-bright);
+  background: rgba(139, 28, 28, 0.45);
+}
+
+.emote-icon {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+body.hud-hidden .emote-panel {
+  display: none;
+}
+
+/* 左下動作列一律直立排列：橫排時寬螢幕上後半段（打坐、靈寵、疾步、表情）會被底部按鈕列蓋住 */
+.avatar-action-bar .action-buttons {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.avatar-action-bar {
+  border-radius: 16px;
+}

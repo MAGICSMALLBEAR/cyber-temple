@@ -285,7 +285,17 @@
       <button class="btn-action-pill" id="btnActionMeditate" title="打坐冥想 (M)">🧘 打坐 (M)</button>
       <button class="btn-action-pill" id="btnPetInteract" title="撫摸靈寵 (G)">🐾 靈寵 (G)</button>
       <button class="btn-action-pill" id="btnToggleSprint" title="疾步快跑 (Shift)">⚡ 疾步</button>
+      <button class="btn-action-pill" id="btnOpenEmotes" title="表情與動作 (T)" aria-haspopup="true">😊 表情 (T)</button>
     </div>
+  </div>
+
+  <!-- 表情與動作面板：表情會在頭上跳出、持續動作做到移動或按停止；同殿的人都看得到 -->
+  <div class="emote-panel" id="emotePanel" role="dialog" aria-label="表情與動作">
+    <div class="onboarding-head"><span>😊 表情（頭上跳出 3 秒）</span><button class="onboarding-skip" id="btnCloseEmotes" aria-label="關閉">✕</button></div>
+    <div class="emote-grid" id="emoteGrid"></div>
+    <div class="onboarding-head" style="margin-top: 10px;"><span>💃 動作（做到移動或按停止）</span></div>
+    <div class="emote-grid action-grid" id="emoteActionGrid"></div>
+    <button class="btn-dock-action" id="btnStopAction" style="width: 100%; justify-content: center; margin-top: 8px;">⏹ 停止動作</button>
   </div>
 
   <!-- 底部中央：大殿 3D 核心互動操作塢 (精簡為 5 大核心參拜 + 祈願 + 萬寶閣) -->
@@ -366,10 +376,25 @@
   </div>
 
   <!-- 角色換裝與自訂彈窗 (Avatar Modal) -->
-  <div class="modal-overlay" id="avatarModal">
-    <div class="settings-modal" style="max-width: 520px;">
+  <div class="modal-overlay avatar-studio" id="avatarModal">
+    <div class="settings-modal">
       <button class="modal-close" id="avatarModalClose" style="color: var(--gold-bright);">&times;</button>
-      <h3 style="color: var(--gold-bright); margin-bottom: 12px; letter-spacing: 2px;">👤 3D 信眾角色設計與換裝</h3>
+      <h3 style="color: var(--gold-bright); margin-bottom: 10px; letter-spacing: 2px;">👤 換造型</h3>
+      <div class="studio-view-row">
+        <button class="btn-custom-pill active" data-studio-view="full">全身</button>
+        <button class="btn-custom-pill" data-studio-view="face">臉部特寫</button>
+        <button class="btn-custom-pill" id="btnStudioRandom" title="五官、髮型、膚色全部隨機">🎲 隨機造型</button>
+      </div>
+      <div class="studio-tabs" role="tablist">
+        <button class="studio-tab active" data-studio-tab="face">臉</button>
+        <button class="studio-tab" data-studio-tab="hair">髮型</button>
+        <button class="studio-tab" data-studio-tab="outfit">服裝與持物</button>
+        <button class="studio-tab" data-studio-tab="name">名字與代碼</button>
+      </div>
+      <!-- 臉、髮型的選項由 app/avatar-studio.js 依 avatar/appearance.js 的清單產生 -->
+      <div class="studio-page" data-studio-page="face" id="studioFaceOptions"></div>
+      <div class="studio-page" data-studio-page="hair" id="studioHairOptions" hidden></div>
+      <div class="studio-page" data-studio-page="outfit" hidden>
       
       <div style="margin-bottom: 12px;">
         <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">身份風格：</label>
@@ -408,17 +433,30 @@
         </div>
       </div>
 
+      </div>
+      <div class="studio-page" data-studio-page="name" hidden>
       <div style="margin-bottom: 16px;">
         <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">頭頂稱號：</label>
         <div style="display: flex; gap: 8px;">
-          <input type="text" class="temple-input" id="avatarTitleInput" value="悠閒的信眾" style="flex: 1;">
+          <input type="text" class="temple-input" id="avatarTitleInput" value="悠閒的信眾" style="flex: 1;" maxlength="16">
           <button class="btn-dock-action" id="btnRandomTitle" style="padding: 6px 12px; font-size: 0.85rem;">🎲 隨機稱號</button>
         </div>
       </div>
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">造型代碼（複製給朋友，或貼上別人的代碼套用）：</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" class="temple-input" id="studioLookCode" style="flex: 1; font-family: monospace;" maxlength="24" placeholder="TP-…">
+          <button class="btn-dock-action" id="btnStudioCopyCode" style="padding: 6px 10px; font-size: 0.85rem;">📋 複製</button>
+          <button class="btn-dock-action" id="btnStudioApplyCode" style="padding: 6px 10px; font-size: 0.85rem;">套用</button>
+        </div>
+        <div class="wall-footnote" id="studioCodeNote" style="margin: 6px 0 0;"></div>
+      </div>
+      </div>
 
-      <button class="btn-dock-action" id="btnSaveAvatar" style="width: 100%; justify-content: center;">
-        💾 套用角色設計並出現在大殿
+      <button class="btn-dock-action" id="btnSaveAvatar" style="width: 100%; justify-content: center; margin-top: 8px;">
+        💾 儲存造型
       </button>
+      <div class="wall-footnote" style="margin: 6px 0 0;">修改會即時顯示在分身上；沒按儲存就關閉會恢復原本的造型。</div>
     </div>
   </div>
 
@@ -2144,6 +2182,7 @@
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>
   <!-- 玩家分身：core 必須最先 -->
+  <script src="avatar/appearance.js"></script>
   <script src="avatar/core.js"></script>
   <script src="avatar/relics.js"></script>
   <script src="avatar/pet.js"></script>
@@ -2163,6 +2202,7 @@
   <!-- 主控程式：依序載入，core 必須最先 -->
   <script src="app/core.js"></script>
   <script src="app/controls.js"></script>
+  <script src="app/avatar-studio.js"></script>
   <script src="app/rituals.js"></script>
   <script src="app/chiam.js"></script>
   <script src="app/chiam-ritual.js"></script>

@@ -13,8 +13,10 @@ class TempleAvatarSystem {
       robeColor: "#c24b2b", // 袍服主色
       hatType: "headband", // none, bun(髮髻), headband(進香布條), taoCap(道士帽)
       title: "悠閒的信眾",
-      holdingItem: "incense" // none, incense(持香), mallet(木魚槌), beads(念珠)
+      holdingItem: "incense", // none, incense(持香), mallet(木魚槌), beads(念珠)
+      ...AVATAR_DEFAULT_LOOK   // 捏臉與髮型（見 avatar/appearance.js）
     };
+    this.emote = null;   // 最近一次的頭上表情 { id, t }，同步給同殿的人
 
     // 玩家角色根節點
     this.playerGroup = new THREE.Group();
@@ -114,7 +116,7 @@ class TempleAvatarSystem {
       this.playerGroup.remove(this.playerGroup.children[0]);
     }
 
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffdfc4, roughness: 0.6 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: avatarSkinColor(this.config), roughness: 0.6 });
     const robeMat = new THREE.MeshStandardMaterial({ color: this.config.robeColor, roughness: 0.5 });
     const darkMat = new THREE.MeshStandardMaterial({ color: 0x221111, roughness: 0.8 });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.7 });
@@ -139,15 +141,11 @@ class TempleAvatarSystem {
     this.limbs.head.castShadow = true;
     this.playerGroup.add(this.limbs.head);
 
-    // 臉部 Q 版眼睛與腮紅 (使用 Canvas 動態貼圖)
-    const faceTex = this.createFaceTexture();
-    const faceMat = new THREE.MeshBasicMaterial({ map: faceTex, transparent: true });
-    const faceGeo = new THREE.PlaneGeometry(0.28, 0.28);
-    const faceMesh = new THREE.Mesh(faceGeo, faceMat);
-    faceMesh.position.set(0, 0.95, 0.22);
-    this.playerGroup.add(faceMesh);
+    // 臉部五官（捏臉貼圖貼在頭部曲面上，跟著頭一起動）
+    this.limbs.head.add(createAvatarFaceMesh(this.createFaceTexture()));
 
-    // 3. 髮型 / 頭飾 (進香布條 / 髮髻 / 道士帽)
+    // 3. 髮型（捏臉）與頭飾（進香布條 / 髮髻 / 道士帽）
+    buildAvatarHair(this.limbs.head, this.config);
     this.buildHeadgear(goldMat);
 
     // 4. 左手臂 (以肩關節為中心可旋轉)
@@ -408,44 +406,9 @@ class TempleAvatarSystem {
   }
 
   // 繪製臉部動態表情 Canvas
-  createFaceTexture() {
-    const canvas = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, 128, 128);
-
-    // 圓滾滾大眼睛
-    ctx.fillStyle = "#2b1408";
-    ctx.beginPath();
-    ctx.arc(42, 60, 7, 0, Math.PI * 2);
-    ctx.arc(86, 60, 7, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 眼神高光
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.arc(40, 58, 2.5, 0, Math.PI * 2);
-    ctx.arc(84, 58, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 腮紅
-    ctx.fillStyle = "rgba(255, 120, 120, 0.45)";
-    ctx.beginPath();
-    ctx.arc(32, 74, 9, 0, Math.PI * 2);
-    ctx.arc(96, 74, 9, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 溫和微笑
-    ctx.strokeStyle = "#441d0c";
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.arc(64, 76, 10, 0.2, Math.PI - 0.2);
-    ctx.stroke();
-
-    return new THREE.CanvasTexture(canvas);
+  // 臉部貼圖：依捏臉設定繪製（同行分身傳入對方的設定）
+  createFaceTexture(cfg) {
+    return drawAvatarFace(cfg || this.config);
   }
 
   // 頭頂稱號牌
@@ -594,13 +557,18 @@ class TempleAvatarSystem {
     this.broadcastMyState(true);
   }
 
+  // 頭上表情：自己看得到，也同步給同殿的人
+  playEmote(id) {
+    if (!AVATAR_EMOTES[id]) return;
+    showEmoteBubble(this, this.playerGroup, id);
+    this.emote = { id, t: Date.now() };
+    this.broadcastMyState(true);
+  }
+
   // 角色換裝與自訂套用
-  customize({ roleType, robeColor, hatType, title, holdingItem }) {
-    if (roleType) this.config.roleType = roleType;
-    if (robeColor) this.config.robeColor = robeColor;
-    if (hatType) this.config.hatType = hatType;
-    if (title) this.config.title = title;
-    if (holdingItem) this.config.holdingItem = holdingItem;
+  customize(cfg = {}) {
+    ["roleType", "robeColor", "hatType", "title", "holdingItem"].forEach(k => { if (cfg[k]) this.config[k] = cfg[k]; });
+    Object.assign(this.config, normalizeLook({ ...this.config, ...cfg }));
 
     this.buildAvatarMesh();
     this.broadcastMyState(true);
@@ -710,7 +678,11 @@ class TempleAvatarSystem {
     this.updatePet(time, dt);
 
     // 3. 肢體動作動畫狀態機驅動
+    // 骨架動畫只算相對起伏（顛簸、呼吸、跪下），算完再疊上所在高度（例如站在拱橋上）
+    this.playerGroup.position.y = 0;
     this.animateLimbs(time, dt);
+    this.playerGroup.position.y += this.position.y;
+    updateEmoteBubble(this, this.playerGroup);
 
     // 3. 更新同殿連線信眾分身 (Peer Avatars)
     this.updatePeers(time, dt);
@@ -734,7 +706,15 @@ class TempleAvatarSystem {
   animateLimbs(time, dt) {
     if (!this.limbs.armL || !this.limbs.legL) return;
 
-    if (this.currentAction === "walk") {
+    // 換動作時先把姿勢歸零，避免上一個動作的角度殘留
+    if (this.currentAction !== this.lastPoseAction) {
+      resetAvatarPose(this.limbs, this.playerGroup);
+      this.lastPoseAction = this.currentAction;
+    }
+
+    if (animateExpressiveAction(this.limbs, this.playerGroup, this.currentAction, time)) {
+      // 表情動作（跳跳、揮手、坐下…）會持續到移動或按停止
+    } else if (this.currentAction === "walk") {
       // 疾步加速步伐頻率與擺幅
       const isSprint = (this.isSprinting || this.keys.shift);
       const walkFreq = isSprint ? 13.5 : 8.0;
