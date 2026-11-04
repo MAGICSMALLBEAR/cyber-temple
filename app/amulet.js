@@ -28,6 +28,7 @@ function bindAmuletEvents() {
       return;
     }
     addMerit(-20);
+    const consecratedType = selectedAmuletType;
 
     const statusText = document.getElementById("consecrateStatus");
     const animArea = document.getElementById("consecrateCenserAnim");
@@ -55,14 +56,15 @@ function bindAmuletEvents() {
       statusText.innerHTML = "✨ <b>開光圓滿</b> • 靈符已具備神威守護！可下載桌布或隨身佩戴。";
       window.templeAudio.playBell(792);
 
-      drawAmuletCanvas(selectedAmuletType);
+      window.templeInventory?.addAmulet(consecratedType);
+      drawAmuletCanvas(consecratedType);
       resultSec.style.display = "block";
 
       spawnAvatarFloatingText("🛡️ 平安靈符開光大吉！神聖法印護體！");
       if (window.liveTempleWall) {
-        window.liveTempleWall.addDanmaku(`🛡️ 善信圓滿求取【${getAmuletName(selectedAmuletType)}】，神威護佑平安！`);
+        window.liveTempleWall.addDanmaku(`🛡️ 善信圓滿求取【${getAmuletName(consecratedType)}】，神威護佑平安！`);
       }
-      setDockStatus(`✨ 【${getAmuletName(selectedAmuletType)}】已過爐開光圓滿！神聖法印鈐蓋加持。`);
+      setDockStatus(`✨ 【${getAmuletName(consecratedType)}】已過爐開光圓滿！已放入背包，可掛在胸前。`);
     }, 3100);
   });
 
@@ -81,7 +83,7 @@ function bindAmuletEvents() {
   // 隨身佩戴護身靈光 (3D神光)
   document.getElementById("btnEquipAmuletAura").addEventListener("click", () => {
     if (temple3d && temple3d.avatar) {
-      temple3d.avatar.equipAmulet(selectedAmuletType);
+      if (temple3d.avatar.equipAmulet(selectedAmuletType) === false) return;
       window.templeAudio.playConsecrationChime();
       spawnAvatarFloatingText("✨ 護體神光已啟動！金光靈動圍繞分身");
       setDockStatus(`✨ 已隨身佩戴【${getAmuletName(selectedAmuletType)}】，3D 護身神光旋繞護佑！`);

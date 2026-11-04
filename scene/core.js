@@ -160,6 +160,9 @@ class Temple3DScene {
     this.buildMuyu();
     this.buildOfferings();
     this.buildLanternPagodas();
+    this.buildServiceDesk();   // 廟埕服務處（完整參拜流程的第一站）
+    this.buildHallInterior();
+    this.buildNightMarket();
     this.setupDustParticles();
     this.scene.add(this.weatherGroup);
 
@@ -178,7 +181,7 @@ class Temple3DScene {
 
     window.addEventListener("keydown", (e) => {
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
-      if (e.code === "KeyE") {
+      if (e.code === "KeyE" && !e.repeat) {
         this.triggerNearbyInteraction();
       }
       if (e.code === "KeyC") {
@@ -263,12 +266,23 @@ class Temple3DScene {
     if (!this.avatar) return;
     const p = this.avatar.position;
 
+    if (this.tryHallInteraction()) return;
+    if (this.tryMarketInteraction()) return;
+
     // 1. 走近天公爐 (< 2.2m, 中進中央 Z: 11.5)
     if (p.distanceTo(new THREE.Vector3(0, 0, 11.5)) < 2.2) {
+      if (window.templeInventory && !window.templeInventory.consume({ incense: 1 })) return;
       this.avatar.triggerAction("bow");
       window.templeAudio.playBell(560);
       this.spawn3DFloatingText("天公賜福 • 迎祥納吉", new THREE.Vector3(0, 2.5, 11.5));
       document.getElementById("dockStatusBar").innerText = "🔥 敬拜天公爐完成！玉皇上帝庇佑元辰光彩、平安吉祥！";
+      window.emitRitual?.("heavenCenser");
+      return;
+    }
+
+    // 1.5 走近服務處 (< 2.2m)：領清香與金紙
+    if (this.serviceDeskPos && p.distanceTo(this.serviceDeskPos) < 2.2) {
+      window.pilgrimage?.claimSupplies();
       return;
     }
 
@@ -505,6 +519,8 @@ class Temple3DScene {
       drumTower: { pos: new THREE.Vector3(-6.2, 3.2, 33.8), look: new THREE.Vector3(-9.5, 2.2, 30.0) },
       parade: { pos: new THREE.Vector3(2.5, 3.2, (this.palanquinGroup ? this.palanquinGroup.position.z + 4.5 : 12.0)), look: new THREE.Vector3(0, 1.4, (this.palanquinGroup ? this.palanquinGroup.position.z : 7.5)) },
       gate: { pos: new THREE.Vector3(0, 5.5, 46.0), look: new THREE.Vector3(0, 4.0, 36.0) },
+      market: { pos: new THREE.Vector3(-6.5, 3.3, 31.5), look: new THREE.Vector3(-6.5, 1.2, 25.5) },
+      puppet: { pos: new THREE.Vector3(6.5, 2.9, 31.0), look: new THREE.Vector3(6.5, 2.0, 25.5) },
       skyview: { pos: new THREE.Vector3(0, 34.0, 48.0), look: new THREE.Vector3(0, 1.5, 14.0) }
     };
 
@@ -538,12 +554,22 @@ class Temple3DScene {
   }
 
   onClick(e) {
+    // 觸控點擊前沒有 mousemove，必須使用這次點擊的座標。
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects(this.interactiveObjects);
 
     if (intersects.length > 0) {
       const type = intersects[0].object.userData?.type;
-      if (type === "censer") {
+      if (type === "ringStall" || type === "puppetStage") {
+        window.nightMarket?.open(type === "ringStall" ? "ring" : "puppet");
+      } else if (["prayerMat", "donationBox", "chiamCabinet"].includes(type)) {
+        this.interactWithHallObject(intersects[0].object);
+      } else if (type === "serviceDesk") {
+        window.pilgrimage?.claimSupplies();
+      } else if (type === "censer") {
         document.getElementById("btnLightIncense")?.click();
       } else if (type === "bwa") {
         document.getElementById("btnThrowBwa")?.click();
@@ -600,11 +626,13 @@ class Temple3DScene {
 
   animate() {
 
+    const now = performance.now();
+    if (window.templePower && !window.templePower.shouldRender(now, this)) return;
+
     // 科儀過程中會動態新增點光源（化金紙、點香），低畫質時定期關掉
     this.qualityFrame = (this.qualityFrame || 0) + 1;
     if (this.qualityFrame % 90 === 0 && this.qualityPreset && !this.qualityPreset.decorLights) this.applyLightBudget();
 
-    const now = performance.now();
     const dt = Math.min((now - this.lastTime) * 0.001, 0.1);
     this.lastTime = now;
     const time = now * 0.001;
@@ -935,6 +963,8 @@ class Temple3DScene {
     // VR 中鏡頭由頭盔控制，不讓滑鼠視角控制器改動
     if (!this.isXR) this.controls.update();
     this.renderer.render(this.scene, this.camera);
+    window.templeQuality?.recordFrame(now);
+    this.updatePuppetStage(time);
   }
 }
 

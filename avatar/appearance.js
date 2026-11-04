@@ -263,7 +263,8 @@ function updateEmoteBubble(holder, group) {
 const AVATAR_ACTIONS = {
   jump: { icon: "🦘", label: "開心跳跳" }, wave: { icon: "👋", label: "揮手招呼" }, clap: { icon: "👏", label: "拍手" },
   sway: { icon: "💃", label: "搖擺舞" }, cheer: { icon: "🙌", label: "舉手歡呼" }, stretch: { icon: "🙆", label: "伸懶腰" },
-  deepBow: { icon: "🙇", label: "鞠躬九十度" }, sit: { icon: "🪑", label: "坐下休息" }, lie: { icon: "🛌", label: "躺平休息" }
+  deepBow: { icon: "🙇", label: "鞠躬九十度" }, sit: { icon: "🪑", label: "坐下休息" }, lie: { icon: "🛌", label: "躺平休息" },
+  kneelSit: { icon: "🧎", label: "跪坐靜心" }
 };
 
 // 切換動作時先把姿勢歸零，避免上一個動作的角度殘留（例如躺平後站起來還歪著）
@@ -325,6 +326,14 @@ function animateExpressiveAction(limbs, root, action, time) {
       head.rotation.x = 0.45;
       armL.rotation.set(0.2, 0, 0);
       armR.rotation.set(0.2, 0, 0);
+      break;
+    case "kneelSit":
+      root.position.y = -0.18;
+      legL.rotation.x = legR.rotation.x = 1.5;
+      armL.rotation.set(-0.7, 0.35, 0);
+      armR.rotation.set(-0.7, -0.35, 0);
+      torso.rotation.x = 0.08;
+      head.rotation.x = 0.15;
       break;
     case "sit":
       root.position.y = -0.2;

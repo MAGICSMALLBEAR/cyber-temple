@@ -205,6 +205,7 @@ const avatarStudio = {
         const left = Math.min(window.innerWidth - panel.offsetWidth - 8, bar.right + 8);
         panel.style.left = `${Math.round(Math.max(8, left))}px`;
         panel.style.bottom = `${Math.round(Math.max(8, window.innerHeight - bar.bottom))}px`;
+        panel.style.maxHeight = `${Math.round(Math.max(150, Math.min(window.innerHeight * 0.7, bar.bottom - 96)))}px`;
       }
     };
     btn.addEventListener("click", (e) => { e.stopPropagation(); toggle(); });

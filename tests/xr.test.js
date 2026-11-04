@@ -80,9 +80,16 @@ module.exports = {
     await q.goto(base);
     await q.waitForTimeout(800);
     check("偵測到頭盔時顯示 VR 按鈕", await q.evaluate(() => !document.getElementById("btnEnterVR").hidden));
+    // 記下所有狀態訊息：同一台伺服器上別的分身進殿時會覆蓋狀態列，只看最後一則會誤判
+    await q.evaluate(() => {
+      const orig = window.setDockStatus;
+      window.__statuses = [];
+      window.setDockStatus = t => { window.__statuses.push(t); orig(t); };
+    });
     await q.click("#btnEnterVR");
     await q.waitForTimeout(500);
-    check("頭盔連不上時顯示提示", (await q.$eval("#dockStatusBar", e => e.textContent)).includes("無法進入 VR"));
+    const statuses = await q.evaluate(() => window.__statuses);
+    check("頭盔連不上時顯示提示", statuses.some(t => t.includes("無法進入 VR")), statuses.join(" / "));
     check("頭盔連不上時沒有 JS 錯誤", errs2.length === 0, errs2.join(" | "));
     await browser.close();
   }

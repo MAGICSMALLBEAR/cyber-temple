@@ -164,6 +164,7 @@
       <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶" aria-label="每日修行">🗓️<span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
       <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態" aria-label="即時香火牆">🏮<span class="hud-online-pill" id="hudOnlineCount">1</span></button>
       <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
+      <button class="btn-header" id="btnOpenBag" title="平安幣、背包與收藏" aria-label="平安幣與背包">🎒</button>
       <button class="btn-header" id="btnOpenSettings" title="AI 神諭與系統設定">⚙️ 設定</button>
       <button class="btn-header" id="btnEnterVR" title="戴上 VR 頭盔，站在大殿正中參拜" hidden>🥽 VR</button>
       <button class="btn-header" id="btnInstallApp" title="把神殿安裝到桌面或主畫面，離線也能開" hidden>📲 安裝</button>
@@ -221,7 +222,68 @@
   <!-- 即時祈願飛天彈幕層 -->
   <div class="danmaku-container" id="danmakuContainer"></div>
 
+  <!-- 完整參拜指引（右上、視角按鈕下方）：未開始時是小卡，開始後顯示目前步驟 -->
+  <div class="pilgrim-card collapsed" id="pilgrimCard" role="region" aria-label="參拜指引">
+    <div class="onboarding-head">
+      <span id="pilgrimProgress">🧭 參拜指引</span>
+      <button class="onboarding-skip" id="btnPilgrimStop" hidden title="結束這次參拜">結束</button>
+    </div>
+    <div class="onboarding-title" id="pilgrimTitle">完整參拜</div>
+    <div class="onboarding-hint" id="pilgrimHint"></div>
+    <div class="onboarding-dots" id="pilgrimDots"></div>
+    <button class="btn-dock-action" id="btnPilgrimPrimary" style="width: 100%; justify-content: center; margin-top: 8px;">開始參拜</button>
+  </div>
+
+  <div class="modal-overlay" id="donationModal">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="donationTitle" style="max-width: 390px;">
+      <button class="modal-close" id="donationModalClose" aria-label="關閉香油箱">&times;</button>
+      <h3 id="donationTitle">🪙 隨喜香油</h3>
+      <p>以遊戲內功德護持神殿，心意隨喜。</p>
+      <p>目前功德：<strong id="donationBalance">0</strong> · 累計奉獻：<strong id="donationTotal">0</strong></p>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+        <button class="btn-dock-action" data-donation="10">奉獻 10 功德</button>
+        <button class="btn-dock-action" data-donation="30">奉獻 30 功德</button>
+        <button class="btn-dock-action" data-donation="100">奉獻 100 功德</button>
+      </div>
+      <p id="donationMessage" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="bagModal">
+    <div class="settings-modal bag-modal" role="dialog" aria-modal="true" aria-labelledby="bagTitle">
+      <button class="modal-close" id="bagModalClose" aria-label="關閉背包">&times;</button>
+      <h3 id="bagTitle">🎒 平安行囊</h3>
+      <div class="bag-wallet">🪙 平安幣 <strong id="bagCoins">0</strong><small>購買香品與供品，修行功德另計</small></div>
+      <p class="wall-footnote" id="bagSupplyStatus"></p>
+      <button class="btn-dock-action" id="btnBagDaily">🎁 領取每日補給</button>
+      <div class="bag-tabs"><button class="btn-custom-pill" data-bag-tab="items">香品供品</button><button class="btn-custom-pill" data-bag-tab="amulets">平安符</button><button class="btn-custom-pill" data-bag-tab="favorites">籤詩收藏</button><button class="btn-custom-pill" data-bag-tab="shop">服務處商店</button></div>
+      <div id="bagContents"></div>
+      <p id="bagMessage" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- 正統求籤儀式卡：擲筊請示 → 搖籤 → 擲筊確認（不擋住 3D 動畫） -->
+  <div class="modal-overlay market-overlay" id="marketModal">
+    <div class="settings-modal market-modal" role="dialog" aria-modal="true" aria-labelledby="marketTitle">
+      <button class="modal-close" id="marketModalClose" aria-label="離開夜市">&times;</button>
+      <h3 id="marketTitle">🏮 廟埕小夜市</h3>
+      <div class="bag-tabs"><button class="btn-custom-pill active" data-market-tab="ring">🎯 套圈圈</button><button class="btn-custom-pill" data-market-tab="puppet">🎭 布袋戲</button></div>
+      <div id="ringPanel">
+        <p class="wall-footnote" id="marketRewardNote"></p>
+        <canvas id="ringCanvas" width="560" height="340" role="img" aria-label="套圈圈：準星左右移動，對準瓶子時拋圈"></canvas>
+        <p id="ringCounter">剩餘 0 圈 · 命中 0 個</p>
+        <div class="market-actions"><button class="btn-dock-action" id="btnRingStart">開始五圈挑戰</button><button class="btn-dock-action" id="btnRingThrow" disabled>⭕ 拋圈（空白鍵）</button></div>
+        <p id="ringMessage" role="status" aria-live="polite">免費遊玩，對準準星抓住時機！</p>
+      </div>
+      <div id="puppetPanel" hidden>
+        <p class="wall-footnote">原創短劇《借傘記》· 四幕約 24 秒 · 個人觀賞</p>
+        <h4 id="puppetScene">平安掌中戲</h4>
+        <p id="puppetSubtitle" role="status" aria-live="polite">戲台鏡頭已定位。按播放觀賞戲偶演出，搭配字幕與鑼鼓音效。</p>
+        <div class="market-actions"><button class="btn-dock-action" id="btnPuppetPlay">▶ 播放短劇</button><button class="btn-dock-action" id="btnPuppetStop">⏹ 停止</button></div>
+      </div>
+    </div>
+  </div>
+
   <div class="chiam-ritual-card" id="chiamRitualCard" hidden role="dialog" aria-label="求籤儀式">
     <div class="onboarding-head">
       <span>🎋 誠心求籤</span>
@@ -293,6 +355,12 @@
   <div class="emote-panel" id="emotePanel" role="dialog" aria-label="表情與動作">
     <div class="onboarding-head"><span>😊 表情（頭上跳出 3 秒）</span><button class="onboarding-skip" id="btnCloseEmotes" aria-label="關閉">✕</button></div>
     <div class="emote-grid" id="emoteGrid"></div>
+    <div class="onboarding-head" style="margin-top: 10px;"><span>💬 同行對話（顯示 6 秒）</span></div>
+    <div id="quickSpeechGrid" class="quick-speech-grid"></div>
+    <form id="speechForm" class="speech-form">
+      <input id="speechInput" class="temple-input" maxlength="64" placeholder="對同行說一句話（最多 32 字）" aria-label="同行對話">
+      <button class="btn-dock-action" type="submit">說話</button>
+    </form>
     <div class="onboarding-head" style="margin-top: 10px;"><span>💃 動作（做到移動或按停止）</span></div>
     <div class="emote-grid action-grid" id="emoteActionGrid"></div>
     <button class="btn-dock-action" id="btnStopAction" style="width: 100%; justify-content: center; margin-top: 8px;">⏹ 停止動作</button>
@@ -513,6 +581,7 @@
       </div>
 
       <div class="scroll-actions">
+        <button class="btn-card btn-card-secondary" id="btnFavoriteChiam">☆ 收藏籤詩</button>
         <button class="btn-card btn-card-primary" id="btnSpeakOracle">
           🔊 聆聽神明聖諭開示 (語音)
         </button>
@@ -570,6 +639,8 @@
         <span class="wall-footnote" id="qualityFps" style="margin: 0; white-space: nowrap;">量測中…</span>
       </div>
       <div class="wall-footnote" id="qualityNote">自動模式會依電腦效能選擇，畫面持續不順時自動調低一級。畫質變更立即生效。</div>
+      <label class="reduce-motion-row"><input type="checkbox" id="chkIdlePower"><span>閒置省電<small>30 秒未操作時降至 15 FPS；背景暫停繪圖，操作後立即恢復。</small></span></label>
+      <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>流暢度上限</span><select class="temple-select" id="selectFrameLimit"><option value="0">跟隨螢幕</option><option value="60">最高 60 FPS</option><option value="30">最高 30 FPS</option></select></label>
       <label class="reduce-motion-row">
         <input type="checkbox" id="chkReduceMotion">
         <span>減少動態效果<small>（不顯示飛過畫面的彈幕、關閉介面動畫與飄落粒子；容易暈 3D 時建議開啟，預設跟隨系統設定）</small></span>
@@ -1854,6 +1925,8 @@
 
       <!-- 萬寶閣功能卡片網格 -->
       <div class="pavilion-cards-container">
+        <div class="pavilion-card" id="btnOpenMarket" data-cat="grounds"><div class="card-icon">🏮</div><div class="card-body"><div class="card-title">廟埕小夜市</div><div class="card-desc">免費套圈圈贏平安幣、觀賞平安掌中戲《借傘記》</div></div></div>
+        <div class="pavilion-card" id="btnOpenBagPavilion" data-cat="grounds"><div class="card-icon">🎒</div><div class="card-body"><div class="card-title">平安行囊與服務處</div><div class="card-desc">每日補給、平安幣、香品供品、胸前平安符與籤詩收藏</div></div></div>
         <!-- 殿堂與廟埕 -->
         <div class="pavilion-card" id="btnOpenSideHalls" data-cat="grounds">
           <div class="card-icon">🏛️</div>
@@ -2177,13 +2250,16 @@
   <script src="daily.js"></script>
   <script src="onboarding.js"></script>
   <script src="save-data.js"></script>
+  <script src="inventory.js"></script>
   <script src="quality.js"></script>
+  <script src="power.js"></script>
   <script src="chiam-data.js"></script>
   <script src="ai-divination.js"></script>
   <script src="live-wall.js"></script>
   <!-- 玩家分身：core 必須最先 -->
   <script src="avatar/appearance.js"></script>
   <script src="avatar/core.js"></script>
+  <script src="avatar/social.js"></script>
   <script src="avatar/relics.js"></script>
   <script src="avatar/pet.js"></script>
   <script src="avatar/companions.js"></script>
@@ -2195,6 +2271,9 @@
   <script src="scene/courtyard.js"></script>
   <script src="scene/halls.js"></script>
   <script src="scene/festival.js"></script>
+  <script src="scene/service.js"></script>
+  <script src="scene/interior.js"></script>
+  <script src="scene/market.js"></script>
   <script src="scene/xr.js"></script>
   <script src="scene/collision.js"></script>
   <script src="beads.js"></script>
@@ -2206,6 +2285,10 @@
   <script src="app/rituals.js"></script>
   <script src="app/chiam.js"></script>
   <script src="app/chiam-ritual.js"></script>
+  <script src="app/pilgrimage.js"></script>
+  <script src="app/hall.js"></script>
+  <script src="app/bag.js"></script>
+  <script src="app/market.js"></script>
   <script src="app/ema.js"></script>
   <script src="app/passport.js"></script>
   <script src="app/side-halls.js"></script>

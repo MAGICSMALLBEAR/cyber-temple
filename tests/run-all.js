@@ -2,7 +2,39 @@
 // 用法：node tests/run-all.js            全部跑
 //       node tests/run-all.js daily save  只跑名稱含 daily 或 save 的測試
 //       TEST_VERBOSE=1 node tests/run-all.js   連通過的項目也列出
+const fs = require("fs");
+const path = require("path");
+const lockDir = path.join(__dirname, "..", ".test-cache");
+const lockPath = path.join(lockDir, "test-run.lock");
+fs.mkdirSync(lockDir, { recursive: true });
+let ownsLock = false;
+for (let attempt = 0; attempt < 2 && !ownsLock; attempt++) {
+  try {
+    const fd = fs.openSync(lockPath, "wx");
+    fs.writeFileSync(fd, String(process.pid)); fs.closeSync(fd); ownsLock = true;
+  } catch (e) {
+    if (e.code !== "EEXIST") throw e;
+    let live = false;
+    try { const pid = Number(fs.readFileSync(lockPath, "utf8")); if (pid > 0) { process.kill(pid, 0); live = true; } }
+    catch (err) { if (err.code === "EPERM") live = true; }
+    if (live) { console.error("已有一套測試正在執行；為避免電腦負載過高，不同時啟動第二套。"); process.exit(1); }
+    fs.unlinkSync(lockPath);
+  }
+}
+if (!ownsLock) { console.error("無法取得測試執行鎖。"); process.exit(1); }
+process.on("exit", () => {
+  try { if (fs.readFileSync(lockPath, "utf8") === String(process.pid)) fs.unlinkSync(lockPath); } catch (e) {}
+});
 const { startServer, closeAll, Checker } = require("./helpers");
+let activeServer;
+let stopping = false;
+async function shutdown(code) {
+  if (stopping) return; stopping = true;
+  if (activeServer) activeServer.stop();
+  await closeAll(); process.exit(code);
+}
+process.once("SIGINT", () => shutdown(130));
+process.once("SIGTERM", () => shutdown(143));
 
 const SUITES = [
   "server.test.js",
@@ -14,8 +46,11 @@ const SUITES = [
   "daily.test.js",
   "deities.test.js",
   "avatar-look.test.js",
+  "social-power.test.js",
   "onboarding.test.js",
   "chiam-ritual.test.js",
+  "pilgrimage.test.js",
+  "interior.test.js",
   "save-data.test.js",
   "quality.test.js",
   "sound-motion.test.js",
@@ -27,14 +62,19 @@ const SUITES = [
 ];
 
 (async () => {
-  const filters = process.argv.slice(2);
-  const selected = SUITES.filter(f => filters.length === 0 || filters.some(k => f.includes(k)));
+  const args = process.argv.slice(2);
+  const full = args.includes("--full");
+  const filters = args.filter(a => a !== "--full");
+  const quick = ["server.test.js", "festival.test.js"];
+  const selected = SUITES.filter(f => filters.length ? filters.some(k => f.includes(k)) : full || quick.includes(f));
+  if (!full && !filters.length) console.log("輕量檢查：不開啟 3D 瀏覽器。完整測試使用 npm run test:full。");
   if (selected.length === 0) {
     console.log(`沒有符合的測試。可用：${SUITES.join("、")}`);
     process.exit(1);
   }
 
   const server = await startServer();
+  activeServer = server;
   console.log(`測試伺服器：${server.base}\n`);
   const results = [];
   const started = Date.now();
@@ -68,5 +108,5 @@ const SUITES = [
   console.log("✓ 全部通過");
 })().catch(err => {
   console.error(err);
-  process.exit(1);
+  shutdown(1);
 });

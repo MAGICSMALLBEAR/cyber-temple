@@ -3,10 +3,13 @@
 ## 自動化測試
 
 ```
-npm test                      # 全部跑（約 8–10 分鐘）
+npm test                      # 輕量檢查，不開啟 3D 瀏覽器
+npm run test:full              # 完整測試，會啟動 3D 瀏覽器，負載較高
 node tests/run-all.js daily   # 只跑名稱含 daily 的測試
 TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 ```
+
+2026-11-04 曾在本機測試期間發生整機凍結並強制重開；原因尚未確定。自此本機預設採輕量檢查，完整測試留給明確指定的執行或 CI。測試執行器使用鎖檔禁止兩套同時跑，正常中斷會關閉自己的測試瀏覽器與伺服器。不要同時開兩個終端跑不同組的 3D 測試。
 
 **需要：** Node.js、電腦上的 Google Chrome（沒有可設 `TEST_BROWSER_CHANNEL=msedge` 改用 Edge）、Playwright（`npm i -g playwright`）。測試會自己啟動 `server.js`（隨機埠號），跑完自動關閉。
 
@@ -16,6 +19,9 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 | `festival.test.js` | 農曆換算與節慶日期、閏月、節慶表每筆對得到神尊；二十四節氣與已知天文時刻比對（誤差 30 分鐘內） |
 | `deities.test.js` | 8 位神尊切換、法器、藏經閣列傳、關公紅臉還原、神尊聖誕的節慶功課 |
 | `avatar-look.test.js` | 五官看得到、換造型右側面板即時預覽、沒儲存會還原、造型代碼、表情 3 秒消失、持續動作與停止、兩台裝置互相看到捏臉／表情／動作／換造型 |
+| `pilgrimage.test.js` | 七步完整參拜與避障前往、重新整理接續、現場與跪拜判定、聖筊確認、結束時停止行走 |
+| `social-power.test.js` | 對話泡泡與同行看到、32 字上限、連發冷卻、快捷語與輸入短句；閒置降幀與操作喚醒、背景分頁暫停繪圖但持續送心跳、流暢度上限保存（背包、夜市目前只有點擊巡檢涵蓋） |
+| `interior.test.js` | 拜墊跪坐與同行同步、起身、香油箱功德扣除與不足防護、籤詩櫃紀錄、櫃體碰撞、手機指引版面 |
 | `onboarding.test.js` | 新手引導四步、順序錯不前進、完成給功德、略過、老玩家不顯示、桌機與手機都不擋按鈕和搖桿 |
 | `chiam-ritual.test.js` | 正統求籤三步驟每個分支（笑筊／陰筊重來、被拒的籤不記錄）、問題帶進 AI 解籤、不在途中觸發遶境、快速求籤、真實動畫走完全程、手機不擋按鈕 |
 | `three.test.js` | Three.js 版本、r128 外觀相容層（燈光強度與衰減、色彩）、OrbitControls、載入與切換時無警告 |
@@ -39,7 +45,7 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 
 ## 持續整合
 
-`.github/workflows/test.yml`：專案放上 GitHub 後，每次推送與 Pull Request 都會自動跑 `npm test`，並檢查 `libs/three.bundle.min.js` 是否由目前的 `tools/three-entry.js` 打包（改了打包設定卻忘了執行 `npm run build:three` 會失敗）。
+`.github/workflows/test.yml`：專案放上 GitHub 後，每次推送與 Pull Request 都會自動跑 `npm run test:full`（完整 3D 測試），並檢查 `libs/three.bundle.min.js` 是否由目前的 `tools/three-entry.js` 打包（改了打包設定卻忘了執行 `npm run build:three` 會失敗）。
 
 ## 真機驗收
 

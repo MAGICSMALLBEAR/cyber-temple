@@ -81,37 +81,41 @@ const templeQuality = {
   },
 
   startFpsMonitor() {
-    let frames = 0;
-    let windowStart = performance.now() + FPS_WARMUP_MS;
-    const tick = (now) => {
-      requestAnimationFrame(tick);
-      // 分頁在背景時瀏覽器會降頻，不列入計算
-      if (document.hidden) { frames = 0; windowStart = now + 1000; return; }
-      if (now < windowStart) return;
-      frames++;
-      const elapsed = now - windowStart;
+    this.measuredFrames = 0;
+    this.windowStart = performance.now() + FPS_WARMUP_MS;
+    this.lowFpsWindows = 0;
+  },
+
+  // 只在場景真的畫完一格後計數。
+  recordFrame(now) {
+      if (document.hidden || window.templePower?.throttled) {
+        this.measuredFrames = 0; this.windowStart = now + 1000;
+        this.lowFpsWindows = 0;
+        this.fps = 0; this.renderFps(); return;
+      }
+      if (now < this.windowStart) return;
+      this.measuredFrames++;
+      const elapsed = now - this.windowStart;
       if (elapsed < FPS_WINDOW_MS) return;
-      this.fps = Math.round((frames * 1000) / elapsed);
-      frames = 0;
-      windowStart = now;
+      this.fps = Math.round((this.measuredFrames * 1000) / elapsed);
+      this.measuredFrames = 0;
+      this.windowStart = now;
       this.renderFps();
       // 連續兩個量測區間都偏低才降，避免單次卡頓誤判
       if (this.mode === "auto" && this.fps < FPS_LOW_THRESHOLD) {
         this.lowFpsWindows = (this.lowFpsWindows || 0) + 1;
         if (this.lowFpsWindows >= 2) {
           this.lowFpsWindows = 0;
-          if (this.stepDown()) windowStart = now + FPS_WARMUP_MS;
+          if (this.stepDown()) this.windowStart = now + FPS_WARMUP_MS;
         }
       } else {
         this.lowFpsWindows = 0;
       }
-    };
-    requestAnimationFrame(tick);
   },
 
   renderFps() {
     const el = document.getElementById("qualityFps");
-    if (el) el.textContent = this.fps ? `目前約 ${this.fps} FPS` : "量測中…";
+    if (el) el.textContent = window.templePower?.throttled ? "閒置省電 · 15 FPS" : this.fps ? `目前約 ${this.fps} FPS` : "量測中…";
   },
 
   renderUI(antialiasChanged = false) {

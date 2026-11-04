@@ -52,6 +52,11 @@ window.closeFeastModal = function() {
 };
 
 function updateFeastSlotsUI() {
+  document.querySelectorAll(".feast-dish-picker").forEach(picker => {
+    let stock = picker.querySelector(".feast-stock");
+    if (!stock) { stock = document.createElement("small"); stock.className = "feast-stock"; picker.append(stock); }
+    stock.textContent = `持有 ${window.templeInventory?.data.items[picker.dataset.dish] || 0} 份`;
+  });
   for (let i = 0; i < 5; i++) {
     const dishKey = currentFeastDishes[i] || "fruit";
     const info = FEAST_DISH_INFO[dishKey] || FEAST_DISH_INFO.fruit;
@@ -75,9 +80,13 @@ function selectFeastDish(dishKey) {
 }
 
 function presentFeastOffering() {
+  const needs = {};
+  currentFeastDishes.forEach(id => { needs[id] = (needs[id] || 0) + 1; });
+  if (window.templeInventory && !window.templeInventory.consume(needs)) return;
   if (window.temple3d) {
     window.temple3d.celebrateFeastOffering();
   }
+  window.emitRitual?.("feast");
   addMerit(128);
   const petitioner = state.avatarConfig.title || "善信";
   const msg = `🍱 善信【${petitioner}】在神案呈獻御賜五品大筵席，神威廣大，功德 +128！全天福星高照！`;

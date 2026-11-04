@@ -1,8 +1,31 @@
 // avatar/relics.js - 護身與法器：開光靈符光環、八卦神鏡、九品蓮花座、步步生蓮、法器裝備
 
+function buildChestAmulet(torso, type) {
+  const old = torso.getObjectByName("chestAmulet");
+  if (old) {
+    torso.remove(old);
+    old.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { o.material.map?.dispose(); o.material.dispose(); } });
+  }
+  if (!Object.hasOwn(AMULET_TYPES, type)) return;
+  const g = new THREE.Group(); g.name = "chestAmulet"; g.userData.noCollision = true;
+  const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 160;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#a52424"; ctx.fillRect(0, 0, 128, 160);
+  ctx.strokeStyle = "#ffe093"; ctx.lineWidth = 10; ctx.strokeRect(8, 8, 112, 144);
+  ctx.font = "bold 38px 'Microsoft JhengHei', serif"; ctx.fillStyle = "#ffe093"; ctx.textAlign = "center";
+  ctx.fillText(AMULET_TYPES[type].slice(0, 2), 64, 68); ctx.fillText("平安", 64, 120);
+  const pendant = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.21, 0.045), new THREE.MeshStandardMaterial({ color: 0xf0b844, roughness: 0.5 }));
+  pendant.position.set(0, 0.12, 0.26); g.add(pendant);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.19), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas) }));
+  face.position.set(0, 0.12, 0.285); g.add(face);
+  const cord = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-0.10, 0.28, 0.17), new THREE.Vector3(0, 0.22, 0.26), new THREE.Vector3(0.10, 0.28, 0.17)]), new THREE.LineBasicMaterial({ color: 0x9c1515 }));
+  g.add(cord); torso.add(g);
+}
+
 class AvatarRelicsMixin {
   // 構建開光平安符護身靈光環
   buildAmuletAura(amuletType) {
+    buildChestAmulet(this.limbs.torso, amuletType);
     if (this.limbs.amuletAura) {
       this.playerGroup.remove(this.limbs.amuletAura);
       this.limbs.amuletAura = null;
@@ -35,13 +58,19 @@ class AvatarRelicsMixin {
   }
 
   equipAmulet(amuletType) {
+    if (amuletType && window.templeInventory && !window.templeInventory.data.amulets.includes(amuletType)) {
+      window.setDockStatus?.("🛡️ 請先在服務處購買，或在功德福閣開光取得這張平安符。"); return false;
+    }
     this.equippedAmulet = amuletType;
+    this.config.amuletType = amuletType || "";
     if (amuletType) {
       localStorage.setItem("temple_equipped_amulet", amuletType);
     } else {
       localStorage.removeItem("temple_equipped_amulet");
     }
     this.buildAmuletAura(amuletType);
+    this.broadcastMyState(true);
+    return true;
   }
 
   // 構建浮空旋轉紫薇八卦神鏡

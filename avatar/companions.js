@@ -72,6 +72,9 @@ class AvatarCompanionsMixin {
   // ==========================================
 
   initMultiplayerPeers() {
+    // 背景分頁不繪圖時仍維持真人連線。
+    // 背景分頁暫停繪圖時，固定每 2 秒強制送心跳（非強制會因「距上次不足 1.8 秒」被跳過，間隔可能拉長到近 4 秒）
+    setInterval(() => { if (document.hidden) this.broadcastMyState(true); }, 2000);
     if (this.channel) {
       this.channel.addEventListener("message", (event) => {
         const data = event.data;
@@ -146,6 +149,8 @@ class AvatarCompanionsMixin {
       rot: parseFloat(this.playerGroup.rotation.y.toFixed(3)),
       action: this.currentAction,
       emote: this.emote,
+      speech: this.speech,
+      hidden: document.hidden,
       timestamp: Date.now()
     };
 
@@ -183,6 +188,7 @@ class AvatarCompanionsMixin {
     const cfgKey = JSON.stringify(data.config || {});
     if (peer.configKey !== undefined && peer.configKey !== cfgKey) {
       const keep = { pos: peer.group.position.clone(), rot: peer.group.rotation.y, emote: peer.lastEmoteT };
+      clearSpeechBubble(peer, peer.group);
       this.scene.remove(peer.group);
       const rebuilt = this.createPeerAvatarMesh(data.config || {}, data.id);
       rebuilt.group.position.copy(keep.pos);
@@ -197,6 +203,11 @@ class AvatarCompanionsMixin {
     peer.targetRot = data.rot;
     peer.action = data.action || "idle";
     peer.lastSeen = performance.now();
+    peer.hidden = data.hidden === true;
+    if (data.speech && typeof data.speech.id === "string" && data.speech.id !== peer.lastSpeechId) {
+      peer.lastSpeechId = data.speech.id;
+      showSpeechBubble(peer, peer.group, data.speech, data.config?.title);
+    }
     if (data.emote && AVATAR_EMOTES[data.emote.id] && data.emote.t !== peer.lastEmoteT) {
       peer.lastEmoteT = data.emote.t;
       if (Date.now() - data.emote.t < EMOTE_SECONDS * 1000) showEmoteBubble(peer, peer.group, data.emote.id);
@@ -291,6 +302,7 @@ class AvatarCompanionsMixin {
     }
 
     // 浮動頭銜標籤 (綠色在線同頻標誌)
+    buildChestAmulet(torso, cfg.amuletType);
     const titleSprite = this.createPeerTitleSprite(cfg.title || "善信");
     titleSprite.position.set(0, 1.48, 0);
     peerGroup.add(titleSprite);
@@ -348,6 +360,7 @@ class AvatarCompanionsMixin {
   removePeer(id) {
     const peer = this.peers.get(id);
     if (peer) {
+      clearSpeechBubble(peer, peer.group);
       this.scene.remove(peer.group);
       this.peers.delete(id);
     }
@@ -359,7 +372,7 @@ class AvatarCompanionsMixin {
 
     this.peers.forEach((peer, id) => {
       // 超過 10 秒未收心跳則淡出移除
-      if (now - peer.lastSeen > 10000) {
+      if (now - peer.lastSeen > (peer.hidden ? 120000 : 10000)) {
         this.removePeer(id);
         return;
       }
@@ -375,7 +388,10 @@ class AvatarCompanionsMixin {
       peer.group.rotation.y += diffRot * 0.22;
 
       // 肢體動畫驅動
+      // 與自己的分身一樣，先算姿勢起伏，再疊回墊面／橋面的高度。
+      peer.group.position.y = 0;
       this.animatePeerLimbs(peer, time, dt);
+      peer.group.position.y += peer.targetPos.y;
     });
   }
 
@@ -384,6 +400,7 @@ class AvatarCompanionsMixin {
     const limbs = peer.limbs;
     if (!limbs || !limbs.armL) return;
     updateEmoteBubble(peer, peer.group);
+    updateSpeechBubble(peer, peer.group);
 
     if (peer.action !== peer.lastPoseAction) {
       resetAvatarPose(limbs, peer.group);

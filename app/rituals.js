@@ -5,6 +5,7 @@ function bindAltarRitualEvents() {
   // 點燃清香
   document.getElementById("btnLightIncense").addEventListener("click", () => {
     if (!temple3d) return;
+    if (window.templeInventory && !window.templeInventory.consume({ incense: 1 })) return;
     window.templeAudio.playLighter();
     setTimeout(() => {
       temple3d.lightIncense();
@@ -47,8 +48,6 @@ function bindCourtyardOfferingEvents() {
   // 焚燒金紙化寶
   document.getElementById("btnBurnPaper").addEventListener("click", () => {
     if (temple3d) temple3d.burnJossPaper();
-    const cur = parseInt(localStorage.getItem("temple_burned_paper") || "0", 10) + 1;
-    localStorage.setItem("temple_burned_paper", cur);
   });
 
 }

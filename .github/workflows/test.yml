@@ -30,4 +30,4 @@ jobs:
           git diff --exit-code libs/three.bundle.min.js
 
       - name: 執行測試
-        run: npm test
+        run: npm run test:full

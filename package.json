@@ -1,11 +1,12 @@
 {
   "name": "cyber-virtual-temple-3d",
-  "version": "11.4.0",
+  "version": "11.5.0",
   "private": true,
   "description": "賽博虛擬神殿 3D",
   "scripts": {
     "start": "node server.js",
     "test": "node tests/run-all.js",
+    "test:full": "node tests/run-all.js --full",
     "build:three": "esbuild tools/three-entry.js --bundle --minify --format=iife --legal-comments=inline --target=es2020 --outfile=libs/three.bundle.min.js"
   },
   "devDependencies": {

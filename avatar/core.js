@@ -41,6 +41,7 @@ class TempleAvatarSystem {
     };
 
     this.equippedAmulet = localStorage.getItem("temple_equipped_amulet") || null;
+    this.config.amuletType = this.equippedAmulet || "";
 
     // 法器結緣閣裝備狀態
     this.relics = JSON.parse(localStorage.getItem("temple_equipped_relics") || "{}");
@@ -190,6 +191,7 @@ class TempleAvatarSystem {
 
     // 8. 頭頂稱號浮空字牌 (如「悠閒的信眾」)
     this.updateTitleBadge();
+    if (this.speech) showSpeechBubble(this, this.playerGroup, this.speech, this.config.title);
 
     // 9. 護體靈光環 (若有佩戴開光平安符)
     this.buildAmuletAura(this.equippedAmulet);
@@ -471,20 +473,12 @@ class TempleAvatarSystem {
       if (e.code === "KeyD" || e.code === "ArrowRight") this.keys.right = true;
       if (e.code === "ShiftLeft" || e.code === "ShiftRight") this.keys.shift = true;
 
-      // 視角重置快捷鍵
-      if (e.code === "KeyC") {
-        if (window.temple3d) window.temple3d.resetCameraBehindAvatar(true);
-      }
-
-      // 互動快捷鍵
-      if (e.code === "KeyE") {
-        if (window.temple3d) window.temple3d.triggerNearbyInteraction();
-      }
+      // E 互動與 C 視角由場景統一處理，避免一次按鍵執行兩次。
 
       // 動作快捷鍵
       // 玩家親自行禮才算每日功課；科儀附帶的鞠躬動畫不算
       if (e.code === "KeyB") { this.triggerAction("bow"); window.emitRitual?.("bow"); }      // 鞠躬禮
-      if (e.code === "KeyK") { this.triggerAction("kneel"); window.emitRitual?.("bow"); }    // 跪拜
+      if (e.code === "KeyK") { this.triggerAction("kneel"); window.emitRitual?.("bow", { action: "kneel" }); }    // 跪拜
       if (e.code === "KeyP") { this.triggerAction("pray"); window.emitRitual?.("bow"); }     // 合掌
       if (e.code === "KeyM") this.triggerAction("meditate"); // 打坐
     });
@@ -683,6 +677,7 @@ class TempleAvatarSystem {
     this.animateLimbs(time, dt);
     this.playerGroup.position.y += this.position.y;
     updateEmoteBubble(this, this.playerGroup);
+    updateSpeechBubble(this, this.playerGroup);
 
     // 3. 更新同殿連線信眾分身 (Peer Avatars)
     this.updatePeers(time, dt);

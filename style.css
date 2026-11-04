@@ -2535,7 +2535,7 @@ body.hud-hidden .chiam-ritual-card {
   position: fixed;
   left: 12px;
   bottom: 120px;
-  width: min(340px, 94vw);
+  width: min(340px, calc(100vw - 118px));
   max-height: 70vh;
   overflow-y: auto;
   display: none;
@@ -2561,6 +2561,12 @@ body.hud-hidden .chiam-ritual-card {
 .emote-grid.action-grid {
   grid-template-columns: repeat(3, 1fr);
 }
+
+.quick-speech-grid { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.quick-speech-grid button { font-size: 0.76rem; }
+.speech-form { display: flex; gap: 6px; }
+.speech-form input { min-width: 0; flex: 1; width: 100%; }
+.speech-form button { flex-shrink: 0; }
 
 .emote-btn {
   display: flex;
@@ -2599,3 +2605,46 @@ body.hud-hidden .emote-panel {
 .avatar-action-bar {
   border-radius: 16px;
 }
+
+/* 完整參拜指引：右上、視角按鈕下方 */
+.pilgrim-card {
+  position: fixed;
+  right: 12px;
+  top: 110px;
+  width: min(290px, calc(100vw - 130px));
+  padding: 10px 12px 12px;
+  border-radius: 12px;
+  background: rgba(40, 12, 8, 0.92);
+  border: 1px solid rgba(245, 197, 66, 0.7);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  color: #f3e3c0;
+  z-index: 54;
+}
+
+.pilgrim-card.collapsed .onboarding-hint {
+  font-size: 0.78rem;
+  color: #c9a76e;
+}
+
+body.hud-hidden .pilgrim-card {
+  display: none;
+}
+
+.bag-modal { width: min(540px, calc(100vw - 24px)); max-height: 84dvh; overflow-y: auto; }
+.bag-wallet { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #ffe29a; }
+.bag-wallet strong { font-size: 1.6rem; }
+.bag-wallet small { color: #c9a76e; }
+.bag-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 8px; }
+.bag-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #d4a03433; }
+.bag-row > div { flex: 1; min-width: 0; }
+.bag-row strong, .bag-row small { display: block; }
+.bag-row small { color: #c9a76e; margin-top: 5px; line-height: 1.5; }
+.bag-row button { flex-shrink: 0; }
+.feast-stock { display: block; font-size: 0.7rem; color: #c9a76e; margin-top: 4px; }
+.market-modal { width: min(600px, calc(100vw - 24px)); max-height: 86dvh; overflow-y: auto; }
+#ringCanvas { display: block; width: 100%; height: auto; border: 1px solid #d4a03477; border-radius: 10px; }
+.market-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+#puppetSubtitle { line-height: 1.9; color: #f3e3c0; min-height: 5em; }
+.market-overlay.puppet-view { align-items: flex-end; justify-content: flex-end; padding: 16px; background: transparent; pointer-events: none; }
+.market-overlay.puppet-view .market-modal { width: min(400px, calc(100vw - 32px)); pointer-events: auto; margin: 0; background: rgba(30, 12, 9, 0.96); }
+button:disabled { opacity: 0.45; cursor: default; }

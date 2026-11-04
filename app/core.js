@@ -78,15 +78,22 @@ window.addEventListener("DOMContentLoaded", () => {
   // 3.3 畫質設定選單（場景本身在 Temple3DScene 建立時已套用畫質）與減少動態
   if (window.templeQuality) window.templeQuality.init();
   if (window.templeMotion) window.templeMotion.init();
+  if (window.templePower) window.templePower.init();
 
   // 3.4 功德存檔匯出／匯入
   if (window.templeSave) window.templeSave.init();
 
   // 3.43 換造型面板與表情動作面板
   if (window.avatarStudio) window.avatarStudio.init();
+  if (window.templeChat) window.templeChat.init();
 
-  // 3.44 正統求籤儀式卡
+  // 3.44 正統求籤儀式卡與完整參拜指引
   if (window.chiamRitual) window.chiamRitual.init();
+  if (window.pilgrimage) window.pilgrimage.init();
+  if (window.hallActivities) window.hallActivities.init();
+  if (window.templeInventory) window.templeInventory.init();
+  if (window.templeBag) window.templeBag.init();
+  if (window.nightMarket) window.nightMarket.init();
 
   // 3.45 新手引導（是否為新玩家已在每日簽到發功德之前判定）
   if (window.templeOnboarding) window.templeOnboarding.init();

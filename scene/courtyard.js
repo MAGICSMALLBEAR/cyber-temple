@@ -583,7 +583,10 @@ class TempleCourtyardMixin {
   // 焚燒金紙化寶 (Joss Paper Burning)
   burnJossPaper() {
     if (this.isBurningPaper) return;
+    if (window.templeInventory && !window.templeInventory.consume({ paper: 1 })) return;
     this.isBurningPaper = true;
+    const burned = parseInt(localStorage.getItem("temple_burned_paper") || "0", 10) + 1;
+    localStorage.setItem("temple_burned_paper", burned);
     window.emitRitual?.("paper");
 
     if (this.avatar) {

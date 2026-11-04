@@ -43,7 +43,12 @@ const chiamRitual = {
   quick() {
     if (this.busy) return;
     this.close();
-    performChiamShake();
+    performChiamShake(chosen => {
+      recordChiamToHistory(chosen);
+      setDockStatus(`🎋 抽得第 ${chosen.id} 籤【${chosen.ganZhi}】${chosen.fortune}！正在展開靈籤捲軸...`);
+      window.emitRitual?.("chiamReceived");
+      setTimeout(() => openChiamModal(chosen), 700);
+    });
   },
 
   primary() {
@@ -93,6 +98,7 @@ const chiamRitual = {
         recordChiamToHistory(chiam, this.question || "祈求安泰前程");
         setDockStatus(`🎋 第 ${chiam.id} 籤【${chiam.ganZhi}】${chiam.fortune}，經聖筊確認，正在展開靈籤捲軸...`);
         const q = this.question;
+        window.emitRitual?.("chiamReceived", { confirmed: true });
         setTimeout(() => {
           this.close();
           openChiamModal(chiam);

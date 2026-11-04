@@ -71,6 +71,8 @@ function updateAIEngineBadge() {
 
 // 打開籤詩彈窗
 function openChiamModal(chiam) {
+  state.selectedChiam = chiam;
+  window.templeBag?.updateFavoriteButton();
   document.getElementById("scrollTitle").innerText = `六十甲子媽祖靈籤 • 第 ${chiam.id} 籤`;
   document.getElementById("scrollFortune").innerText = `${chiam.ganZhi} • ${chiam.fortune}`;
   document.getElementById("scrollGuaTou").innerText = `典故：${chiam.guaTou}`;

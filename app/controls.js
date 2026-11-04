@@ -60,7 +60,7 @@ function bindCameraAndAvatarControls() {
 
   document.getElementById("btnActionKneel").addEventListener("click", () => {
     if (temple3d && temple3d.avatar) temple3d.avatar.triggerAction("kneel");
-    window.emitRitual?.("bow");
+    window.emitRitual?.("bow", { action: "kneel" });
     setDockStatus("🧎 雙膝著地，虔誠跪拜禮佛...");
   });
 
