@@ -10,7 +10,8 @@ function buildChestAmulet(torso, type) {
   const g = new THREE.Group(); g.name = "chestAmulet"; g.userData.noCollision = true;
   const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 160;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#a52424"; ctx.fillRect(0, 0, 128, 160);
+  const charmColors = { guanyin: "#245a58", guangong: "#214b34", tudigong: "#75502b", guaiguai: "#176b35" };
+  ctx.fillStyle = charmColors[type] || "#a52424"; ctx.fillRect(0, 0, 128, 160);
   ctx.strokeStyle = "#ffe093"; ctx.lineWidth = 10; ctx.strokeRect(8, 8, 112, 144);
   ctx.font = "bold 38px 'Microsoft JhengHei', serif"; ctx.fillStyle = "#ffe093"; ctx.textAlign = "center";
   ctx.fillText(AMULET_TYPES[type].slice(0, 2), 64, 68); ctx.fillText("平安", 64, 120);
@@ -27,7 +28,9 @@ class AvatarRelicsMixin {
   buildAmuletAura(amuletType) {
     buildChestAmulet(this.limbs.torso, amuletType);
     if (this.limbs.amuletAura) {
-      this.playerGroup.remove(this.limbs.amuletAura);
+      const old = this.limbs.amuletAura;
+      this.playerGroup.remove(old);
+      old.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); });
       this.limbs.amuletAura = null;
     }
     if (!amuletType) return;
@@ -36,7 +39,8 @@ class AvatarRelicsMixin {
     auraGroup.position.set(0, 0.52, 0);
 
     const ringGeo = new THREE.TorusGeometry(0.48, 0.02, 8, 24);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.85 });
+    const auraColor = { guanyin: 0xbcebe0, guangong: 0x7ed296, tudigong: 0xffd399, guaiguai: 0x66ee88 }[amuletType] || 0xffe066;
+    const ringMat = new THREE.MeshBasicMaterial({ color: auraColor, transparent: true, opacity: 0.85 });
     const ring = new THREE.Mesh(ringGeo, ringMat);
     ring.rotation.x = Math.PI / 2;
     auraGroup.add(ring);
@@ -47,7 +51,7 @@ class AvatarRelicsMixin {
       const angle = (i / dotCount) * Math.PI * 2;
       const dot = new THREE.Mesh(
         new THREE.SphereGeometry(0.035, 6, 6),
-        new THREE.MeshBasicMaterial({ color: 0xffd700 })
+        new THREE.MeshBasicMaterial({ color: auraColor })
       );
       dot.position.set(Math.cos(angle) * 0.48, 0, Math.sin(angle) * 0.48);
       auraGroup.add(dot);

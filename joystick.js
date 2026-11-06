@@ -57,6 +57,8 @@ class MobileJoystickController {
 
     window.addEventListener("touchend", handleEnd);
     window.addEventListener("touchcancel", handleEnd);
+    window.addEventListener("blur", () => this.reset());
+    document.addEventListener("visibilitychange", () => { if (document.hidden) this.reset(); });
   }
 
   updateKnob(clientX, clientY) {

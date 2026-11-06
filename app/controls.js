@@ -168,6 +168,7 @@ function bindHudPanelEvents() {
 function bindKeyboardAndAvatarEvents() {
   // 鍵盤快捷鍵
   window.addEventListener("keydown", (e) => {
+    if (window.templeReading?.blocksSceneKeys(e, true)) return;
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     if (e.code === "Space") {
       e.preventDefault();
@@ -454,7 +455,15 @@ function bindModernUIShell() {
 
   // --- 全域快捷鍵：H / Tab / ? / Esc ---
   window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAllDropdowns();
+      document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+      if (document.body.classList.contains("hud-hidden")) document.body.classList.remove("hud-hidden");
+      return;
+    }
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") return;
+    if (e.code === "Tab" && document.querySelector(".modal-overlay.open")) return;
+    if (e.code !== "Tab" && window.templeReading?.blocksSceneKeys(e)) return;
     if (e.code === "KeyH") {
       window.toggleHUD();
     } else if (e.code === "Tab") {
@@ -462,10 +471,6 @@ function bindModernUIShell() {
       window.togglePavilion();
     } else if (e.key === "?") {
       window.toggleHelp();
-    } else if (e.key === "Escape") {
-      closeAllDropdowns();
-      document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
-      if (document.body.classList.contains("hud-hidden")) document.body.classList.remove("hud-hidden");
     }
   });
 

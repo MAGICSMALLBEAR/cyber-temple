@@ -228,6 +228,7 @@ const avatarStudio = {
       if (panel.classList.contains("open") && !e.target.closest("#emotePanel, #btnOpenEmotes")) toggle(false);
     });
     window.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" && window.templeReading?.blocksSceneKeys(e)) return;
       if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
       if (e.code === "KeyT") toggle();
       if (e.key === "Escape") toggle(false);

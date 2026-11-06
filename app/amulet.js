@@ -13,15 +13,19 @@ function bindAmuletEvents() {
   // 靈符卡片選取
   document.querySelectorAll(".amulet-card-item").forEach(card => {
     card.addEventListener("click", () => {
+      if (document.getElementById("btnConsecrateAmulet").disabled) return;
       document.querySelectorAll(".amulet-card-item").forEach(c => c.classList.remove("active"));
       card.classList.add("active");
       selectedAmuletType = card.dataset.amulet;
+      document.querySelectorAll(".amulet-card-item").forEach(c => c.setAttribute("aria-pressed", String(c === card)));
+      document.getElementById("amuletResultSection").style.display = "none";
       window.templeAudio.playBell(600);
     });
   });
 
   // 靈符過香爐開光三圈儀式
   document.getElementById("btnConsecrateAmulet").addEventListener("click", () => {
+    if (document.getElementById("btnConsecrateAmulet").disabled) return;
     if (state.meritCount < 20) {
       setDockStatus("⚠️ 請領靈符開光需 20 功德，請先敬香或勤敲木魚積累功德！");
       window.templeAudio.playMuyuSound();
@@ -29,6 +33,10 @@ function bindAmuletEvents() {
     }
     addMerit(-20);
     const consecratedType = selectedAmuletType;
+    const details = {
+      petitioner: document.getElementById("txtAmuletPetitioner").value.trim() || state.avatarConfig.title || "善信",
+      wish: document.getElementById("txtAmuletWish").value.trim() || getDefaultAmuletWish(consecratedType)
+    };
 
     const statusText = document.getElementById("consecrateStatus");
     const animArea = document.getElementById("consecrateCenserAnim");
@@ -36,6 +44,10 @@ function bindAmuletEvents() {
     const resultSec = document.getElementById("amuletResultSection");
 
     btn.disabled = true;
+    document.querySelectorAll(".amulet-card-item").forEach(c => { c.disabled = true; });
+    document.getElementById("txtAmuletPetitioner").readOnly = true;
+    document.getElementById("txtAmuletWish").readOnly = true;
+    document.getElementById("amuletModal").setAttribute("aria-busy", "true");
     resultSec.style.display = "none";
     animArea.style.display = "flex";
 
@@ -53,11 +65,16 @@ function bindAmuletEvents() {
     setTimeout(() => {
       animArea.style.display = "none";
       btn.disabled = false;
+      document.querySelectorAll(".amulet-card-item").forEach(c => { c.disabled = false; });
+      document.getElementById("txtAmuletPetitioner").readOnly = false;
+      document.getElementById("txtAmuletWish").readOnly = false;
+      document.getElementById("amuletModal").setAttribute("aria-busy", "false");
       statusText.innerHTML = "✨ <b>開光圓滿</b> • 靈符已具備神威守護！可下載桌布或隨身佩戴。";
       window.templeAudio.playBell(792);
 
       window.templeInventory?.addAmulet(consecratedType);
-      drawAmuletCanvas(consecratedType);
+      completedAmulet = { type: consecratedType, ...details };
+      drawAmuletCanvas(consecratedType, details);
       resultSec.style.display = "block";
 
       spawnAvatarFloatingText("🛡️ 平安靈符開光大吉！神聖法印護體！");
@@ -71,10 +88,9 @@ function bindAmuletEvents() {
   // 下載手機桌布靈符
   document.getElementById("btnDownloadAmuletPng").addEventListener("click", () => {
     const canvas = document.getElementById("amuletPreviewCanvas");
-    if (!canvas) return;
+    if (!canvas || !completedAmulet) return;
     const link = document.createElement("a");
-    const name = document.getElementById("txtAmuletPetitioner")?.value.trim() || "善信";
-    link.download = `賽博神殿_開光護身靈符_${getAmuletName(selectedAmuletType)}_${name}.png`;
+    link.download = `賽博神殿_開光護身靈符_${getAmuletName(completedAmulet.type)}_${completedAmulet.petitioner}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
     window.templeAudio.playBell(660);
@@ -82,11 +98,11 @@ function bindAmuletEvents() {
 
   // 隨身佩戴護身靈光 (3D神光)
   document.getElementById("btnEquipAmuletAura").addEventListener("click", () => {
-    if (temple3d && temple3d.avatar) {
-      if (temple3d.avatar.equipAmulet(selectedAmuletType) === false) return;
+    if (completedAmulet && temple3d && temple3d.avatar) {
+      if (temple3d.avatar.equipAmulet(completedAmulet.type) === false) return;
       window.templeAudio.playConsecrationChime();
       spawnAvatarFloatingText("✨ 護體神光已啟動！金光靈動圍繞分身");
-      setDockStatus(`✨ 已隨身佩戴【${getAmuletName(selectedAmuletType)}】，3D 護身神光旋繞護佑！`);
+      setDockStatus(`✨ 已隨身佩戴【${getAmuletName(completedAmulet.type)}】，3D 護身神光旋繞護佑！`);
     }
   });
 
@@ -97,6 +113,7 @@ function bindAmuletEvents() {
 // ==========================================
 
 let selectedAmuletType = "mazu";
+let completedAmulet = null;
 
 window.openAmuletModal = function() {
   const modal = document.getElementById("amuletModal");
@@ -116,6 +133,9 @@ function getDefaultAmuletWish(key) {
     caishen: "日進斗金，生意興隆，財庫豐盈",
     yuelao: "千里良緣，情投意合，早結連理",
     guaiguai: "伺服器綠燈常亮，零當機無Bug",
+    guanyin: "慈悲護念，身心清淨，闔家平安",
+    guangong: "正氣護身，信義立業，出入平安",
+    tudigong: "安居樂業，福德綿長，鄉里平安",
     taisui: "吉星拱照，化解災煞，百邪不侵"
   };
   return map[key] || "祈求善信萬事如意、福祿雙全";
@@ -128,12 +148,15 @@ function getAmuletName(key) {
     caishen: "五路財神進寶發財符",
     yuelao: "月下老人天賜真愛符",
     guaiguai: "科技綠色乖乖守護符",
+    guanyin: "觀世音菩薩慈悲護身符",
+    guangong: "關聖帝君忠義護身符",
+    tudigong: "福德正神安居平安符",
     taisui: "值年太歲化煞安康符"
   };
   return map[key] || "護身開光靈符";
 }
 
-function drawAmuletCanvas(amuletKey) {
+function drawAmuletCanvas(amuletKey, details = {}) {
   const canvas = document.getElementById("amuletPreviewCanvas");
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
@@ -142,8 +165,8 @@ function drawAmuletCanvas(amuletKey) {
   canvas.width = W;
   canvas.height = H;
 
-  const petitioner = document.getElementById("txtAmuletPetitioner")?.value.trim() || state.avatarConfig.title || "善信";
-  const wish = document.getElementById("txtAmuletWish")?.value.trim() || getDefaultAmuletWish(amuletKey);
+  const petitioner = details.petitioner || document.getElementById("txtAmuletPetitioner")?.value.trim() || state.avatarConfig.title || "善信";
+  const wish = details.wish || document.getElementById("txtAmuletWish")?.value.trim() || getDefaultAmuletWish(amuletKey);
 
   // 1. 符紙主底色 (不同神明專屬氣場)
   const bgConfigs = {
@@ -152,6 +175,9 @@ function drawAmuletCanvas(amuletKey) {
     caishen: { c1: "#61400e", c2: "#2b1a03", border: "#ffe066", seal: "五路財神", sealSub: "八方進寶" },
     yuelao: { c1: "#63172e", c2: "#2b0713", border: "#ff99bb", seal: "月下老人", sealSub: "天賜良緣" },
     guaiguai: { c1: "#0f4222", c2: "#041a0c", border: "#44ee77", seal: "科技乖乖", sealSub: "綠燈永駐" },
+    guanyin: { c1: "#245a58", c2: "#081e25", border: "#d9f1dc", seal: "觀音護念", sealSub: "慈悲清淨" },
+    guangong: { c1: "#214b34", c2: "#0b1b12", border: "#f0c466", seal: "關聖帝君", sealSub: "忠義護身" },
+    tudigong: { c1: "#75502b", c2: "#291a0b", border: "#ffe0a0", seal: "福德正神", sealSub: "安居樂業" },
     taisui: { c1: "#471010", c2: "#1a0404", border: "#ffd700", seal: "太歲星君", sealSub: "辟邪化煞" }
   };
   const cfg = bgConfigs[amuletKey] || bgConfigs.mazu;
@@ -215,15 +241,19 @@ function drawAmuletCanvas(amuletKey) {
     caishen: "五路武財神趙公明八方聚寶真符",
     yuelao: "月下老人千里牽線天賜真愛符",
     guaiguai: "科技守護綠色乖乖機房零當機真符",
+    guanyin: "觀世音菩薩慈悲護念清淨平安符",
+    guangong: "關聖帝君忠義護身正氣平安符",
+    tudigong: "福德正神安居樂業福德平安符",
     taisui: "甲子太歲尊神辟邪消災化煞保命符"
   };
 
   const titleStr = talismanTitles[amuletKey] || talismanTitles.mazu;
-  ctx.font = "bold 44px 'Songti TC', serif";
+  const titleStep = Math.min(48, 510 / Math.max(1, titleStr.length - 1));
+  ctx.font = `bold ${Math.min(44, titleStep * 0.85)}px 'Songti TC', serif`;
   ctx.fillStyle = "#ffffff";
 
   for (let i = 0; i < titleStr.length; i++) {
-    ctx.fillText(titleStr[i], W / 2, 305 + i * 48);
+    ctx.fillText(titleStr[i], W / 2, 305 + i * titleStep);
   }
 
   // 5. 符膽天罡神印星芒
@@ -259,7 +289,7 @@ function drawAmuletCanvas(amuletKey) {
   // 7. 善信與祈願名款
   ctx.fillStyle = "rgba(255, 235, 180, 0.9)";
   ctx.font = "26px 'Songti TC', serif";
-  ctx.fillText(`善信名款：【 ${petitioner} 】 虔誠請領`, W / 2, 1185);
+  ctx.fillText(`善信名款：【 ${petitioner} 】 虔誠請領`, W / 2, 1185, W - 100);
   ctx.font = "21px 'Songti TC', serif";
-  ctx.fillText(`祝禱所求：${wish}`, W / 2, 1222);
+  ctx.fillText(`祝禱所求：${wish}`, W / 2, 1222, W - 100);
 }

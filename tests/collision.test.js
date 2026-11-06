@@ -25,6 +25,12 @@ module.exports = {
     const walk = (dir, ms, from) => p.evaluate(async ({ dir, ms, from }) => {
       const a = window.temple3d.avatar;
       if (from) { a.position.set(from[0], 0, from[1]); a.targetPos = null; }
+      // 此組量測固定世界方位的障礙，先把鏡頭對準北方，再輸入畫面方向。
+      const t = window.temple3d;
+      t.camera.position.copy(a.position).add(new THREE.Vector3(0, 2.5, 5));
+      t.controls.target.copy(a.position).add(new THREE.Vector3(0, 1.1, 0));
+      t.camera.lookAt(t.controls.target);
+      t.followAvatar = true; t.targetCameraPos = null; t.targetLookAt = null;
       Object.keys(a.keys).forEach(k => { a.keys[k] = false; });
       dir.forEach(k => { a.keys[k] = true; });
       a.isSprinting = true;

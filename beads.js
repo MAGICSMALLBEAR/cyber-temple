@@ -135,6 +135,7 @@ class BeadsMeditationSystem {
 
     // 快捷鍵 [N] 開啟/關閉念珠
     window.addEventListener("keydown", (e) => {
+      if (window.templeReading?.blocksSceneKeys(e)) return;
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
       if (e.code === "KeyN") {
         if (this.modal && this.modal.classList.contains("open")) {

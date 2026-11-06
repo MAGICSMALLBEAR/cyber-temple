@@ -49,6 +49,7 @@ const pilgrimage = {
   },
 
   isNear(step = this.step) {
+    if (step?.id === "supplies" && window.templeInventory) return window.templeInventory.nearService();
     return !!step && this.distanceTo(step.spot) < step.radius;
   },
 
@@ -91,6 +92,7 @@ const pilgrimage = {
       this.save();
       this.render();
       if (window.addMerit) window.addMerit(PILGRIM_REWARD);
+      window.emitRitual?.("pilgrimageCompleted");
       this.notify(`🎉 完整參拜圓滿！從請香、敬天、上香、獻供、稟告、求籤到化金紙，禮數周全，功德 +${PILGRIM_REWARD}。`);
       return;
     }
@@ -101,7 +103,7 @@ const pilgrimage = {
 
   // 服務處：[E] 或指引卡上的「領取」
   claimSupplies() {
-    if (this.distanceTo(PILGRIM_STEPS[0].spot) >= PILGRIM_STEPS[0].radius) {
+    if (!this.isNear(PILGRIM_STEPS[0])) {
       this.notify("🧧 請先到服務處櫃台旁，再領取清香與金紙。");
       return;
     }
@@ -139,11 +141,11 @@ const pilgrimage = {
     return temple3d.findWalkRoute([a.position.x, a.position.z], dest);
   },
 
-  goTo(step) {
+  goTo(step, plannedPoints) {
     const a = this.avatar;
     if (!a) return;
     this.cancelRoute();
-    const points = this.planRoute(step.spot);
+    const points = plannedPoints || this.planRoute(step.spot);
     if (!points.length) { this.notify("🧭 暫時找不到通路，請移動到空曠處再試一次。"); return; }
     this.route = { points, index: 0, step };
     this.route.sprinting = a.isSprinting;

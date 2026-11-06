@@ -259,11 +259,13 @@ class DailyPractice {
     const term = this.solarTerm;
     const festText = (f ? `今天是【${f.name}】${this.multiplier > 1 ? "，功德加倍" : ""}！` : "") + (term ? `今日節氣：${term.name}。` : "");
     this.notify(`🗓️ 每日簽到：連續 ${ci.streak} 天，功德 +${reward}！${festText}`);
+    window.dispatchEvent(new CustomEvent("temple:checkin"));
   }
 
   // ---------- 功課進度 ----------
   onRitual(detail) {
     this.ensureToday();
+    if (!detail || detail.amount !== undefined && (!Number.isFinite(detail.amount) || detail.amount <= 0)) return;
     let changed = false;
     for (const task of this.tasks) {
       if (task.type !== detail.type || this.data.done.includes(task.id)) continue;
@@ -287,6 +289,7 @@ class DailyPractice {
         setTimeout(() => this.notify(`🎉 今日功課全部圓滿，額外功德 +${reward}！`), 2500);
       }
       this.save();
+      window.dispatchEvent(new CustomEvent("temple:dailyprogress"));
       this.renderBadge();
       if (document.getElementById("dailyModal")?.classList.contains("open")) this.renderPanel();
     }

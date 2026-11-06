@@ -39,6 +39,12 @@ process.once("SIGTERM", () => shutdown(143));
 const SUITES = [
   "server.test.js",
   "festival.test.js",
+  "movement.test.js",
+  "visitor-logic.test.js",
+  "visit-routes.test.js",
+  "temple-expansion.test.js",
+  "visitor-ui.test.js",
+  "expansion-ui.test.js",
   "three.test.js",
   "xr.test.js",
   "loader.test.js",
@@ -65,7 +71,7 @@ const SUITES = [
   const args = process.argv.slice(2);
   const full = args.includes("--full");
   const filters = args.filter(a => a !== "--full");
-  const quick = ["server.test.js", "festival.test.js"];
+  const quick = ["server.test.js", "festival.test.js", "movement.test.js", "visitor-logic.test.js", "visit-routes.test.js", "temple-expansion.test.js"];
   const selected = SUITES.filter(f => filters.length ? filters.some(k => f.includes(k)) : full || quick.includes(f));
   if (!full && !filters.length) console.log("輕量檢查：不開啟 3D 瀏覽器。完整測試使用 npm run test:full。");
   if (selected.length === 0) {

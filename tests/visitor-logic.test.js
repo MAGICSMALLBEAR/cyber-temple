@@ -1,0 +1,101 @@
+const fs = require("fs"), path = require("path"), vm = require("vm");
+const { makeEnvironment, ROOT } = require("./light-env");
+module.exports = {
+  name: "導航、補給、成就與心願（無 3D 繪圖）",
+  async run({ check, note }) {
+    const THREE = await import("three"), env = makeEnvironment(THREE), c = env.context;
+    for (const file of ["scene/core.js", "scene/service.js", "scene/interior.js", "scene/collision.js", "inventory.js", "app/visit.js", "app/bag.js", "app/achievements.js", "app/journal.js", "app/reading.js", "save-data.js"]) env.load(file);
+    const bag = c.templeInventory, journal = c.templeJournal, badges = c.templeAchievements, visit = c.templeVisit;
+    const center = env.run("SERVICE_DESK_POS");
+    c.temple3d = { avatar: { position: new THREE.Vector3(center[0] + 1.1, 0, center[1]), playerGroup: new THREE.Group() }, interactiveObjects: [] };
+    bag.init();
+    const emptyBag = (coins = 100) => { const d = bag.load(); d.coins = coins; Object.keys(d.items).forEach(id => { d.items[id] = 0; }); bag.save(d); return d; };
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const needs = bag.ritualRequirements(0);
+    check("完整參拜需要兩份香、一份金紙與五品供品", needs.incense === 2 && needs.paper === 1 && Object.values(needs).reduce((a, b) => a + b, 0) === 8);
+    check("重複供品依實際份數計算", bag.ritualRequirements(0, ["fruit", "fruit", "fruit", "fruit", "fruit"]).fruit === 5);
+    check("敬天後只需一份香", bag.ritualRequirements(2).incense === 1);
+    check("獻供後不再購買已完成步驟的材料", same(bag.ritualRequirements(4), { paper: 1 }));
+    emptyBag(); const quote = bag.restockQuote(needs);
+    check("空背包補齊的總價正確", quote.valid && quote.total === 38);
+    check("一鍵補齊成功", bag.buyRestock(needs, quote.total).ok);
+    check("只扣明列金額且所有材料齊備", bag.data.coins === 62 && bag.restockQuote(needs).total === 0);
+    check("已齊備不再扣款", !bag.buyRestock(needs, 0).ok && bag.data.coins === 62);
+    emptyBag(37); const before = localStorageSnapshot();
+    check("餘額不足整批拒絕且沒有部分扣款", bag.buyRestock(needs, 38).reason === "funds" && localStorageSnapshot() === before);
+    emptyBag(); const oldQuote = bag.restockQuote(needs); bag.buy("incense"); const afterSingle = localStorageSnapshot();
+    check("庫存變更後不按過期金額扣款", bag.buyRestock(needs, oldQuote.total).reason === "changed" && localStorageSnapshot() === afterSingle);
+    c.temple3d.avatar.position.set(0, 0, 35);
+    check("遠離服務處不能一鍵購買", bag.buyRestock(needs, bag.restockQuote(needs).total).reason === "location");
+    check("無效材料清單不會被接受", !bag.restockQuote({ fake: 1 }).valid && !bag.restockQuote({ incense: -1 }).valid && !bag.restockQuote({ incense: 1000 }).valid);
+
+    c.templeBag.init(); check("商店會顯示明細與總價", (() => { c.templeBag.open("shop"); return env.text(env.nodes.get("bagContents")).includes("本次合計"); })());
+    env.nodes.get("bagModal").classList.remove("open");
+    let invoked = 0; c.pilgrimage = { data: { active: false, step: 0 }, cancelRoute() {}, goTo(step, points) { this.route = { points, index: 0, step }; } };
+    c.temple3d.strikeBell = () => invoked++;
+    c.temple3d.avatar.position.set(9.5, 0, 32.5);
+    check("附近提示選到鐘樓", visit.nearby().id === "bell");
+    check("提示與互動執行同一個目標", visit.interact() && invoked === 1);
+    c.temple3d.avatar.position.set(-1.35, 0, 2.65);
+    const mat = { userData: { type: "prayerMat" }, parent: { position: new THREE.Vector3(-1.35, 0, 2.65) } };
+    c.temple3d.interactiveObjects.push(mat); c.temple3d.interactWithHallObject = () => invoked++;
+    check("拜墊優先於附近的筊杯", visit.nearby().title === "拜墊");
+    env.nodes.get("bagModal").classList.add("open");
+    check("彈窗開啟時不能誤觸場景互動", !visit.interact());
+    env.nodes.get("bagModal").classList.remove("open");
+    const engine = Object.create(c.Temple3DScene.prototype); engine.scene = new THREE.Scene(); engine.interactiveObjects = []; engine.prayerMats = [];
+    engine.collisionBoxes = [{ minX: -1, maxX: 1, minZ: 10.5, maxZ: 12.5 }]; engine.avatar = { position: new THREE.Vector3(0, 0, 14), playerGroup: new THREE.Group() };
+    c.temple3d = engine;
+    visit.openMap();
+    check("小地圖顯示玩家與導航地標", !!env.nodes.get("visitMapPlayer") && env.nodes.get("visitMapPlaces").children.length >= 15);
+    check("小地圖沿用碰撞避障前往天公爐", visit.go("heaven") && c.pilgrimage.route.points.length > 1);
+    const r = c.pilgrimage.route;
+    check("導航站位位於互動範圍內", Math.hypot(r.step.spot[0], r.step.spot[1] - 11.5) < 2.2);
+    check("導航不會把人直接傳送", engine.avatar.position.z === 14);
+
+    c.localStorage.setItem("temple_pilgrimage", JSON.stringify({ completed: 1 }));
+    c.localStorage.setItem("temple_daily", JSON.stringify({ checkIn: { best: 7 } }));
+    c.localStorage.setItem("temple_chiam_history", JSON.stringify([{ id: 1 }]));
+    badges.init(); const earned = badges.load().unlocked;
+    check("已有參拜、連續簽到與求籤紀錄可補認徽章", !!earned.pilgrim1 && !!earned.streak7 && !!earned.fortune1);
+    const unlockedAt = earned.pilgrim1; badges.reconcile(true);
+    check("重複事件不會重複解鎖或改寫取得日期", badges.load().unlocked.pilgrim1 === unlockedAt);
+    for (const deity of ["mazu", "wenchang", "caishen", "yuelao", "guanyin", "guangong", "tudigong", "guaiguai"]) c.emitRitual("incense", { deity });
+    check("八位神尊點香可解鎖諸神結緣", !!badges.load().unlocked.deities8 && badges.load().deities.length === 8);
+    c.emitRitual("incense", { deity: "fake" }); c.emitRitual("incense", { deity: "mazu" });
+    check("重複或不認識的神尊不增加進度", badges.load().deities.length === 8);
+    c.emitRitual("marketHit"); check("首次套中立即獲得成就", !!badges.load().unlocked.ring1);
+    const d = bag.load(); d.favorites = Array.from({ length: 10 }, (_, i) => i + 1); bag.save(d);
+    check("收藏十籤可獲得成就", !!badges.load().unlocked.favorites10);
+
+    const result = journal.saveEntry({ wish: "工作順利", notes: "先把準備做好", status: "pending", chiamId: 8 });
+    check("心願與關聯籤詩可保存", result.ok && journal.load()[0].chiamId === 8);
+    env.setTime("2026-11-06T05:00:00Z");
+    const updated = journal.saveEntry({ wish: "工作順利", notes: "已完成，謝謝幫助我的人", status: "returned", chiamId: 8 }, result.entry.id);
+    check("更新近況保留建立日期並記錄還願日期", updated.ok && updated.entry.createdAt === result.entry.createdAt && updated.entry.returnedAt === updated.entry.updatedAt);
+    check("編輯不會增加第二筆心願", journal.load().length === 1);
+    check("空白與過長的心願被拒絕", !journal.saveEntry({ wish: " ", status: "pending" }).ok && !journal.saveEntry({ wish: "心".repeat(121), status: "pending" }).ok);
+    check("無效進度不會寫入", !journal.saveEntry({ wish: "願望", status: "fake" }).ok);
+    journal.init(); env.nodes.get("journalFilter").value = "returned"; journal.render();
+    check("還願篩選能找到紀錄", env.text(env.nodes.get("journalList")).includes("已完成，謝謝幫助我的人"));
+    env.nodes.get("journalSearch").value = "沒有的關鍵字"; journal.render();
+    check("搜尋沒有結果有清楚提示", env.text(env.nodes.get("journalList")).includes("沒有符合"));
+    const exported = c.templeSave.collect();
+    check("背包、成就與手帳一起納入存檔", !!exported.temple_inventory && !!exported.temple_achievements && !!exported.temple_wish_journal);
+    const restored = makeEnvironment(THREE); restored.load("app/journal.js"); restored.context.localStorage.setItem("temple_wish_journal", exported.temple_wish_journal);
+    check("匯入後手帳包含心得與還願狀態", restored.context.templeJournal.load()[0].status === "returned" && restored.context.templeJournal.load()[0].notes.includes("已完成"));
+    check("刪除心願會保存且不會被舊編輯重新建立", journal.remove(result.entry.id) && !journal.saveEntry({ wish: "舊編輯", status: "pending" }, result.entry.id).ok);
+    c.templeReading.apply("large"); check("大字立即套用並保存", c.document.documentElement.style.fontSize === "19px" && c.localStorage.getItem("temple_text_size") === "large");
+    c.templeReading.apply("wrong"); check("無效字級回到標準", c.document.documentElement.style.fontSize === "16px");
+
+    const ids = [...env.html.matchAll(/\bid="([^"]+)"/g)].map(m => m[1]);
+    check("HTML 沒有重複 ID", new Set(ids).size === ids.length);
+    const sw = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
+    const scripts = [...env.html.matchAll(/<script src="([^"]+)"/g)].map(m => m[1]);
+    check("所有腳本檔案存在且已列入離線預存", scripts.every(file => fs.existsSync(path.join(ROOT, file)) && sw.includes(`"${file}"`)));
+    for (const file of scripts) new vm.Script(fs.readFileSync(path.join(ROOT, file), "utf8"), { filename: file });
+    check("所有載入腳本通過語法檢查", true);
+    note("本組只使用資料、DOM 替身與 Three.js 向量，不開瀏覽器、不建立 WebGLRenderer。");
+    function localStorageSnapshot() { return c.localStorage.getItem("temple_inventory"); }
+  }
+};

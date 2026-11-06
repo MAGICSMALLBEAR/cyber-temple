@@ -1090,6 +1090,8 @@ body {
 }
 
 .amulet-card-item {
+  font: inherit;
+  color: inherit;
   background: rgba(35, 12, 10, 0.7);
   border: 1.5px solid rgba(245, 197, 66, 0.25);
   border-radius: 8px;
@@ -1120,6 +1122,19 @@ body {
   padding: 2px 6px;
   border-radius: 8px;
   margin-bottom: 4px;
+}
+
+.amulet-card-item .amulet-title, .amulet-card-item .amulet-desc { display: block; }
+.amulet-card-item:disabled { cursor: wait; opacity: 0.65; }
+:is(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #8ce8ff;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px #102b38;
+}
+.achievement-summary { grid-column: 1 / -1; color: #edcf94; font-size: 0.85rem; line-height: 1.6; }
+@media (forced-colors: active) {
+  :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline-color: Highlight; }
+  .amulet-card-item.active { border: 3px solid Highlight; }
 }
 
 .amulet-title {
@@ -2647,4 +2662,69 @@ body.hud-hidden .pilgrim-card {
 #puppetSubtitle { line-height: 1.9; color: #f3e3c0; min-height: 5em; }
 .market-overlay.puppet-view { align-items: flex-end; justify-content: flex-end; padding: 16px; background: transparent; pointer-events: none; }
 .market-overlay.puppet-view .market-modal { width: min(400px, calc(100vw - 32px)); pointer-events: auto; margin: 0; background: rgba(30, 12, 9, 0.96); }
+
+/* 導航與近身互動使用 2D 介面，保留左側搖桿與底部操作列。 */
+.visit-tools { position: fixed; right: 12px; bottom: 130px; width: min(250px, calc(100vw - 160px)); display: flex; flex-direction: column; align-items: stretch; gap: 6px; z-index: 55; }
+.visit-tools button { white-space: normal; justify-content: center; background: rgba(48, 18, 12, 0.96); line-height: 1.5; }
+.nearby-interact { border-color: #9cf4d4; color: #c9ffe6; }
+.nearby-interact[hidden] { display: none; }
+body.hud-hidden .visit-tools { display: none; }
+.visit-map-modal, .journal-modal { width: min(680px, calc(100vw - 24px)); max-height: calc(100dvh - 32px); overflow-y: auto; }
+.visit-map-layout { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(130px, 0.9fr); gap: 14px; align-items: start; margin-bottom: 12px; }
+#visitMapSvg { width: 100%; max-height: 60dvh; background: #21130f; border: 1px solid #bd934c66; border-radius: 10px; }
+#visitMapPlaces { display: flex; flex-direction: column; gap: 7px; }
+#visitMapPlaces button { text-align: left; white-space: normal; }
+.map-marker { cursor: pointer; }
+.map-marker:focus { outline: 2px solid #9cf4d4; }
+.restock-summary { padding: 12px; margin: 12px 0; border: 1px solid #d4a03499; border-radius: 10px; background: #10090666; }
+.restock-summary p { font-size: 0.83rem; line-height: 1.65; margin: 5px 0; }
+.restock-summary > strong { display: block; margin: 10px 0; color: #ffe29a; }
+.restock-ready { color: #a8d6b3; }
+.restock-missing { color: #f0cf92; }
+.achievement-card { padding: 12px; margin-bottom: 10px; border: 1px solid #80633b; border-radius: 10px; background: #130d0966; }
+.achievement-card.unlocked { border-color: #e3bb5c; background: #67461f44; }
+.achievement-card p { margin: 6px 0; font-size: 0.85rem; }
+.achievement-card progress { width: 100%; height: 8px; display: block; margin: 10px 0 6px; accent-color: #d4a034; }
+.achievement-card small { color: #c9a76e; }
+.journal-form { display: grid; gap: 8px; margin: 16px 0 20px; padding-bottom: 14px; border-bottom: 1px solid #d4a03466; }
+.journal-form label { font-size: 0.88rem; color: #f0cf92; }
+.journal-form .temple-input { width: 100%; min-width: 0; }
+.journal-form textarea { resize: vertical; min-height: 100px; line-height: 1.7; }
+.journal-fields { display: flex; flex-wrap: wrap; gap: 10px; }
+.journal-fields > * { flex: 1 1 140px; min-width: 0; }
+.journal-fields label { display: grid; gap: 6px; }
+.journal-fields input, .journal-fields select { width: 100%; min-width: 0; }
+.journal-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.journal-entry { padding: 14px; margin: 10px 0; border: 1px solid #d4a03455; border-radius: 10px; background: #130b0866; }
+.journal-entry > strong, .journal-entry > small { display: block; margin: 8px 0; }
+.journal-entry > strong, .journal-entry > p { overflow-wrap: anywhere; white-space: pre-wrap; }
+.journal-entry > p { line-height: 1.8; font-size: 0.9rem; }
+.journal-entry > small { color: #bfa87c; }
+.journal-status { display: inline-block; border: 1px solid #bfa87c; border-radius: 12px; padding: 3px 9px; font-size: 0.78rem; }
+.journal-status.fulfilled, .journal-status.returned { color: #b7ebc9; border-color: #6fba8d; }
+.passport-tabs { flex-wrap: wrap; }
+
+/* 彈窗先符合可視範圍，再以自身捲動呈現內容。換裝預覽維持原本側欄。 */
+.modal-overlay:not(#avatarModal) > :is(.settings-modal, .modal-content, .pavilion-modal) { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; }
+.modal-overlay h3 { padding-right: 28px; overflow-wrap: anywhere; }
+.modal-overlay :is(input, select, textarea) { max-width: 100%; min-width: 0; box-sizing: border-box; }
+.journal-modal :is(input, textarea, p, strong), .scroll-card :is(p, .poem-line), #passportTabContent { user-select: text; -webkit-user-select: text; }
+.modal-overlay:not(#avatarModal) > :is(.settings-modal, .modal-content, .pavilion-modal) { touch-action: pan-y pinch-zoom; }
+#settingsModal #selectQuality { width: 100%; min-width: 0; }
+#settingsModal .sound-slider-row { grid-template-columns: minmax(0, 5em) minmax(0, 1fr) !important; }
+@media (max-width: 860px) {
+  .modal-overlay:not(#avatarModal) { padding: 8px; }
+  .modal-overlay:not(#avatarModal) > :is(.settings-modal, .modal-content, .pavilion-modal) { max-width: calc(100vw - 16px); max-height: calc(100dvh - 16px); padding: 18px 14px; }
+  .modal-overlay button { min-height: 42px; }
+  .modal-overlay .modal-close { min-height: 40px; min-width: 40px; }
+  .modal-overlay :is(input, select, textarea) { font-size: max(16px, 0.9rem); }
+  .bag-row { flex-wrap: wrap; }
+  .bag-row > div { min-width: 58%; }
+  .visit-tools { right: 8px; gap: 5px; }
+  .visit-tools button { padding: 7px 9px; min-height: 40px; font-size: 0.8rem; }
+  .visit-map-layout { grid-template-columns: 1fr; }
+  #visitMapSvg { max-height: 47dvh; }
+  #visitMapPlaces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .journal-fields > * { flex-basis: 120px; }
+}
 button:disabled { opacity: 0.45; cursor: default; }

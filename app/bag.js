@@ -15,6 +15,33 @@ const templeBag = {
     }
     return row;
   },
+  renderRestock(box, near) {
+    const progress = window.pilgrimage?.data;
+    const step = progress?.active ? progress.step : 0;
+    const dishes = typeof currentFeastDishes !== "undefined" ? currentFeastDishes : undefined;
+    const needs = window.templeInventory.ritualRequirements(step, dishes);
+    const quote = window.templeInventory.restockQuote(needs);
+    const section = document.createElement("section"); section.className = "restock-summary";
+    const title = document.createElement("h4"); title.textContent = progress?.active ? "這次參拜的剩餘材料" : "一次完整參拜所需材料"; section.append(title);
+    const note = document.createElement("p"); note.className = "wall-footnote"; note.textContent = "供品依目前擺盤計算，只買缺少的數量。"; section.append(note);
+    quote.items.forEach(item => {
+      const line = document.createElement("p"); line.className = item.missing ? "restock-missing" : "restock-ready";
+      line.textContent = `${item.icon} ${item.name}：持有 ${item.have}／需要 ${item.need}${item.missing ? `，補 ${item.missing} 份 × ${item.price} 幣＝${item.cost} 幣` : "，已備齊"}`; section.append(line);
+    });
+    const total = document.createElement("strong"); total.textContent = quote.total ? `本次合計 ${quote.total} 平安幣` : "材料已備齊，不需購買"; section.append(total);
+    const buy = document.createElement("button"); buy.className = "btn-dock-action"; buy.textContent = quote.total ? `一鍵補齊 · ${quote.total} 平安幣` : "已備齊";
+    buy.disabled = !near || quote.total === 0 || window.templeInventory.data.coins < quote.total;
+    buy.addEventListener("click", () => {
+      const result = window.templeInventory.buyRestock(needs, quote.total);
+      this.render();
+      this.notice(result.ok ? `補給完成，已扣 ${result.total} 平安幣；所有材料已放入背包。` : ({ changed: "庫存已變動，請確認更新後的金額再購買。", complete: "材料已備齊。", funds: "平安幣不足，沒有扣款。", location: "請先走近服務處。" }[result.reason] || "無法購買這份補給清單。"));
+    });
+    section.append(buy);
+    if (near && quote.total > window.templeInventory.data.coins) {
+      const short = document.createElement("p"); short.textContent = `還差 ${quote.total - window.templeInventory.data.coins} 平安幣，可先領取每日補給。`; section.append(short);
+    }
+    box.append(section);
+  },
   render() {
     const box = document.getElementById("bagContents"); if (!box) return;
     const d = window.templeInventory.data;
@@ -45,6 +72,7 @@ const templeBag = {
       if (!near) box.append(this.row("服務處商店", "購買請先到服務處（走出大殿正門的右手邊）。", "前往服務處", () => {
         document.getElementById("bagModal").classList.remove("open"); window.pilgrimage.goTo(PILGRIM_STEPS[0]);
       }));
+      this.renderRestock(box, near);
       const purchase = (id, name) => {
         const ok = window.templeInventory.buy(id);
         this.render(); this.notice(ok ? `已購入${name}，放入背包。` : "平安幣不足、已持有，或請先走近服務處。");

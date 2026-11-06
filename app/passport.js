@@ -132,6 +132,8 @@ function openPassportModal() {
   document.getElementById("passportRankDesc").innerText = rankDesc;
   document.getElementById("passportRankProgress").style.width = `${progress}%`;
 
+  window.templeAchievements?.reconcile(false);
+  document.querySelectorAll(".passport-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.ptab === "chiam"));
   renderPassportTab("chiam");
   document.getElementById("passportModal").classList.add("open");
 }
@@ -140,6 +142,7 @@ function renderPassportTab(tabName) {
   const container = document.getElementById("passportTabContent");
   if (!container) return;
   container.innerHTML = "";
+  if (tabName === "achievements") { window.templeAchievements?.render(container); return; }
 
   if (tabName === "chiam") {
     let hist = [];

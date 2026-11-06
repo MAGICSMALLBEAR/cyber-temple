@@ -463,10 +463,33 @@ class TempleAvatarSystem {
     return this.isSprinting;
   }
 
+  // 鍵盤與搖桿皆以鏡頭朝向為準：前進＝往畫面裡，右移＝畫面右側。
+  getManualMoveDirection() {
+    const forward = new THREE.Vector3();
+    this.camera.getWorldDirection(forward);
+    forward.y = 0;
+    // 鳥瞰鏡頭幾乎直向地面時，使用鏡頭的上方作為畫面前進方向。
+    if (forward.lengthSq() < 1e-8) {
+      forward.set(0, 1, 0).applyQuaternion(this.camera.quaternion);
+      forward.y = 0;
+    }
+    if (forward.lengthSq() < 1e-8) forward.set(0, 0, -1);
+    forward.normalize();
+    const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0));
+    return forward.multiplyScalar(Number(this.keys.forward) - Number(this.keys.backward))
+      .addScaledVector(right, Number(this.keys.right) - Number(this.keys.left));
+  }
+
+  releaseMovementKeys() {
+    Object.keys(this.keys).forEach(key => { this.keys[key] = false; });
+  }
+
   // 鍵盤與滑鼠事件綁定
   bindInputEvents() {
     window.addEventListener("keydown", (e) => {
-      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+      if (window.templeReading?.blocksSceneKeys(e)) return;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) || e.target.isContentEditable) return;
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
       if (e.code === "KeyW" || e.code === "ArrowUp") this.keys.forward = true;
       if (e.code === "KeyS" || e.code === "ArrowDown") this.keys.backward = true;
       if (e.code === "KeyA" || e.code === "ArrowLeft") this.keys.left = true;
@@ -489,6 +512,12 @@ class TempleAvatarSystem {
       if (e.code === "KeyA" || e.code === "ArrowLeft") this.keys.left = false;
       if (e.code === "KeyD" || e.code === "ArrowRight") this.keys.right = false;
       if (e.code === "ShiftLeft" || e.code === "ShiftRight") this.keys.shift = false;
+    });
+
+    // 切換視窗可能收不到 keyup，回來時不能沿用先前按住的方向。
+    window.addEventListener("blur", () => this.releaseMovementKeys());
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.releaseMovementKeys();
     });
 
     // 滑鼠右鍵或點擊地面移動 (Click to Move: Shift+點擊 或 Alt+點擊)
@@ -573,12 +602,8 @@ class TempleAvatarSystem {
     const time = performance.now() * 0.001;
 
     // 1. 移動處理 (WASD 或 點擊尋路)
-    let moveDir = new THREE.Vector3();
-
-    if (this.keys.forward) moveDir.z -= 1;
-    if (this.keys.backward) moveDir.z += 1;
-    if (this.keys.left) moveDir.x -= 1;
-    if (this.keys.right) moveDir.x += 1;
+    const moveDir = this.getManualMoveDirection();
+    let remainingDistance = Infinity;
 
     if (moveDir.lengthSq() > 0) {
       moveDir.normalize();
@@ -588,6 +613,7 @@ class TempleAvatarSystem {
       const diff = new THREE.Vector3().subVectors(this.targetPos, this.position);
       diff.y = 0;
       if (diff.length() > 0.12) {
+        remainingDistance = diff.length();
         moveDir.copy(diff.normalize());
       } else {
         this.targetPos = null;
@@ -605,7 +631,8 @@ class TempleAvatarSystem {
       // 疾步奔跑或普通行走步長
       const isSprint = (this.isSprinting || this.keys.shift);
       const curSpeed = isSprint ? this.sprintSpeed : this.baseSpeed;
-      const step = moveDir.clone().multiplyScalar(curSpeed * dt);
+      // 低幀率或疾行時不能跨過目的地，否則會在終點前後來回走。
+      const step = moveDir.clone().multiplyScalar(Math.min(curSpeed * dt, remainingDistance));
 
       // 限制大殿與宏偉三進廟埕活動範圍
       // 大殿內 (Z <= 5.8): 寬度限制 X: ±3.8, 深度 Z: -2.8 ~ 5.8
@@ -637,7 +664,8 @@ class TempleAvatarSystem {
 
       // 角色平滑轉向行進方向
       const targetAngle = Math.atan2(moveDir.x, moveDir.z);
-      this.playerGroup.rotation.y = THREE.MathUtils.lerp(this.playerGroup.rotation.y, targetAngle, 0.18);
+      const turn = Math.atan2(Math.sin(targetAngle - this.playerGroup.rotation.y), Math.cos(targetAngle - this.playerGroup.rotation.y));
+      this.playerGroup.rotation.y += turn * (1 - Math.exp(-12 * dt));
     } else {
       this.isMoving = false;
       if (this.currentAction === "walk") {

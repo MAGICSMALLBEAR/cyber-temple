@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>賽博虛擬神殿 3D • 沉浸元宇宙版</title>
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#5a0d0d">
@@ -221,6 +221,36 @@
 
   <!-- 即時祈願飛天彈幕層 -->
   <div class="danmaku-container" id="danmakuContainer"></div>
+
+  <div class="visit-tools" id="visitTools">
+    <button class="btn-dock-action nearby-interact" id="btnNearbyInteract" hidden></button>
+    <button class="btn-dock-action" id="btnOpenVisitMap">🗺️ 廟區地圖</button>
+  </div>
+  <div class="modal-overlay" id="visitMapModal">
+    <div class="settings-modal visit-map-modal" role="dialog" aria-modal="true" aria-labelledby="visitMapTitle">
+      <button class="modal-close" id="visitMapClose" aria-label="關閉地圖">&times;</button>
+      <h3 id="visitMapTitle">🗺️ 廟區小地圖</h3>
+      <p id="visitMapStatus" role="status">點選地標即可前往。</p>
+      <div class="visit-map-layout"><svg id="visitMapSvg" viewBox="0 0 360 460" role="img" aria-label="廟區地圖，綠色箭頭為目前位置"></svg><div id="visitMapPlaces" aria-label="選擇導航目的地"></div></div>
+      <button class="btn-dock-action" id="btnMapStop" disabled>停止導航</button>
+    </div>
+  </div>
+  <div class="modal-overlay" id="journalModal">
+    <div class="settings-modal journal-modal" role="dialog" aria-modal="true" aria-labelledby="journalTitle">
+      <button class="modal-close" id="journalClose" aria-label="關閉手帳">&times;</button>
+      <h3 id="journalTitle">📖 我的心願手帳</h3>
+      <p class="wall-footnote">只保存在自己的瀏覽器，不會傳給同行。可隨護照的功德存檔一起匯出備份。</p>
+      <form id="journalForm" class="journal-form">
+        <label for="journalWish">心願（必填，最多 120 字）</label><input class="temple-input" id="journalWish" required maxlength="120" placeholder="記下一個心願">
+        <div class="journal-fields"><label>目前進度<select class="temple-select" id="journalStatus"><option value="pending">祈願中</option><option value="fulfilled">已實現</option><option value="returned">已還願</option></select></label><label>關聯籤號（可不填）<input class="temple-input" id="journalChiam" type="number" min="1" max="60" placeholder="1–60"></label></div>
+        <label for="journalNotes">後續心得（最多 2000 字）</label><textarea class="temple-input" id="journalNotes" maxlength="2000" rows="4" placeholder="後來發生了什麼？想感謝的人或事……"></textarea>
+        <div class="journal-actions"><button class="btn-dock-action" id="journalSave" type="submit">保存心願</button><button class="btn-custom-pill" id="journalNew" type="button">另寫一則／取消編輯</button></div>
+        <p id="journalMessage" role="status" aria-live="polite"></p>
+      </form>
+      <div class="journal-fields"><input class="temple-input" id="journalSearch" type="search" placeholder="搜尋心願與心得" aria-label="搜尋心願"><select class="temple-select" id="journalFilter" aria-label="篩選心願進度"><option value="all">全部心願</option><option value="pending">祈願中</option><option value="fulfilled">已實現</option><option value="returned">已還願</option></select></div>
+      <p id="journalCount"></p><div id="journalList"></div>
+    </div>
+  </div>
 
   <!-- 完整參拜指引（右上、視角按鈕下方）：未開始時是小卡，開始後顯示目前步驟 -->
   <div class="pilgrim-card collapsed" id="pilgrimCard" role="region" aria-label="參拜指引">
@@ -582,6 +612,7 @@
 
       <div class="scroll-actions">
         <button class="btn-card btn-card-secondary" id="btnFavoriteChiam">☆ 收藏籤詩</button>
+        <button class="btn-card btn-card-secondary" id="btnJournalChiam">📖 記下這支籤的心願</button>
         <button class="btn-card btn-card-primary" id="btnSpeakOracle">
           🔊 聆聽神明聖諭開示 (語音)
         </button>
@@ -640,11 +671,15 @@
       </div>
       <div class="wall-footnote" id="qualityNote">自動模式會依電腦效能選擇，畫面持續不順時自動調低一級。畫質變更立即生效。</div>
       <label class="reduce-motion-row"><input type="checkbox" id="chkIdlePower"><span>閒置省電<small>30 秒未操作時降至 15 FPS；背景暫停繪圖，操作後立即恢復。</small></span></label>
+      <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>文字大小</span><select class="temple-select" id="selectTextSize"><option value="small">小字</option><option value="normal">標準</option><option value="large">大字</option></select></label>
       <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>流暢度上限</span><select class="temple-select" id="selectFrameLimit"><option value="0">跟隨螢幕</option><option value="60">最高 60 FPS</option><option value="30">最高 30 FPS</option></select></label>
       <label class="reduce-motion-row">
         <input type="checkbox" id="chkReduceMotion">
         <span>減少動態效果<small>（不顯示飛過畫面的彈幕、關閉介面動畫與飄落粒子；容易暈 3D 時建議開啟，預設跟隨系統設定）</small></span>
       </label>
+
+      <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>節慶布置</span><select class="temple-select" id="selectFestivalScene" aria-describedby="festivalSceneStatus"><option value="auto">依日期自動</option><option value="none">日常廟景</option><option value="newyear">預覽：新春迎福</option><option value="lantern">預覽：元宵燈會</option><option value="moon">預覽：中秋團圓</option><option value="birthday">預覽：神尊慶典</option></select></label>
+      <p class="wall-footnote" id="festivalSceneStatus" role="status" aria-live="polite">依農曆自動切換；預覽不影響修行進度。</p>
 
       <div style="display: flex; gap: 10px;">
         <button class="btn-dock-action" id="btnSaveSettings" style="flex: 1; justify-content: center;">
@@ -815,15 +850,17 @@
       </div>
 
       <!-- 標籤頁切換：歷史求籤簿 / 點燈紀錄 / 祈願木牌 -->
-      <div style="display: flex; gap: 8px; border-bottom: 1px solid rgba(245,197,66,0.25); margin-bottom: 12px;">
+      <div class="passport-tabs" style="display: flex; gap: 8px; border-bottom: 1px solid rgba(245,197,66,0.25); margin-bottom: 12px;">
         <button class="passport-tab-btn active" data-ptab="chiam">📜 歷次求籤錄 (<span id="countChiamHist">0</span>)</button>
         <button class="passport-tab-btn" data-ptab="lantern">🏮 光明燈名冊 (<span id="countLanternHist">0</span>)</button>
         <button class="passport-tab-btn" data-ptab="ema">🪵 祈願木牌 (<span id="countEmaHist">0</span>)</button>
+        <button class="passport-tab-btn" data-ptab="achievements">🏅 成就徽章 (<span id="countAchievements">0</span>/8)</button>
       </div>
 
       <div id="passportTabContent" style="max-height: 220px; overflow-y: auto; margin-bottom: 16px;">
         <!-- 動態渲染各頁內容 -->
       </div>
+      <button class="btn-dock-action" id="btnJournalPassport" style="margin-bottom: 12px;">📖 我的心願與還願紀錄</button>
 
       <div class="save-data-box">
         <div class="daily-section-title">💾 功德存檔</div>
@@ -975,49 +1012,58 @@
         <div style="font-size: 0.82rem; color: #dfc18b;">請領神聖符令 • 經香爐三圈旋轉過爐開光 • 生成手機高清守護桌布</div>
       </div>
 
-      <!-- 靈符選擇格 (6 款) -->
+      <!-- 靈符選擇格 (9 款) -->
       <div class="amulet-selection-grid" id="amuletGrid">
-        <div class="amulet-card-item active" data-amulet="mazu">
-          <div class="amulet-badge">萬事平安</div>
-          <div class="amulet-title">天上聖母 • 平安護身符</div>
-          <div class="amulet-desc">護國庇民、行車平順、逢凶化吉</div>
-        </div>
-        <div class="amulet-card-item" data-amulet="wenchang">
-          <div class="amulet-badge">金榜題名</div>
-          <div class="amulet-title">文昌帝君 • 狀元及第符</div>
-          <div class="amulet-desc">文思泉湧、考運亨通、智慧明澈</div>
-        </div>
-        <div class="amulet-card-item" data-amulet="caishen">
-          <div class="amulet-badge">八方招財</div>
-          <div class="amulet-title">五路財神 • 進寶發財符</div>
-          <div class="amulet-desc">日進斗金、財庫充盈、生意興隆</div>
-        </div>
-        <div class="amulet-card-item" data-amulet="yuelao">
-          <div class="amulet-badge">千里良緣</div>
-          <div class="amulet-title">月下老人 • 天賜真愛符</div>
-          <div class="amulet-desc">情投意合、良緣早結、貴人相助</div>
-        </div>
-        <div class="amulet-card-item" data-amulet="guaiguai">
-          <div class="amulet-badge">綠燈永續</div>
-          <div class="amulet-title">科技乖乖 • 機房綠燈符</div>
-          <div class="amulet-desc">主機安穩、系統乖乖、部署零Bug</div>
-        </div>
-        <div class="amulet-card-item" data-amulet="taisui">
-          <div class="amulet-badge">辟邪化煞</div>
-          <div class="amulet-title">值年太歲 • 化煞安康符</div>
-          <div class="amulet-desc">化解沖煞、百邪不侵、歲運吉慶</div>
-        </div>
+        <button type="button" class="amulet-card-item active" data-amulet="mazu" aria-pressed="true">
+          <span class="amulet-badge">萬事平安</span>
+          <span class="amulet-title">天上聖母 • 平安護身符</span>
+          <span class="amulet-desc">護國庇民、行車平順、逢凶化吉</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="wenchang" aria-pressed="false">
+          <span class="amulet-badge">金榜題名</span>
+          <span class="amulet-title">文昌帝君 • 狀元及第符</span>
+          <span class="amulet-desc">文思泉湧、考運亨通、智慧明澈</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="caishen" aria-pressed="false">
+          <span class="amulet-badge">八方招財</span>
+          <span class="amulet-title">五路財神 • 進寶發財符</span>
+          <span class="amulet-desc">日進斗金、財庫充盈、生意興隆</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="yuelao" aria-pressed="false">
+          <span class="amulet-badge">千里良緣</span>
+          <span class="amulet-title">月下老人 • 天賜真愛符</span>
+          <span class="amulet-desc">情投意合、良緣早結、貴人相助</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="guaiguai" aria-pressed="false">
+          <span class="amulet-badge">綠燈永續</span>
+          <span class="amulet-title">科技乖乖 • 機房綠燈符</span>
+          <span class="amulet-desc">主機安穩、系統乖乖、部署零Bug</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="taisui" aria-pressed="false">
+          <span class="amulet-badge">辟邪化煞</span>
+          <span class="amulet-title">值年太歲 • 化煞安康符</span>
+          <span class="amulet-desc">化解沖煞、百邪不侵、歲運吉慶</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="guanyin" aria-pressed="false">
+          <span class="amulet-badge">慈悲護念</span><span class="amulet-title">觀世音菩薩 • 慈悲護身符</span><span class="amulet-desc">身心清淨、慈悲護念、闔家平安</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="guangong" aria-pressed="false">
+          <span class="amulet-badge">忠義護身</span><span class="amulet-title">關聖帝君 • 忠義護身符</span><span class="amulet-desc">正氣護身、信義立業、出入平安</span>
+        </button>
+        <button type="button" class="amulet-card-item" data-amulet="tudigong" aria-pressed="false">
+          <span class="amulet-badge">安居樂業</span><span class="amulet-title">福德正神 • 安居平安符</span><span class="amulet-desc">安家守土、福德綿長、鄉里平安</span>
+        </button>
       </div>
 
       <!-- 祈求善信資訊 -->
       <div style="display: flex; gap: 8px; margin: 12px 0;">
-        <input type="text" class="temple-input" id="txtAmuletPetitioner" placeholder="善信名諱 (例: 張大仙)" style="flex: 1;">
-        <input type="text" class="temple-input" id="txtAmuletWish" placeholder="所求心願 (例: 闔家康寧、事業騰達)" style="flex: 2;">
+        <input type="text" class="temple-input" id="txtAmuletPetitioner" maxlength="24" aria-label="請領靈符者姓名" placeholder="善信名諱 (例: 張大仙)" style="flex: 1;">
+        <input type="text" class="temple-input" id="txtAmuletWish" maxlength="80" aria-label="靈符祈願" placeholder="所求心願 (例: 闔家康寧、事業騰達)" style="flex: 2;">
       </div>
 
       <!-- 開光過香爐動作與動態展示 -->
       <div class="amulet-consecrate-box">
-        <div id="consecrateStatus" style="font-size: 0.88rem; color: #eedab0; margin-bottom: 8px;">
+        <div id="consecrateStatus" role="status" aria-live="polite" style="font-size: 0.88rem; color: #eedab0; margin-bottom: 8px;">
           點擊下方進行「過主殿香爐順時針開光三圈」，注入神聖法力。
         </div>
         <div id="consecrateCenserAnim" class="censer-anim-area" style="display: none;">
@@ -1035,7 +1081,7 @@
           ✨ 靈符開光圓滿！神聖朱砂法印已鈐蓋加持。
         </div>
         <div style="display: flex; justify-content: center; margin-bottom: 12px;">
-          <canvas id="amuletPreviewCanvas" width="360" height="640" style="max-height: 250px; width: auto; border: 2px solid var(--gold-bright); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);"></canvas>
+          <canvas id="amuletPreviewCanvas" role="img" aria-label="開光靈符桌布預覽，包含所選神尊、善信名款與心願" width="360" height="640" style="max-height: 250px; width: auto; border: 2px solid var(--gold-bright); border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);"></canvas>
         </div>
         <div style="display: flex; gap: 8px;">
           <button class="btn-dock-action" id="btnDownloadAmuletPng" style="flex: 1; justify-content: center;">
@@ -1925,6 +1971,8 @@
 
       <!-- 萬寶閣功能卡片網格 -->
       <div class="pavilion-cards-container">
+        <div class="pavilion-card" id="btnVisitMapPavilion" data-cat="grounds"><div class="card-icon">🗺️</div><div class="card-body"><div class="card-title">廟區地圖與導航</div><div class="card-desc">查看位置，前往各殿、服務處、金爐與夜市</div></div></div>
+        <div class="pavilion-card" id="btnOpenJournal" data-cat="lore"><div class="card-icon">📖</div><div class="card-body"><div class="card-title">心願手帳</div><div class="card-desc">自己的祈願、心得與還願紀錄，也可關聯籤詩</div></div></div>
         <div class="pavilion-card" id="btnOpenMarket" data-cat="grounds"><div class="card-icon">🏮</div><div class="card-body"><div class="card-title">廟埕小夜市</div><div class="card-desc">免費套圈圈贏平安幣、觀賞平安掌中戲《借傘記》</div></div></div>
         <div class="pavilion-card" id="btnOpenBagPavilion" data-cat="grounds"><div class="card-icon">🎒</div><div class="card-body"><div class="card-title">平安行囊與服務處</div><div class="card-desc">每日補給、平安幣、香品供品、胸前平安符與籤詩收藏</div></div></div>
         <!-- 殿堂與廟埕 -->
@@ -2190,7 +2238,7 @@
         <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 10px 12px; border: 1px solid rgba(255,215,0,0.2);">
           <div style="color: #fde047; font-weight: bold; font-size: 0.88rem; margin-bottom: 6px;">🚶 漫遊與鏡頭控制</div>
           <div style="font-size: 0.78rem; color: #e2e8f0; line-height: 1.7;">
-            • <b>WASD / 方向鍵</b>：分身行走漫步<br>
+            • <b>WASD / 方向鍵</b>：依鏡頭方向行走，W／↑ 往畫面裡前進、S／↓ 後退<br>
             • <b>按住 Shift</b>：切換疾步快跑<br>
             • <b>滑鼠左鍵拖曳</b>：360° 旋轉鏡頭<br>
             • <b>滑鼠右鍵拖曳</b>：平移全景視角<br>
@@ -2266,6 +2314,8 @@
   <!-- 3D 場景引擎：core 必須最先，其餘檔案把方法掛回 Temple3DScene -->
   <script src="scene/core.js"></script>
   <script src="scene/architecture.js"></script>
+  <script src="scene/deities.js"></script>
+  <script src="scene/seasonal.js"></script>
   <script src="scene/atmosphere.js"></script>
   <script src="scene/altar.js"></script>
   <script src="scene/courtyard.js"></script>
@@ -2286,11 +2336,15 @@
   <script src="app/chiam.js"></script>
   <script src="app/chiam-ritual.js"></script>
   <script src="app/pilgrimage.js"></script>
+  <script src="app/visit.js"></script>
   <script src="app/hall.js"></script>
   <script src="app/bag.js"></script>
   <script src="app/market.js"></script>
   <script src="app/ema.js"></script>
   <script src="app/passport.js"></script>
+  <script src="app/achievements.js"></script>
+  <script src="app/journal.js"></script>
+  <script src="app/reading.js"></script>
   <script src="app/side-halls.js"></script>
   <script src="app/amulet.js"></script>
   <script src="app/shoujing.js"></script>

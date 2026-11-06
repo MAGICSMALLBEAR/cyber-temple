@@ -49,6 +49,18 @@ class TempleCollisionMixin {
     }
 
     this.collisionBoxes = boxes;
+    // 一公尺格子的碰撞索引，尋路時不用對每個取樣點掃過整座神殿。
+    this.collisionIndex = new Map();
+    for (const b of boxes) {
+      for (let x = Math.floor(b.minX - 0.5); x <= Math.floor(b.maxX + 0.5); x++) {
+        for (let z = Math.floor(b.minZ - 0.5); z <= Math.floor(b.maxZ + 0.5); z++) {
+          const key = `${x},${z}`;
+          if (!this.collisionIndex.has(key)) this.collisionIndex.set(key, []);
+          this.collisionIndex.get(key).push(b);
+        }
+      }
+    }
+    this.collisionIndexBoxes = boxes;
     if (this.avatar) {
       this.avatar.isBlockedAt = (x, z) => this.isBlockedAt(x, z);
       this.avatar.walkHeightAt = (x, z) => this.walkHeightAt(x, z);
@@ -60,6 +72,7 @@ class TempleCollisionMixin {
   findWalkRoute(from, dest) {
     const spacing = 0.25;
     const inBounds = (x, z) => z >= -2.8 && z <= 41.5 && Math.abs(x) <= (z > 5.8 ? 17.5 : 3.8);
+    if (![...from, ...dest].every(Number.isFinite) || !inBounds(...dest) || this.isBlockedAt(...dest, AVATAR_RADIUS + 0.08)) return [];
     const clearLine = (a, b) => {
       const count = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.08));
       for (let i = 1; i <= count; i++) {
@@ -71,20 +84,50 @@ class TempleCollisionMixin {
     if (clearLine(from, dest)) return [dest];
     const key = (x, z) => `${x},${z}`;
     const start = [Math.round(from[0] / spacing), Math.round(from[1] / spacing)];
-    const nodes = [{ cell: start, point: from, prev: -1 }];
-    const seen = new Set([key(...start)]);
+    const heuristic = point => (Math.abs(point[0] - dest[0]) + Math.abs(point[1] - dest[1])) / spacing;
+    const nodes = [{ cell: start, point: from, prev: -1, cost: 0 }];
+    const best = new Map([[key(...start), 0]]), closed = new Set(), blockedCells = new Set();
+    // A* 優先走向目的地，避免為一個遠端地標掃過整座廟埕。
+    const heap = [];
+    const less = (a, b) => a.score < b.score || (a.score === b.score && a.h < b.h);
+    const push = index => {
+      const n = nodes[index], h = heuristic(n.point), item = { index, h, score: n.cost + h };
+      heap.push(item); let i = heap.length - 1;
+      while (i > 0) { const parent = (i - 1) >> 1; if (!less(item, heap[parent])) break; heap[i] = heap[parent]; i = parent; }
+      heap[i] = item;
+    };
+    const pop = () => {
+      const root = heap[0], last = heap.pop();
+      if (heap.length) {
+        let i = 0;
+        while (i * 2 + 1 < heap.length) {
+          let child = i * 2 + 1;
+          if (child + 1 < heap.length && less(heap[child + 1], heap[child])) child++;
+          if (!less(heap[child], last)) break;
+          heap[i] = heap[child]; i = child;
+        }
+        heap[i] = last;
+      }
+      return root.index;
+    };
+    push(0);
     let end = -1;
-    for (let head = 0; head < nodes.length; head++) {
+    while (heap.length) {
+      const head = pop();
       const n = nodes[head];
+      const currentKey = key(...n.cell);
+      if (closed.has(currentKey) || n.cost !== best.get(currentKey)) continue;
+      closed.add(currentKey);
       if (Math.hypot(n.point[0] - dest[0], n.point[1] - dest[1]) < 0.4 && clearLine(n.point, dest)) { end = head; break; }
       for (const [dx, dz] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) {
         const cell = [n.cell[0] + dx, n.cell[1] + dz], k = key(...cell);
-        if (seen.has(k)) continue;
+        const cost = n.cost + 1;
+        if (closed.has(k) || blockedCells.has(k) || cost >= (best.get(k) ?? Infinity)) continue;
         const point = cell.map(v => v * spacing);
-        if (!inBounds(...point) || this.isBlockedAt(...point, AVATAR_RADIUS + 0.08)) { seen.add(k); continue; }
+        if (!inBounds(...point) || this.isBlockedAt(...point, AVATAR_RADIUS + 0.08)) { blockedCells.add(k); continue; }
         if (!clearLine(n.point, point)) continue;
-        seen.add(k);
-        nodes.push({ cell, point, prev: head });
+        best.set(k, cost);
+        nodes.push({ cell, point, prev: head, cost }); push(nodes.length - 1);
       }
     }
     if (end < 0) return [];
@@ -111,7 +154,9 @@ class TempleCollisionMixin {
 
   // 以角色為圓（半徑 AVATAR_RADIUS）檢查 (x, z) 是否會撞到任一碰撞方塊
   isBlockedAt(x, z, r = AVATAR_RADIUS) {
-    for (const b of this.collisionBoxes || []) {
+    const candidates = this.collisionIndex && this.collisionIndexBoxes === this.collisionBoxes && r <= 0.5
+      ? this.collisionIndex.get(`${Math.floor(x)},${Math.floor(z)}`) || [] : this.collisionBoxes || [];
+    for (const b of candidates) {
       const cx = Math.max(b.minX, Math.min(x, b.maxX));
       const cz = Math.max(b.minZ, Math.min(z, b.maxZ));
       const dx = x - cx, dz = z - cz;

@@ -78,6 +78,44 @@ const templeInventory = {
     const d = this.load(); if (!d.amulets.includes(id)) d.amulets.push(id);
     this.save(d); return true;
   },
+  ritualRequirements(step = 0, dishes = ["fruit", "peach", "fagao", "redturtle", "guaiguai"]) {
+    if (!Number.isInteger(step) || step < 0 || step > 6) step = 0;
+    const needs = {};
+    if (step <= 1) needs.incense = 2;
+    else if (step <= 2) needs.incense = 1;
+    if (step <= 3) {
+      const defaults = ["fruit", "peach", "fagao", "redturtle", "guaiguai"];
+      for (let i = 0; i < 5; i++) {
+        const id = dishes?.[i];
+        const food = typeof id === "string" && Object.hasOwn(BAG_ITEMS, id) && !["incense", "paper"].includes(id) ? id : defaults[i];
+        needs[food] = (needs[food] || 0) + 1;
+      }
+    }
+    needs.paper = 1;
+    return needs;
+  },
+  restockQuote(needs, d = this.load()) {
+    if (!needs || typeof needs !== "object" || Array.isArray(needs)) return { valid: false, items: [], total: 0 };
+    const items = [];
+    for (const [id, need] of Object.entries(needs)) {
+      if (!Object.hasOwn(BAG_ITEMS, id) || !Number.isInteger(need) || need < 1 || need > 999) return { valid: false, items: [], total: 0 };
+      const have = d.items[id], missing = Math.max(0, need - have), price = BAG_ITEMS[id].price;
+      items.push({ id, name: BAG_ITEMS[id].name, icon: BAG_ITEMS[id].icon, need, have, missing, price, cost: missing * price });
+    }
+    return { valid: items.length > 0, items, total: items.reduce((sum, item) => sum + item.cost, 0) };
+  },
+  buyRestock(needs, expectedTotal) {
+    if (!this.nearService()) return { ok: false, reason: "location" };
+    const d = this.load(), quote = this.restockQuote(needs, d);
+    if (!quote.valid || !Number.isSafeInteger(expectedTotal) || expectedTotal < 0) return { ok: false, reason: "invalid" };
+    if (quote.total !== expectedTotal) return { ok: false, reason: "changed" };
+    if (!quote.total) return { ok: false, reason: "complete" };
+    if (d.coins < quote.total) return { ok: false, reason: "funds" };
+    quote.items.forEach(item => { d.items[item.id] += item.missing; });
+    d.coins -= quote.total;
+    this.save(d);
+    return { ok: true, total: quote.total };
+  },
   favorite(id) {
     if (!Number.isInteger(id) || !window.CHIAM_DATA?.some(c => c.id === id)) return false;
     const d = this.load();

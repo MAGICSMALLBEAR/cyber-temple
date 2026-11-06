@@ -36,11 +36,11 @@ module.exports = {
 
     const headRestored = await p.evaluate(() => {
       document.querySelector('.btn-deity-pill[data-deity="guangong"]').click();
-      const red = window.temple3d.deityHead.material !== window.temple3d.deityStatue.material;
+      const red = window.temple3d.deityHead.material.color.getHex() === 0xa93930;
       document.querySelector('.btn-deity-pill[data-deity="mazu"]').click();
-      return red && window.temple3d.deityHead.material === window.temple3d.deityStatue.material;
+      return red && window.temple3d.deityHead.material.color.getHex() === 0xe6b58b && window.temple3d.deityModel.userData.deity === "mazu";
     });
-    check("關公紅臉切到其他神尊後還原為金身", headRestored);
+    check("關公赤面切回媽祖後還原為媽祖膚色", headRestored);
 
     // 切來切去不能殘留舊法器（例如觀音的蓮座留在媽祖身上）
     const counts = await p.evaluate(() => {

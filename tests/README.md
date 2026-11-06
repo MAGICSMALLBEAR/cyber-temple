@@ -6,6 +6,8 @@
 npm test                      # 輕量檢查，不開啟 3D 瀏覽器
 npm run test:full              # 完整測試，會啟動 3D 瀏覽器，負載較高
 node tests/run-all.js daily   # 只跑名稱含 daily 的測試
+node tests/run-all.js visitor-ui # 單一瀏覽器、停用 GPU，只測純 2D 介面
+node tests/run-all.js expansion-ui # 新靈符、無障礙與 SVG 神尊圖鑑；停用 GPU
 TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 ```
 
@@ -19,6 +21,12 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 | `festival.test.js` | 農曆換算與節慶日期、閏月、節慶表每筆對得到神尊；二十四節氣與已知天文時刻比對（誤差 30 分鐘內） |
 | `deities.test.js` | 8 位神尊切換、法器、藏經閣列傳、關公紅臉還原、神尊聖誕的節慶功課 |
 | `avatar-look.test.js` | 五官看得到、換造型右側面板即時預覽、沒儲存會還原、造型代碼、表情 3 秒消失、持續動作與停止、兩台裝置互相看到捏臉／表情／動作／換造型 |
+| `movement.test.js` | 不開啟瀏覽器：鏡頭轉向與第一人稱的移動方向、搖桿、斜走速度、短角轉身、低幀率抵達終點、失焦釋放按鍵、遠景回到隨行方向一致 |
+| `visitor-logic.test.js` | 無 WebGL：補給明細與整批扣款、過期報價、互動與地圖導航、成就補認與去重、心願編輯還願與備份、字級和腳本接線 |
+| `visit-routes.test.js` | 無繪圖：實際模型碰撞、15 地點站位與 E 目標一致、路線不穿模型、碰撞索引與完整掃描比對 |
+| `visitor-ui.test.js` | 只開一個停用 GPU 的純 2D 頁面：桌機、手機直橫向的標準與大字版面，手帳操作與文字安全、Tab／Escape、地圖前往和停止；不載入 3D 引擎 |
+| `temple-expansion.test.js` | 無繪圖：八尊主體幾何、切換釋放、節慶日期與清除、慶典及跨年節氣去重、每日全勤、舊徽章保存、三款新靈符桌布與佩戴 |
+| `expansion-ui.test.js` | 純 2D：九款按鈕、開光扣款／入袋／下載／佩戴、功德不足、手機大字版面、巢狀焦點與背景 inert、方向鍵分頁、下拉鍵盤操作；輸出 `.test-cache/deity-gallery.png`、`amulet-phone.png` 與三款靈符 PNG |
 | `pilgrimage.test.js` | 七步完整參拜與避障前往、重新整理接續、現場與跪拜判定、聖筊確認、結束時停止行走 |
 | `social-power.test.js` | 對話泡泡與同行看到、32 字上限、連發冷卻、快捷語與輸入短句；閒置降幀與操作喚醒、背景分頁暫停繪圖但持續送心跳、流暢度上限保存（背包、夜市目前只有點擊巡檢涵蓋） |
 | `interior.test.js` | 拜墊跪坐與同行同步、起身、香油箱功德扣除與不足防護、籤詩櫃紀錄、櫃體碰撞、手機指引版面 |

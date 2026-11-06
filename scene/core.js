@@ -139,6 +139,11 @@ class Temple3DScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.container.appendChild(this.renderer.domElement);
+    this.renderer.domElement.tabIndex = 0;
+    this.renderer.domElement.setAttribute("aria-label", "神殿 3D 場景：WASD 或方向鍵移動，E 與附近地點互動，C 重置視角。也可用廟區地圖選擇目的地。");
+    this.renderer.domElement.addEventListener("pointerdown", () => {
+      if (!document.querySelector('.modal-overlay.open:not(#avatarModal)')) this.renderer.domElement.focus({ preventScroll: true });
+    });
 
     // 4. OrbitControls (擴大縮放範圍至 75m，支援千米大埕鳥瞰)
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
@@ -163,6 +168,7 @@ class Temple3DScene {
     this.buildServiceDesk();   // 廟埕服務處（完整參拜流程的第一站）
     this.buildHallInterior();
     this.buildNightMarket();
+    this.setupSeasonalScene();
     this.setupDustParticles();
     this.scene.add(this.weatherGroup);
 
@@ -180,6 +186,7 @@ class Temple3DScene {
     this.renderer.domElement.addEventListener("click", (e) => this.onClick(e));
 
     window.addEventListener("keydown", (e) => {
+      if (window.templeReading?.blocksSceneKeys(e)) return;
       if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
       if (e.code === "KeyE" && !e.repeat) {
         this.triggerNearbyInteraction();
@@ -264,6 +271,10 @@ class Temple3DScene {
   // 接近觸發判斷
   triggerNearbyInteraction() {
     if (!this.avatar) return;
+    if (window.templeVisit) {
+      if (!window.templeVisit.interact() && !window.templeVisit.modalOpen()) this.avatar.triggerAction("bow");
+      return;
+    }
     const p = this.avatar.position;
 
     if (this.tryHallInteraction()) return;
@@ -453,6 +464,21 @@ class Temple3DScene {
     });
   }
 
+  resumeCameraFollow() {
+    if (!this.avatar) return;
+    this.followAvatar = true;
+    // 從固定遠景回到隨行時保留畫面朝向，避免按後退卻因鏡頭翻面而反轉。
+    const offset = new THREE.Vector3().subVectors(this.camera.position, this.controls.target);
+    offset.y = 0;
+    if (offset.lengthSq() < 1e-8) offset.set(0, 0, 1);
+    offset.normalize().multiplyScalar(4.8);
+    this.targetCameraPos = this.avatar.position.clone().add(offset).add(new THREE.Vector3(0, 2.5, 0));
+    this.targetLookAt = this.avatar.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+    document.querySelectorAll(".btn-cam-view").forEach(b => {
+      b.classList.toggle("active", b.dataset.view === "follow");
+    });
+  }
+
   setCameraView(viewName) {
     if (viewName === "follow") {
       if (this.isFirstPerson) {
@@ -628,6 +654,7 @@ class Temple3DScene {
 
     const now = performance.now();
     if (window.templePower && !window.templePower.shouldRender(now, this)) return;
+    this.updateSeasonalDate(now);
 
     // 科儀過程中會動態新增點光源（化金紙、點香），低畫質時定期關掉
     this.qualityFrame = (this.qualityFrame || 0) + 1;
@@ -651,7 +678,7 @@ class Temple3DScene {
       if (this.avatar.isMoving && !this.followAvatar) {
         const dist = this.camera.position.distanceTo(this.avatar.position);
         if (dist > 12.0) {
-          this.resetCameraBehindAvatar(true);
+          this.resumeCameraFollow();
         } else {
           this.followAvatar = true;
           this.targetCameraPos = null;

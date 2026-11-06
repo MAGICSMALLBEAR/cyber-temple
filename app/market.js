@@ -40,7 +40,7 @@ const nightMarket = {
   },
   settleRing(x) {
     const target = this.targets.find(t => !t.hit && Math.abs(t.x - x) <= 22);
-    if (target) { target.hit = true; this.hits++; window.templeAudio?.playBell(720); }
+    if (target) { target.hit = true; this.hits++; window.templeAudio?.playBell(720); window.emitRitual?.("marketHit"); }
     else window.templeAudio?.playWoodblock();
     document.getElementById("ringMessage").textContent = target ? "套中了！再接再厲。" : "差一點，下次抓準時機！";
     if (this.remaining === 0) {

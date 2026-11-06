@@ -38,6 +38,14 @@ async function launch() {
   return browser;
 }
 
+// 純介面檢查使用；不啟用 GPU 或軟體 3D 光柵，也不等待 3D 場景就緒。
+async function launch2D() {
+  const browser = await chromium.launch({ channel: CHANNEL, headless: true, args: ["--disable-gpu", "--disable-software-rasterizer"] });
+  openBrowsers.add(browser);
+  browser.on("disconnected", () => openBrowsers.delete(browser));
+  return browser;
+}
+
 // 無痕模式不能安裝 PWA，測可安裝性要用一般設定檔
 async function launchPersistent(profileDir, options = {}) {
   const ctx = await chromium.launchPersistentContext(profileDir, { channel: CHANNEL, headless: true, args: LAUNCH_ARGS, ...options });
@@ -167,4 +175,4 @@ class Checker {
   }
 }
 
-module.exports = { ROOT, launch, launchPersistent, newContext, closeAll, startServer, freePort, waitFor, sleep, makeTmpDir, Checker };
+module.exports = { ROOT, launch, launch2D, launchPersistent, newContext, closeAll, startServer, freePort, waitFor, sleep, makeTmpDir, Checker };

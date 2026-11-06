@@ -94,6 +94,9 @@ window.addEventListener("DOMContentLoaded", () => {
   if (window.templeInventory) window.templeInventory.init();
   if (window.templeBag) window.templeBag.init();
   if (window.nightMarket) window.nightMarket.init();
+  if (window.templeVisit) window.templeVisit.init();
+  if (window.templeJournal) window.templeJournal.init();
+  if (window.templeReading) window.templeReading.init();
 
   // 3.45 新手引導（是否為新玩家已在每日簽到發功德之前判定）
   if (window.templeOnboarding) window.templeOnboarding.init();
@@ -102,6 +105,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (window.dailyPractice) {
     window.dailyPractice.init({ getDeity: () => state.currentDeity });
   }
+  if (window.templeAchievements) window.templeAchievements.init();
 
   // 4. 更新功德池與 AI 標籤
   updateMeritDisplay();
