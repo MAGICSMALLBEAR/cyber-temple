@@ -53,3 +53,4 @@
 | 檔案 | 來源 | 授權 |
 | :--- | :--- | :--- |
 | `sample-censer.glb`、`sample-lion.glb` | `tools/make-sample-models.mjs` 程式產生 | 本專案原創；試驗用，正式美術完成後替換 |
+| `reference/mazu-front.png` | Codex 圖片生成（2026-11-08） | 建模參考圖，不隨網站發布；商用前要確認使用方案的條款 |
