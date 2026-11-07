@@ -38,7 +38,7 @@ class TempleAtmosphereMixin {
 
   // 四時辰光影晝夜切換 (卯時晨霧 / 午時金陽 / 酉時夕照 / 子時星空)
   // 適應廣闊 40 米大埕視野，霧氣濃度調降為 0.009 ~ 0.016 確保深遠景深
-  setShichen(shichenKey) {
+  setShichen(shichenKey, { silent = false } = {}) {
     this.currentShichen = shichenKey;
     let actualKey = shichenKey;
     if (shichenKey === "auto") {
@@ -103,7 +103,9 @@ class TempleAtmosphereMixin {
       this.setLanternsIntensity(2.4);
     }
 
-    if (window.templeAudio) {
+    this.applySkyMood?.(actualKey);
+
+    if (!silent && window.templeAudio) {
       window.templeAudio.playShichenChime(actualKey);
     }
   }

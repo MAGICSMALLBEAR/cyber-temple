@@ -168,6 +168,7 @@ class Temple3DScene {
     this.buildServiceDesk();   // 廟埕服務處（完整參拜流程的第一站）
     this.buildHallInterior();
     this.buildNightMarket();
+    this.buildTempleVisuals?.();   // 材質、天空、大殿殿身與天花
     this.setupSeasonalScene();
     this.setupDustParticles();
     this.scene.add(this.weatherGroup);

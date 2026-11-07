@@ -63,6 +63,8 @@ class TempleArchitectureMixin {
     screenR.position.set(5.2, 2.75, 5.8);
     this.scene.add(screenR);
 
+    this.templeSurfaces = { hallFloor: floorMat, hallGrid: gridHelper, backWall: wall, screens: [screenL, screenR] };
+
     this.buildHangingLanterns();
   }
 
@@ -140,6 +142,7 @@ class TempleArchitectureMixin {
     court2.position.set(0, -0.01, 33.5);
     court2.receiveShadow = true;
     this.scene.add(court2);
+    Object.assign(this.templeSurfaces, { plazaInner: stoneMat1, plazaOuter: stoneMat2 });
   }
 
   // 2. 中央御道九龍神道
@@ -153,6 +156,7 @@ class TempleArchitectureMixin {
     path.position.set(0, 0.005, 21.5);
     path.receiveShadow = true;
     this.scene.add(path);
+    this.templeSurfaces.path = pathMat;
 
     // 御道兩側金黃銅邊條
     [-2.42, 2.42].forEach(x => {
