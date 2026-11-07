@@ -54,7 +54,8 @@ module.exports = {
     await clickWait("#btnBeatDrum", 2500);
     await p.evaluate(() => window.beadsSystem.advanceBead());
     await closeModals();
-    await p.focus("body");
+    // 關閉視窗後焦點會回到開啟它的按鈕，而介面控制項上的按鍵不觸發場景快捷鍵，要先讓焦點離開。
+    await p.evaluate(() => document.activeElement?.blur());
     await p.keyboard.press("KeyB");
     await p.waitForTimeout(300);
     const fired = await p.evaluate(() => [...new Set(window.__rituals)]);

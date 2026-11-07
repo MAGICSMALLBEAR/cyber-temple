@@ -42,9 +42,12 @@ module.exports = {
     await other.close();
     await p.keyboard.press("KeyE");
     check("再按互動可起身", await p.evaluate(() => window.temple3d.avatar.currentAction === "idle"));
-    await p.evaluate(() => { window.temple3d.triggerNearbyInteraction(); window.temple3d.avatar.keys.backward = true; });
-    await p.waitForTimeout(350);
-    check("開始走路會結束跪坐", await p.evaluate(() => { const a = window.temple3d.avatar; a.keys.backward = false; return a.currentAction !== "kneelSit"; }));
+    const sitAgain = await p.evaluate(() => { const a = window.temple3d.avatar; window.temple3d.triggerNearbyInteraction(); const sat = a.currentAction === "kneelSit"; a.keys.backward = true; return sat; });
+    check("走路前確實已跪坐", sitAgain);
+    // 軟體繪圖下幀率不定，等狀態真的改變，不用固定秒數。
+    const leftKneel = await waitFor(() => p.evaluate(() => window.temple3d.avatar.currentAction === "walk"));
+    await p.evaluate(() => { window.temple3d.avatar.keys.backward = false; });
+    check("開始走路會結束跪坐", !!leftKneel);
 
     await p.evaluate(() => { const t = window.temple3d; t.avatar.position.set(-2.8, 0, 3.85); t.triggerNearbyInteraction(); window.addMerit(100 - state.meritCount); });
     check("走近香油箱能開啟奉獻視窗", await p.$eval("#donationModal", e => e.classList.contains("open")));

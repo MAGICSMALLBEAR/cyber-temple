@@ -94,13 +94,15 @@ class AvatarCompanionsMixin {
 
       // 入殿時向全頻道打招呼，請求既有信眾同步
       this.channel.postMessage({ type: "PEER_AVATAR_HELLO", id: this.myPeerId });
-
-      window.addEventListener("beforeunload", () => {
-        if (this.channel) {
-          this.channel.postMessage({ type: "PEER_AVATAR_LEAVE", id: this.myPeerId });
-        }
-      });
     }
+
+    // 關閉頁面會先觸發 visibilitychange 的「背景」心跳，對方會以 120 秒逾時保留分身，必須明確告知離開。
+    window.addEventListener("pagehide", () => this.announceLeave());
+    window.addEventListener("pageshow", (e) => {
+      if (!e.persisted) return;
+      this.hasLeft = false;
+      this.broadcastMyState(true);
+    });
 
     // 有即時伺服器時才用 SSE 跨裝置同步（偵測結果見 live-wall.js 的 window.templeServer）
     const serverReady = window.templeServer ? window.templeServer.ready : Promise.resolve(false);
@@ -123,8 +125,20 @@ class AvatarCompanionsMixin {
     });
   }
 
+  // 告知同行本機已離開：同瀏覽器走 BroadcastChannel，跨裝置走伺服器；sendBeacon 在頁面關閉時仍送得出去
+  announceLeave() {
+    this.hasLeft = true;
+    const msg = { type: "PEER_AVATAR_LEAVE", id: this.myPeerId };
+    if (this.channel) this.channel.postMessage(msg);
+    if (window.templeServer && window.templeServer.available && navigator.sendBeacon) {
+      navigator.sendBeacon("/api/broadcast", new Blob([JSON.stringify(msg)], { type: "application/json" }));
+    }
+  }
+
   // 廣播本機角色狀態
   broadcastMyState(force = false) {
+    // 離開後不再送心跳，否則晚到的心跳會讓對方把分身建回來
+    if (this.hasLeft) return;
     const now = performance.now();
     const posDist = this.position.distanceTo(this.lastBroadcastPos);
 
