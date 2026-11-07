@@ -193,8 +193,45 @@ class TempleAltarMixin {
     this.scene.add(this.offeringsGroup);
 
     // 讀取本地儲存或預設五大經典御賜供品
-    const savedDishes = JSON.parse(localStorage.getItem("temple_feast_dishes") || '["fruit", "peach", "fagao", "redturtle", "guaiguai"]');
+    this.offeringsGroup.userData.noCollision = true;
+    const savedDishes = window.templeInventory?.data.offering.slots || [null, null, null, null, null];
     this.updateAltarFeastOfferings(savedDishes);
+  }
+
+  createIngotModel(silver = false) {
+    const group = new THREE.Group(); group.name = silver ? "silver-ingot" : "gold-ingot";
+    const mat = new THREE.MeshStandardMaterial({ color: silver ? 0xd9e5ed : 0xf6c34b, metalness: 0.86, roughness: silver ? 0.22 : 0.27 });
+    // 船形底、兩端翹角與中央鼓起的寶心。
+    const shape = new THREE.Shape(); shape.moveTo(-0.14, 0.14);
+    shape.quadraticCurveTo(-0.12, -0.035, 0, -0.015); shape.quadraticCurveTo(0.12, -0.035, 0.14, 0.14);
+    shape.quadraticCurveTo(0.08, 0.065, 0, 0.055); shape.quadraticCurveTo(-0.08, 0.065, -0.14, 0.14);
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.12, steps: 1, bevelEnabled: true, bevelSize: 0.009, bevelThickness: 0.009, bevelSegments: 2, curveSegments: 8 }); geo.translate(0, 0, -0.06);
+    const boat = new THREE.Mesh(geo, mat); group.add(boat);
+    const heart = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), mat); heart.scale.set(1.05, 0.7, 0.76); heart.position.y = 0.075; group.add(heart);
+    group.traverse(o => { if (o.isMesh) o.castShadow = true; }); return group;
+  }
+
+  createTreasureOffering(type) {
+    const g = new THREE.Group(); g.name = type;
+    const bowl = type === "treasureBowl";
+    if (bowl) {
+      const red = new THREE.MeshStandardMaterial({ color: 0x9d1b26, roughness: 0.38, metalness: 0.25 });
+      const vessel = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.09, 0.11, 20), red); vessel.position.y = 0.08; g.add(vessel);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.013, 6, 24), new THREE.MeshStandardMaterial({ color: 0xeabd50, metalness: 0.8, roughness: 0.3 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.138; g.add(rim);
+    }
+    const count = bowl ? 5 : 3;
+    for (let i = 0; i < count; i++) {
+      const ingot = this.createIngotModel(type === "silverIngot" || bowl && i % 2 === 1);
+      ingot.scale.setScalar(bowl ? 0.42 : 0.53);
+      const angle = i / count * Math.PI * 2;
+      ingot.position.set(Math.cos(angle) * (bowl ? 0.06 : 0.07), bowl ? 0.155 + i % 2 * 0.02 : 0.045, Math.sin(angle) * 0.06);
+      ingot.rotation.y = angle; g.add(ingot);
+    }
+    if (bowl) for (let i = 0; i < 5; i++) {
+      const coin = new THREE.Mesh(new THREE.TorusGeometry(0.022, 0.006, 5, 10), new THREE.MeshStandardMaterial({ color: 0xf3cd61, metalness: 0.8, roughness: 0.3 }));
+      coin.rotation.x = -Math.PI / 2; coin.position.set((i - 2) * 0.04, 0.19, 0.055); g.add(coin);
+    }
+    return g;
   }
 
   // 更新神案上的五大供品 3D 模型
@@ -202,14 +239,12 @@ class TempleAltarMixin {
     if (!this.offeringsGroup) return;
 
     // 清除舊供品物件
+    const geometries = new Set(), materials = new Set();
+    this.offeringsGroup.traverse(o => { if (o.geometry) geometries.add(o.geometry); if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => materials.add(m)); });
+    geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
     while (this.offeringsGroup.children.length > 0) {
       const child = this.offeringsGroup.children[0];
       this.offeringsGroup.remove(child);
-      if (child.geometry) child.geometry.dispose();
-      if (child.material) {
-        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-        else child.material.dispose();
-      }
     }
 
     const goldPlateMat = new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.85, roughness: 0.2 });
@@ -221,6 +256,7 @@ class TempleAltarMixin {
     dishTypes.forEach((type, idx) => {
       const posX = slotXs[idx] !== undefined ? slotXs[idx] : (idx - 2) * 0.5;
       const dishGroup = new THREE.Group();
+      dishGroup.userData.dish = type || null; dishGroup.name = `offering-slot-${idx}`;
       dishGroup.position.set(posX, 0, 0);
 
       // 金紋底盤
@@ -228,7 +264,10 @@ class TempleAltarMixin {
       plate.position.y = 0.012;
       dishGroup.add(plate);
 
-      if (type === "fruit") {
+      if (["goldIngot", "silverIngot", "treasureBowl"].includes(type)) {
+        plate.material = type === "silverIngot" ? new THREE.MeshStandardMaterial({ color: 0x315b88, roughness: 0.3 }) : redPlateMat;
+        dishGroup.add(this.createTreasureOffering(type));
+      } else if (type === "fruit") {
         // 🍎 五福平安果盤
         const fruitMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.25 });
         const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.35 });
@@ -375,7 +414,8 @@ class TempleAltarMixin {
 
     this.spawn3DFloatingText("三炷清香 • 誠心達天", new THREE.Vector3(0, 2.2, -0.3));
     if (this.avatar) {
-      this.avatar.triggerAction("bow");
+      if (this.avatar.playRitualMotion) this.avatar.playRitualMotion("incenseOffering");
+      else this.avatar.triggerAction("bow");
     }
   }
 

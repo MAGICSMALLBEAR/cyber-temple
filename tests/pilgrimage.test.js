@@ -38,8 +38,8 @@ module.exports = {
       t.shakeChiamBucket = cb => setTimeout(cb, 30);
     });
 
-    // 依序走完七步
-    const order = ["supplies", "heaven", "main", "offer", "kneel", "chiam", "paper"];
+    // 依序走完八步，包含實際備料與收供。
+    const order = ["supplies", "heaven", "main", "offer", "kneel", "chiam", "collect", "paper"];
     for (const id of order) {
       s = await info();
       if (s.step !== id) { check(`進入「${id}」這一步`, false, `目前是 ${s.step}`); break; }
@@ -56,10 +56,16 @@ module.exports = {
         check("走到定點後按鈕變成這一步的動作", label.includes("上香"), label);
       }
       await p.click("#btnPilgrimPrimary");     // 做這一步
+      if (id === "supplies") {
+        if (await p.locator("#btnBuyOfferingSet").isEnabled()) await p.click("#btnBuyOfferingSet");
+        await p.click("#btnPilgrimSuppliesReady");
+      }
       if (id === "offer") {
         await p.waitForTimeout(300);
+        await p.click("#btnPlaceOfferingSet");
         await p.click("#btnFeastPresent");
       }
+      if (id === "collect") await p.click("#btnFeastCollect");
       if (id === "chiam") {
         await p.waitForTimeout(300);
         for (let k = 0; k < 4 && (await p.evaluate(() => window.chiamRitual.active)); k++) {
@@ -85,7 +91,7 @@ module.exports = {
       }
     }
     s = await info();
-    check("七步走完後參拜圓滿", !s.active && (await p.evaluate(() => window.pilgrimage.data.completed)) === 1);
+    check("八步走完後參拜圓滿", !s.active && (await p.evaluate(() => window.pilgrimage.data.completed)) === 1);
     check("圓滿通知", (await p.$eval("#templeBroadcastNotice", e => e.textContent)).includes("完整參拜圓滿"));
 
     // 需要在現場的步驟：不在現場做不算
@@ -117,7 +123,8 @@ module.exports = {
     await p.focus("body");
     await p.keyboard.press("KeyE");
     await p.waitForTimeout(300);
-    check("在服務處按 [E] 也能領取清香", (await info()).step === "heaven");
+    check("在服務處按 [E] 開啟備料確認", (await info()).step === "supplies" && await p.locator("#btnPilgrimSuppliesReady").isVisible());
+    await p.click("#btnPilgrimSuppliesReady");
     await p.evaluate(() => {
       const t = window.temple3d;
       // 從天公爐的另一側出發，直線路徑會撞上香爐。

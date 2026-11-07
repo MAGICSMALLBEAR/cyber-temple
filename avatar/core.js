@@ -112,6 +112,7 @@ class TempleAvatarSystem {
 
   // 構建 Q 版 3D 角色模型
   buildAvatarMesh() {
+    if (typeof disposeRitualProps === "function") disposeRitualProps(this);
     // 清除舊物件
     while (this.playerGroup.children.length > 0) {
       this.playerGroup.remove(this.playerGroup.children[0]);
@@ -554,6 +555,7 @@ class TempleAvatarSystem {
 
   // 觸發儀式動作
   triggerAction(actionName) {
+    this.ritualMotion = null;
     this.currentAction = actionName;
     this.actionProgress = 0;
     this.isMoving = false;
@@ -728,6 +730,7 @@ class TempleAvatarSystem {
   // 肢體關節運動調製
   animateLimbs(time, dt) {
     if (!this.limbs.armL || !this.limbs.legL) return;
+    this.resetRitualPose?.();
 
     // 換動作時先把姿勢歸零，避免上一個動作的角度殘留
     if (this.currentAction !== this.lastPoseAction) {
@@ -825,6 +828,8 @@ class TempleAvatarSystem {
       this.limbs.armR.rotation.set(-0.5, -0.5, 0);
       this.limbs.torso.rotation.x = 0;
     }
+
+    this.animateRitualProps?.(time);
 
     // 護體靈光環緩慢自轉與浮動
     if (this.limbs.amuletAura) {

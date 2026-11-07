@@ -1,0 +1,71 @@
+const { makeEnvironment } = require("./light-env");
+module.exports = {
+  name: "供品購買、擺供收供與財寶模型（無繪圖）",
+  async run({ check, note }) {
+    const THREE = await import("three"), env = makeEnvironment(THREE), c = env.context;
+    for (const file of ["scene/core.js", "scene/service.js", "scene/architecture.js", "scene/deities.js", "scene/altar.js", "inventory.js", "save-data.js"]) env.load(file);
+    const bag = c.templeInventory;
+    c.temple3d = { avatar: { position: new THREE.Vector3(-4.1, 0, 8.2) } };
+    c.localStorage.setItem("temple_feast_dishes", JSON.stringify(["fruit", "peach", "fagao", "redturtle", "guaiguai"]));
+    check("舊版預覽不會憑空變成可收回的供品", bag.data.offering.slots.every(id => id === null));
+    let d = bag.load(); d.coins = 100; bag.save(d);
+    const snapshot = () => c.localStorage.getItem("temple_inventory");
+    let before = snapshot();
+    check("錯誤報價拒絕整籃購買", bag.buyBasket({ goldIngot: 2 }, 1).reason === "changed" && snapshot() === before);
+    check("無效品項、數量及空籃拒絕", !bag.buyBasket({ fake: 1 }, 0).ok && !bag.buyBasket({ goldIngot: 0 }, 0).ok && !bag.buyBasket({ silverIngot: 1.5 }, 15).ok && !bag.buyBasket({}, 0).ok);
+    check("金銀財寶可整籃購買並正確扣款", bag.buyBasket({ goldIngot: 2, silverIngot: 1, treasureBowl: 1 }, 54).ok && bag.data.coins === 46 && bag.data.items.goldIngot === 2 && bag.data.items.treasureBowl === 1);
+    before = snapshot();
+    check("餘額不足時不部分購買", bag.buyBasket({ goldIngot: 5, silverIngot: 1 }, 70).reason === "funds" && snapshot() === before);
+    c.temple3d.avatar.position.set(0, 0, 4);
+    check("不在供品鋪旁不能結帳", bag.buyBasket({ silverIngot: 1 }, 10).reason === "location");
+    check("遠端不能擺供或收供", bag.placeOffering(0, "goldIngot").reason === "location" && bag.collectOfferings().reason === "location" && bag.presentOfferings().reason === "location");
+    c.temple3d.avatar.position.set(0, 0, 1.7);
+    check("空桌不能敬獻", bag.presentOfferings().reason === "empty");
+    check("擺上元寶會從背包扣一份", bag.placeOffering(0, "goldIngot").ok && bag.data.items.goldIngot === 1 && bag.data.offering.slots[0] === "goldIngot");
+    before = snapshot();
+    check("同款不重扣、無庫存替換不影響原物品", !bag.placeOffering(0, "goldIngot").ok && !bag.placeOffering(0, "fruit").ok && snapshot() === before);
+    check("供盤替換會歸還原供品", bag.placeOffering(0, "silverIngot").ok && bag.data.items.goldIngot === 2 && bag.data.items.silverIngot === 0);
+    check("不能把香、金紙或未知物件擺上桌", !bag.placeOffering(1, "incense").ok && !bag.placeOffering(1, "paper").ok && !bag.placeOffering(1, "__proto__").ok);
+    check("不能寫入無效供盤", !bag.placeOffering(-1, "goldIngot").ok && !bag.placeOffering(5, "goldIngot").ok && !bag.collectOfferings(1.5).ok);
+    check("單盤收回不重複增加庫存", bag.collectOfferings(0).ok && bag.data.items.silverIngot === 1 && !bag.collectOfferings(0).ok);
+    bag.placeOffering(0, "goldIngot"); bag.placeOffering(1, "goldIngot"); bag.placeOffering(2, "treasureBowl");
+    const needs = bag.ritualRequirements(0, bag.data.offering.slots), quote = bag.restockQuote(needs);
+    check("補給把桌上供品計入持有，不重複買元寶", quote.items.find(item => item.id === "goldIngot").missing === 0 && quote.items.find(item => item.id === "treasureBowl").missing === 0);
+    before = snapshot();
+    check("五品庫存不足時整桌保持原狀", !bag.placeOfferingSet(["fruit", "peach", "fagao", "redturtle", "guaiguai"]).ok && snapshot() === before);
+    check("首次敬獻發一次功德，不再扣供品", bag.presentOfferings().reward === 128 && bag.data.items.goldIngot === 0 && bag.data.offering.presented);
+    check("已敬獻的桌面不能重複敬獻或偷偷換盤", !bag.presentOfferings().ok && !bag.placeOffering(0, "silverIngot").ok && !bag.collectOfferings(0).ok);
+    check("全部收供原數歸還，第二次收供無效", bag.collectOfferings().ok && bag.data.items.goldIngot === 2 && bag.data.items.treasureBowl === 1 && !bag.collectOfferings().ok);
+    bag.placeOffering(0, "goldIngot");
+    check("同日收供再敬獻不重複發獎勵", bag.presentOfferings().reward === 0);
+    bag.collectOfferings(); env.setTime("2026-11-06T04:00:00Z"); bag.placeOffering(0, "goldIngot");
+    check("隔日可再次獲得首次獻供功德", bag.presentOfferings().reward === 128);
+    check("三種桌型可保存、非法桌型被拒絕", ["wood", "brocade", "stone"].every(id => bag.setTableStyle(id) && bag.data.offering.style === id) && !bag.setTableStyle("fake"));
+    const exported = c.templeSave.collect(), restored = makeEnvironment(THREE); restored.load("inventory.js");
+    restored.context.localStorage.setItem("temple_inventory", exported.temple_inventory);
+    const table = restored.context.templeInventory.data.offering;
+    restored.context.temple3d = { avatar: { position: new THREE.Vector3(0, 0, 1.7) } };
+    check("備份還原保留桌面、樣式與敬獻狀態", table.slots[0] === "goldIngot" && table.style === "stone" && table.presented && restored.context.templeInventory.data.items.goldIngot === 1);
+    // 模擬重整後以最新存檔操作，而非使用過期的 UI 快照。
+    check("新實例不會再領已敬獻桌面的獎勵", !restored.context.templeInventory.presentOfferings().ok);
+    bag.collectOfferings(); d = bag.load(); Object.keys(d.items).forEach(id => d.items[id] = 5); bag.save(d);
+    check("五品組合可一次擺上且重擺不吃掉庫存", bag.placeOfferingSet(["fruit", "peach", "fagao", "redturtle", "guaiguai"]).ok && bag.placeOfferingSet(["fruit", "peach", "fagao", "redturtle", "guaiguai"]).ok && bag.data.items.fruit === 4);
+    d = bag.load(); d.items.fruit = 1000000; bag.save(d); before = snapshot();
+    check("背包滿時整批收供被拒絕且不遺失物品", bag.collectOfferings().reason === "full" && snapshot() === before);
+    const scene = Object.create(c.Temple3DScene.prototype); scene.scene = new THREE.Scene(); scene.interactiveObjects = [];
+    scene.buildAltarAndDeity(); scene.buildOfferings(); scene.buildServiceDesk();
+    check("供桌與供品鋪有可點選模型", scene.interactiveObjects.some(o => o.userData.type === "feastTable") && scene.serviceDesk.children.some(o => o.name === "treasureBowl"));
+    const styles = new Set();
+    for (const style of ["wood", "brocade", "stone"]) { scene.updateOfferingTableStyle(style); styles.add(scene.offeringTableMaterials.base.color.getHex() + ":" + scene.offeringTableCloth.visible + ":" + scene.offeringTableDecor.visible); }
+    check("三種供桌在實際模型各有不同材質或桌裙", styles.size === 3);
+    const gold = scene.createIngotModel(), silver = scene.createIngotModel(true);
+    check("金銀元寶有船形幾何且材質不同", gold.children[0].geometry.type === "ExtrudeGeometry" && gold.children[0].material.color.getHex() !== silver.children[0].material.color.getHex());
+    scene.updateAltarFeastOfferings(["goldIngot", "silverIngot", "treasureBowl", null, "fruit"]);
+    let finite = true, released = 0;
+    scene.offeringsGroup.traverse(o => { if (o.geometry) { finite &&= [...o.geometry.attributes.position.array].every(Number.isFinite); o.geometry.addEventListener("dispose", () => released++); } });
+    check("三款財寶與空盤都建立正確模型且頂點有效", finite && scene.offeringsGroup.children.length === 5 && scene.offeringsGroup.children[2].getObjectByName("treasureBowl")?.children.length > 5);
+    scene.updateAltarFeastOfferings([null, null, null, null, null]);
+    check("收供清除巢狀舊模型並釋放幾何", released > 20 && scene.offeringsGroup.children.every(g => g.children.length === 1));
+    note("使用實際 Three.js 幾何與存檔，不開啟 WebGL 或 3D 瀏覽器。");
+  }
+};

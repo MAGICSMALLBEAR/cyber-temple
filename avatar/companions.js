@@ -148,6 +148,7 @@ class AvatarCompanionsMixin {
       ],
       rot: parseFloat(this.playerGroup.rotation.y.toFixed(3)),
       action: this.currentAction,
+      ritual: { carry: this.ritualCarry || "", motion: this.ritualMotion || null },
       emote: this.emote,
       speech: this.speech,
       hidden: document.hidden,
@@ -189,6 +190,7 @@ class AvatarCompanionsMixin {
     if (peer.configKey !== undefined && peer.configKey !== cfgKey) {
       const keep = { pos: peer.group.position.clone(), rot: peer.group.rotation.y, emote: peer.lastEmoteT };
       clearSpeechBubble(peer, peer.group);
+      if (typeof disposeRitualProps === "function") disposeRitualProps(peer);
       this.scene.remove(peer.group);
       const rebuilt = this.createPeerAvatarMesh(data.config || {}, data.id);
       rebuilt.group.position.copy(keep.pos);
@@ -202,6 +204,9 @@ class AvatarCompanionsMixin {
     peer.targetPos.set(data.pos[0], data.pos[1], data.pos[2]);
     peer.targetRot = data.rot;
     peer.action = data.action || "idle";
+    if (typeof normalizeRitualState === "function") {
+      const ritual = normalizeRitualState(data.ritual); peer.ritualCarry = ritual.carry; peer.ritualMotion = ritual.motion;
+    }
     peer.lastSeen = performance.now();
     peer.hidden = data.hidden === true;
     if (data.speech && typeof data.speech.id === "string" && data.speech.id !== peer.lastSpeechId) {
@@ -283,7 +288,8 @@ class AvatarCompanionsMixin {
     legR.position.set(0.13, 0.22, 0);
     peerGroup.add(legR);
 
-    // 手持物
+    // 手持物（參拜道具顯示時可暫時隱藏，不改原本的換裝設定）
+    const normalHeldGroup = new THREE.Group(); peerGroup.add(normalHeldGroup);
     if (cfg.holdingItem === "incense") {
       const stick = new THREE.Mesh(
         new THREE.CylinderGeometry(0.008, 0.008, 0.35, 6),
@@ -291,14 +297,14 @@ class AvatarCompanionsMixin {
       );
       stick.position.set(0, 0.72, 0.28);
       stick.rotation.x = -Math.PI / 6;
-      peerGroup.add(stick);
+      normalHeldGroup.add(stick);
 
       const ember = new THREE.Mesh(
         new THREE.SphereGeometry(0.02, 6, 6),
         new THREE.MeshBasicMaterial({ color: 0xff3300 })
       );
       ember.position.set(0, 0.88, 0.37);
-      peerGroup.add(ember);
+      normalHeldGroup.add(ember);
     }
 
     // 浮動頭銜標籤 (綠色在線同頻標誌)
@@ -311,7 +317,7 @@ class AvatarCompanionsMixin {
 
     return {
       group: peerGroup,
-      limbs: { torso, head, armL, armR, legL, legR },
+      limbs: { torso, head, armL, armR, legL, legR, heldObject: normalHeldGroup },
       targetPos: new THREE.Vector3(0, 0, 4.0),
       targetRot: 0,
       action: "idle",
@@ -360,6 +366,7 @@ class AvatarCompanionsMixin {
   removePeer(id) {
     const peer = this.peers.get(id);
     if (peer) {
+      if (typeof disposeRitualProps === "function") disposeRitualProps(peer);
       clearSpeechBubble(peer, peer.group);
       this.scene.remove(peer.group);
       this.peers.delete(id);
@@ -399,6 +406,7 @@ class AvatarCompanionsMixin {
   animatePeerLimbs(peer, time, dt) {
     const limbs = peer.limbs;
     if (!limbs || !limbs.armL) return;
+    if (typeof resetRitualPoseFor === "function") resetRitualPoseFor(peer, limbs);
     updateEmoteBubble(peer, peer.group);
     updateSpeechBubble(peer, peer.group);
 
@@ -447,6 +455,7 @@ class AvatarCompanionsMixin {
       limbs.armR.rotation.set(0, 0, -Math.sin(time * 2) * 0.03);
       limbs.torso.rotation.x = 0;
     }
+    if (typeof animateRitualPropsFor === "function") animateRitualPropsFor(peer, limbs, peer.group, peer.action, time, !!window.templeMotion?.reduced);
   }
 }
 

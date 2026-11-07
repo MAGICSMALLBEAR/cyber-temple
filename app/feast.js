@@ -1,107 +1,106 @@
-// app/feast.js - 御賜平安齋供品擺盤
+// 供品在背包與桌面間移轉；庫存、桌面、敬獻狀態一起保存在 inventory。
+let currentFeastSlot = 0;
+let currentFeastDishes = window.templeInventory.data.offering.slots.slice();
+const FEAST_DEFAULT_DISHES = ["fruit", "peach", "fagao", "redturtle", "guaiguai"];
+const FEAST_DISH_INFO = Object.fromEntries(Object.entries(BAG_ITEMS).filter(([id]) => window.templeInventory.isOffering(id)));
+let feastSceneSignature = "";
 
-// 事件綁定：由 core.js 的 bindEvents() 依原本順序呼叫
+function feastNotice(message) {
+  const el = document.getElementById("feastMessage"); if (el) el.textContent = message;
+  window.setDockStatus?.(message);
+}
+function feastResult(result, success) {
+  feastNotice(result.ok ? success : ({ location: "請先走到大殿供品桌旁，再擺供、敬獻或收供。", stock: "背包供品不足，請先到供品鋪選購；桌面與庫存沒有變動。",
+    presented: "這桌已敬獻，請先按「全部收供」再布置下一桌。", same: "這個供盤已擺放同款供品。", empty: "供盤是空的，請先擺上供品。", full: "背包數量已滿，暫時無法收回供品。" }[result.reason] || "無法進行這項操作。"));
+  updateFeastSlotsUI(); return result.ok;
+}
+
 function bindFeastEvents() {
-  // 3. 賽博御賜平安齋事件綁定
   document.getElementById("btnOpenFeast")?.addEventListener("click", () => window.openFeastModal());
   document.getElementById("feastModalClose")?.addEventListener("click", () => window.closeFeastModal());
-  document.querySelectorAll(".feast-slot").forEach(slot => {
-    slot.addEventListener("click", () => {
-      currentFeastSlot = parseInt(slot.dataset.slot, 10);
-      updateFeastSlotsUI();
-    });
+  document.querySelectorAll(".feast-slot").forEach(slot => slot.addEventListener("click", () => {
+    currentFeastSlot = Number(slot.dataset.slot); updateFeastSlotsUI();
+  }));
+  document.querySelectorAll(".feast-dish-picker").forEach(picker => picker.addEventListener("click", () => selectFeastDish(picker.dataset.dish)));
+  document.getElementById("btnFeastPresent")?.addEventListener("click", presentFeastOffering);
+  document.getElementById("btnFeastReset")?.addEventListener("click", resetFeastDishes);
+  document.getElementById("btnFeastCollect")?.addEventListener("click", () => {
+    if (feastResult(window.templeInventory.collectOfferings(), "已收供，桌上物品全部放回背包。")) window.closeFeastModal();
   });
-  document.querySelectorAll(".feast-dish-picker").forEach(picker => {
-    picker.addEventListener("click", () => {
-      selectFeastDish(picker.dataset.dish);
-    });
+  document.getElementById("btnFeastRemove")?.addEventListener("click", () => feastResult(window.templeInventory.collectOfferings(currentFeastSlot), "已將這一盤收回背包。"));
+  document.getElementById("feastTableStyle")?.addEventListener("change", e => {
+    if (window.templeInventory.setTableStyle(e.target.value)) feastNotice(`已換成${window.templeInventory.tableStyles[e.target.value]}。`);
   });
-  document.getElementById("btnFeastPresent")?.addEventListener("click", () => presentFeastOffering());
-  document.getElementById("btnFeastReset")?.addEventListener("click", () => resetFeastDishes());
-
+  document.getElementById("btnFeastShop")?.addEventListener("click", () => { window.closeFeastModal(); window.templeBag?.open("shop"); });
+  document.getElementById("btnFeastGo")?.addEventListener("click", () => { window.closeFeastModal(); window.templeVisit?.go("offerings"); });
+  document.getElementById("btnFeastCarryTray")?.addEventListener("click", () => {
+    if (window.templeInventory.setCarryMode("tray")) { window.closeFeastModal(); window.setDockStatus?.("🍱 已雙手端盤，可走到供桌旁擺供。再次開啟供桌選擇供品。"); }
+    else feastNotice("背包中沒有可端出的供品，請先選購或收供。");
+  });
+  window.addEventListener("temple:inventory", updateFeastSlotsUI);
+  window.addEventListener("temple:offering-motion", e => window.temple3d?.avatar?.playRitualMotion?.(e.detail.name));
+  window.addEventListener("storage", e => { if (!e.key || e.key === "temple_inventory") updateFeastSlotsUI(); });
+  updateFeastSlotsUI();
 }
-
-// ==========================================================================
-// 3. 賽博御賜平安齋 • 祈福供品擺盤 (Feast Offering Logic)
-// ==========================================================================
-let currentFeastSlot = 0;
-let currentFeastDishes = JSON.parse(localStorage.getItem("temple_feast_dishes") || '["fruit", "peach", "fagao", "redturtle", "guaiguai"]');
-
-const FEAST_DISH_INFO = {
-  fruit: { name: "五福果盤", icon: "🍎" },
-  peach: { name: "長生仙桃", icon: "🍑" },
-  fagao: { name: "富貴發糕", icon: "🍞" },
-  redturtle: { name: "紅龜粿", icon: "🐢" },
-  guaiguai: { name: "金牌乖乖", icon: "🟢" },
-  milktea: { name: "特大珍奶", icon: "🧋" },
-  chicken: { name: "香脆雞排", icon: "🍗" },
-  flowers: { name: "百合素花", icon: "🌸" }
-};
 
 window.openFeastModal = function() {
-  const modal = document.getElementById("feastModal");
-  if (!modal) return;
+  const modal = document.getElementById("feastModal"); if (!modal) return;
   modal.classList.add("open");
-  updateFeastSlotsUI();
-  if (window.templeAudio) window.templeAudio.playBell(528);
+  document.getElementById("feastMessage").textContent = "";
+  updateFeastSlotsUI(); window.templeAudio?.playBell(528);
 };
-
-window.closeFeastModal = function() {
-  const modal = document.getElementById("feastModal");
-  if (modal) modal.classList.remove("open");
-};
+window.closeFeastModal = function() { document.getElementById("feastModal")?.classList.remove("open"); };
 
 function updateFeastSlotsUI() {
+  const bag = window.templeInventory, d = bag.data, table = d.offering, near = bag.nearOfferingTable();
+  window.temple3d?.avatar?.setRitualCarry?.(d.carryMode);
+  const carry = document.getElementById("btnBagCarry"); if (carry) carry.textContent = d.carryMode ? "🧺 放下提籃／供盤" : "🧺 提起供品籃";
+  const sets = document.getElementById("feastOfferingSets"); if (sets && window.templeBag?.renderOfferingSets) { sets.replaceChildren(); window.templeBag.renderOfferingSets(sets, "table"); }
+  currentFeastDishes = table.slots.slice();
   document.querySelectorAll(".feast-dish-picker").forEach(picker => {
-    let stock = picker.querySelector(".feast-stock");
-    if (!stock) { stock = document.createElement("small"); stock.className = "feast-stock"; picker.append(stock); }
-    stock.textContent = `持有 ${window.templeInventory?.data.items[picker.dataset.dish] || 0} 份`;
+    const id = picker.dataset.dish, stock = picker.querySelector(".feast-stock");
+    if (stock) stock.textContent = `背包 ${d.items[id]} 份`;
+    picker.disabled = !near || table.presented || !d.items[id];
   });
-  for (let i = 0; i < 5; i++) {
-    const dishKey = currentFeastDishes[i] || "fruit";
-    const info = FEAST_DISH_INFO[dishKey] || FEAST_DISH_INFO.fruit;
-    const iconEl = document.getElementById(`feastSlotIcon${i}`);
-    const nameEl = document.getElementById(`feastSlotName${i}`);
-    const slotEl = document.getElementById(`feastSlot${i}`);
-    if (iconEl) iconEl.innerText = info.icon;
-    if (nameEl) nameEl.innerText = info.name;
-    if (slotEl) slotEl.classList.toggle("active", i === currentFeastSlot);
+  table.slots.forEach((id, i) => {
+    const info = FEAST_DISH_INFO[id], slot = document.getElementById(`feastSlot${i}`);
+    const icon = document.getElementById(`feastSlotIcon${i}`), name = document.getElementById(`feastSlotName${i}`);
+    if (icon) { icon.textContent = info?.icon || "＋"; icon.dataset.item = id || ""; }
+    if (name) name.textContent = info?.name || "空供盤";
+    if (slot) { slot.classList.toggle("active", i === currentFeastSlot); slot.setAttribute("aria-pressed", String(i === currentFeastSlot)); slot.setAttribute("aria-label", `供盤 ${i + 1}：${info?.name || "空供盤"}`); }
+  });
+  const occupied = table.slots.filter(Boolean).length;
+  const status = document.getElementById("feastTableStatus");
+  if (status) status.textContent = !near ? "目前可查看供桌。請按「前往供桌」到現場操作。" : table.presented ? `已敬獻 · ${occupied} 盤供品留在桌上，拜完可全部收回。` : `已擺 ${occupied}／5 盤 · 選一個供盤，再從背包選供品擺上。`;
+  const style = document.getElementById("feastTableStyle"); if (style) style.value = table.style;
+  const tray = document.getElementById("feastTray"); if (tray) tray.dataset.style = table.style;
+  const go = document.getElementById("btnFeastGo"); if (go) go.hidden = near;
+  const present = document.getElementById("btnFeastPresent");
+  if (present) { present.disabled = !near || !occupied || table.presented; present.textContent = table.presented ? "✓ 本桌已敬獻" : d.offeringRewardDay === bag.day() ? "🙏 敬獻（今日功德已領）" : "🙏 敬獻供品 · 今日首次 +128 功德"; }
+  const collect = document.getElementById("btnFeastCollect"); if (collect) collect.disabled = !near || !occupied;
+  const remove = document.getElementById("btnFeastRemove"); if (remove) remove.disabled = !near || table.presented || !table.slots[currentFeastSlot];
+  const reset = document.getElementById("btnFeastReset"); if (reset) reset.disabled = !near || table.presented;
+  const signature = JSON.stringify([table.style, table.slots]);
+  if (window.temple3d && signature !== feastSceneSignature) {
+    window.temple3d.updateOfferingTableStyle?.(table.style);
+    window.temple3d.updateAltarFeastOfferings?.(table.slots);
+    feastSceneSignature = signature;
   }
 }
 
-function selectFeastDish(dishKey) {
-  currentFeastDishes[currentFeastSlot] = dishKey;
-  localStorage.setItem("temple_feast_dishes", JSON.stringify(currentFeastDishes));
-  updateFeastSlotsUI();
-  if (window.temple3d) {
-    window.temple3d.updateAltarFeastOfferings(currentFeastDishes);
-  }
-  if (window.templeAudio) window.templeAudio.playWoodblock();
+function selectFeastDish(id) {
+  if (feastResult(window.templeInventory.placeOffering(currentFeastSlot, id), `已將${FEAST_DISH_INFO[id]?.name || "供品"}擺上第 ${currentFeastSlot + 1} 盤；換下的供品已放回背包。`)) window.templeAudio?.playWoodblock();
 }
-
-function presentFeastOffering() {
-  const needs = {};
-  currentFeastDishes.forEach(id => { needs[id] = (needs[id] || 0) + 1; });
-  if (window.templeInventory && !window.templeInventory.consume(needs)) return;
-  if (window.temple3d) {
-    window.temple3d.celebrateFeastOffering();
-  }
-  window.emitRitual?.("feast");
-  addMerit(128);
-  const petitioner = state.avatarConfig.title || "善信";
-  const msg = `🍱 善信【${petitioner}】在神案呈獻御賜五品大筵席，神威廣大，功德 +128！全天福星高照！`;
-  if (window.liveTempleWall) window.liveTempleWall.addDanmaku(msg);
-  if (typeof showFloatingDanmaku !== "undefined") showFloatingDanmaku(msg, "#fde047");
-  if (window.setDockStatus) window.setDockStatus(msg);
-  window.closeFeastModal();
-  alert(`🙏 恭行三獻禮呈獻大典圓滿！神尊慈悲受納，賜福長生、事業興旺！功德 +128！`);
-}
-
 function resetFeastDishes() {
-  currentFeastDishes = ["fruit", "peach", "fagao", "redturtle", "guaiguai"];
-  localStorage.setItem("temple_feast_dishes", JSON.stringify(currentFeastDishes));
-  updateFeastSlotsUI();
-  if (window.temple3d) {
-    window.temple3d.updateAltarFeastOfferings(currentFeastDishes);
-  }
+  feastResult(window.templeInventory.placeOfferingSet(FEAST_DEFAULT_DISHES), "已從背包擺上五品供品，原桌上的物品已放回背包。庫存不足可到供品鋪補齊。");
+}
+function presentFeastOffering() {
+  const result = window.templeInventory.presentOfferings();
+  if (!result.ok) { feastResult(result, ""); return; }
+  window.temple3d?.celebrateFeastOffering?.();
+  window.temple3d?.avatar?.playRitualMotion?.("presentOffering");
+  if (result.reward) addMerit(result.reward);
+  window.emitRitual?.("feast");
+  feastResult(result, result.reward ? "🙏 敬獻完成，今日首次獻供 +128 功德。供品保留在桌上，拜完可收供。" : "🙏 敬獻完成。今日獻供功德已領取，供品保留在桌上，拜完可收供。");
+  window.closeFeastModal();
 }

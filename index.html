@@ -286,7 +286,8 @@
       <div class="bag-wallet">🪙 平安幣 <strong id="bagCoins">0</strong><small>購買香品與供品，修行功德另計</small></div>
       <p class="wall-footnote" id="bagSupplyStatus"></p>
       <button class="btn-dock-action" id="btnBagDaily">🎁 領取每日補給</button>
-      <div class="bag-tabs"><button class="btn-custom-pill" data-bag-tab="items">香品供品</button><button class="btn-custom-pill" data-bag-tab="amulets">平安符</button><button class="btn-custom-pill" data-bag-tab="favorites">籤詩收藏</button><button class="btn-custom-pill" data-bag-tab="shop">服務處商店</button></div>
+      <button class="btn-custom-pill" id="btnBagCarry">🧺 提起供品籃</button>
+      <div class="bag-tabs"><button class="btn-custom-pill" data-bag-tab="items">香品供品</button><button class="btn-custom-pill" data-bag-tab="amulets">平安符</button><button class="btn-custom-pill" data-bag-tab="favorites">籤詩收藏</button><button class="btn-custom-pill" data-bag-tab="shop">供品鋪</button></div>
       <div id="bagContents"></div>
       <p id="bagMessage" role="status" aria-live="polite"></p>
     </div>
@@ -1798,96 +1799,51 @@
 
   <!-- 3. 賽博御賜平安齋 • 祈福供品擺盤 (Feast Modal) -->
   <div class="modal-overlay" id="feastModal">
-    <div class="settings-modal" style="max-width: 680px; max-height: 88vh; overflow-y: auto;">
-      <button class="modal-close" id="feastModalClose" style="color: var(--gold-bright);">&times;</button>
-      <div style="text-align: center; margin-bottom: 14px;">
-        <h3 style="color: var(--gold-bright); letter-spacing: 2px; margin-bottom: 4px; font-size: 1.25rem;">
-          🍱 賽博御賜平安齋 • 祈福供品筵席大典
-        </h3>
-        <p style="font-size: 0.82rem; color: #d1d5db; margin: 0;">
-          三牲五果配金牌乖乖，自選五大御品呈獻大殿神案，行三獻禮蒙神尊恩賜全天好運
-        </p>
+    <div class="settings-modal feast-modal" role="dialog" aria-modal="true" aria-labelledby="feastTitle">
+      <button class="modal-close" id="feastModalClose" aria-label="關閉供品桌">&times;</button>
+      <p class="offering-eyebrow">誠心備供・敬獻祈福</p>
+      <h3 id="feastTitle">🍱 大殿供品桌</h3>
+      <p class="wall-footnote">在供品鋪選購，帶到桌邊擺供；敬獻後供品留在桌上，拜完可收回背包。</p>
+      <div class="feast-toolbar">
+        <label for="feastTableStyle">供桌樣式 <select id="feastTableStyle" class="temple-select"><option value="wood">紅木雕花</option><option value="brocade">紅布金繡</option><option value="stone">青石供桌</option></select></label>
+        <button class="btn-custom-pill" id="btnFeastShop">🏮 供品鋪選購</button>
+        <button class="btn-custom-pill" id="btnFeastGo">🚶 前往供桌</button>
+        <button class="btn-custom-pill" id="btnFeastCarryTray">🍱 雙手端盤預備</button>
       </div>
-
-      <!-- 神案五大供盤位置 (點擊更換供品) -->
-      <div style="background: rgba(40, 20, 10, 0.6); border: 2px solid #b45309; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
-        <div style="text-align: center; font-size: 0.82rem; color: var(--gold-bright); margin-bottom: 10px; font-weight: bold;">
-          🌟 神案金尊供桌 • 當前五品筵席（點擊供盤以替換供品）：
+      <div id="feastOfferingSets"></div>
+      <div class="feast-table-preview" id="feastTray" data-style="wood">
+        <div class="feast-slots">
+          <button type="button" class="feast-slot active" id="feastSlot0" data-slot="0" aria-pressed="true"><span class="feast-slot-number">供盤 1</span><span class="feast-slot-icon" id="feastSlotIcon0">＋</span><span id="feastSlotName0">空供盤</span></button>
+          <button type="button" class="feast-slot" id="feastSlot1" data-slot="1" aria-pressed="false"><span class="feast-slot-number">供盤 2</span><span class="feast-slot-icon" id="feastSlotIcon1">＋</span><span id="feastSlotName1">空供盤</span></button>
+          <button type="button" class="feast-slot" id="feastSlot2" data-slot="2" aria-pressed="false"><span class="feast-slot-number">供盤 3</span><span class="feast-slot-icon" id="feastSlotIcon2">＋</span><span id="feastSlotName2">空供盤</span></button>
+          <button type="button" class="feast-slot" id="feastSlot3" data-slot="3" aria-pressed="false"><span class="feast-slot-number">供盤 4</span><span class="feast-slot-icon" id="feastSlotIcon3">＋</span><span id="feastSlotName3">空供盤</span></button>
+          <button type="button" class="feast-slot" id="feastSlot4" data-slot="4" aria-pressed="false"><span class="feast-slot-number">供盤 5</span><span class="feast-slot-icon" id="feastSlotIcon4">＋</span><span id="feastSlotName4">空供盤</span></button>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
-          <div class="feast-slot active" id="feastSlot0" data-slot="0" style="background: rgba(0,0,0,0.4); border: 2px solid #ffd700; border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
-            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon0">🍎</div>
-            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName0">五福果盤</div>
-          </div>
-          <div class="feast-slot" id="feastSlot1" data-slot="1" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
-            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon1">🍑</div>
-            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName1">長生仙桃</div>
-          </div>
-          <div class="feast-slot" id="feastSlot2" data-slot="2" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
-            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon2">🍞</div>
-            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName2">富貴發糕</div>
-          </div>
-          <div class="feast-slot" id="feastSlot3" data-slot="3" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
-            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon3">🐢</div>
-            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName3">紅龜粿</div>
-          </div>
-          <div class="feast-slot" id="feastSlot4" data-slot="4" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,215,0,0.4); border-radius: 8px; padding: 10px 4px; text-align: center; cursor: pointer;">
-            <div style="font-size: 1.6rem; margin-bottom: 4px;" id="feastSlotIcon4">🟢</div>
-            <div style="font-size: 0.72rem; color: #fde047; font-weight: bold;" id="feastSlotName4">金牌乖乖</div>
-          </div>
-        </div>
+        <div class="feast-table-apron" aria-hidden="true">◆　誠 心 敬 獻　◆</div>
       </div>
-
-      <!-- 可選供品庫 -->
-      <div style="background: rgba(0,0,0,0.35); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px;">
-        <div style="font-size: 0.8rem; color: #e2e8f0; margin-bottom: 8px; font-weight: bold;">
-          🍱 點選欲擺入當前選中供盤的聖品：
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-          <div class="feast-dish-picker" data-dish="fruit" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🍎</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">五福果盤</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="peach" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🍑</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">長生仙桃</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="fagao" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🍞</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">富貴發糕</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="redturtle" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🐢</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">祈福紅龜粿</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="guaiguai" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🟢</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">金牌乖乖</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="milktea" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🧋</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">特大珍奶</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="chicken" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🍗</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">香脆雞排</div>
-          </div>
-          <div class="feast-dish-picker" data-dish="flowers" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,215,0,0.25); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer;">
-            <span style="font-size: 1.3rem;">🌸</span>
-            <div style="font-size: 0.75rem; color: #fef08a;">百合素花</div>
-          </div>
-        </div>
+      <p id="feastTableStatus" class="feast-table-status" role="status" aria-live="polite"></p>
+      <button class="btn-custom-pill" id="btnFeastRemove">收回選中供盤</button>
+      <h4>從背包選一份供品</h4>
+      <div class="feast-picker-grid">
+        <button type="button" class="feast-dish-picker" data-dish="fruit"><span class="feast-picker-icon" aria-hidden="true">🍎</span><span>五福果盤</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="peach"><span class="feast-picker-icon" aria-hidden="true">🍑</span><span>長生仙桃</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="fagao"><span class="feast-picker-icon" aria-hidden="true">🍞</span><span>富貴發糕</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="redturtle"><span class="feast-picker-icon" aria-hidden="true">🐢</span><span>紅龜粿</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="guaiguai"><span class="feast-picker-icon" aria-hidden="true">🟢</span><span>金牌乖乖</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="milktea"><span class="feast-picker-icon" aria-hidden="true">🧋</span><span>特大珍奶</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="chicken"><span class="feast-picker-icon" aria-hidden="true">🍗</span><span>香脆雞排</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="flowers"><span class="feast-picker-icon" aria-hidden="true">🌸</span><span>百合素花</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker feast-treasure" data-dish="goldIngot"><span class="feast-picker-icon" data-item="goldIngot" aria-hidden="true">🟨</span><span>金元寶盤</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker feast-treasure" data-dish="silverIngot"><span class="feast-picker-icon" data-item="silverIngot" aria-hidden="true">⬜</span><span>銀元寶盤</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker feast-treasure" data-dish="treasureBowl"><span class="feast-picker-icon" aria-hidden="true">💰</span><span>金銀聚寶盆</span><small class="feast-stock">背包 0 份</small></button>
       </div>
-
-      <!-- 呈獻按鈕列 -->
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <button class="btn-dock-action" id="btnFeastReset" style="background: #475569; padding: 8px 16px;">
-          🔄 重設五品
-        </button>
-        <button class="btn-dock-action" id="btnFeastPresent" style="background: linear-gradient(135deg, #b45309, #78350f); border-color: #fde047; padding: 8px 24px; font-size: 1.05rem;">
-          🙏 恭行三獻禮 • 呈獻大典 (+128 功德)
-        </button>
+      <div class="feast-actions">
+        <button class="btn-custom-pill" id="btnFeastReset">擺上五品組合</button>
+        <button class="btn-custom-pill" id="btnFeastCollect">全部收供・放回背包</button>
+        <button class="btn-dock-action" id="btnFeastPresent">🙏 敬獻供品</button>
       </div>
+      <p class="wall-footnote">一至五盤皆可敬獻；本桌敬獻後請全部收供再更換。獻供功德每日首次領取，參拜功課仍可正常完成。桌面布置為自己的參拜空間。</p>
+      <p id="feastMessage" role="status" aria-live="polite"></p>
     </div>
   </div>
 
@@ -2099,7 +2055,7 @@
           <div class="card-icon">🍱</div>
           <div class="card-body">
             <div class="card-title">御賜平安齋</div>
-            <div class="card-desc">神案 3D 供品 5 盤位自選擺盤與三獻禮呈獻大典</div>
+            <div class="card-desc">供桌換樣式、金銀元寶擺供、敬獻與收供</div>
           </div>
           <span class="card-badge">3D 擺盤</span>
         </div>
@@ -2307,6 +2263,7 @@
   <!-- 玩家分身：core 必須最先 -->
   <script src="avatar/appearance.js"></script>
   <script src="avatar/core.js"></script>
+  <script src="avatar/ritual-props.js"></script>
   <script src="avatar/social.js"></script>
   <script src="avatar/relics.js"></script>
   <script src="avatar/pet.js"></script>

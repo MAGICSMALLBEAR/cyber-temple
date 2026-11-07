@@ -595,6 +595,8 @@ class Temple3DScene {
         this.interactWithHallObject(intersects[0].object);
       } else if (type === "serviceDesk") {
         window.pilgrimage?.claimSupplies();
+      } else if (type === "feastTable") {
+        window.openFeastModal?.();
       } else if (type === "censer") {
         document.getElementById("btnLightIncense")?.click();
       } else if (type === "bwa") {

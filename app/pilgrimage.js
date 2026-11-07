@@ -1,4 +1,4 @@
-// app/pilgrimage.js - 完整參拜流程：服務處請香 → 天公爐敬天 → 正殿上香 → 擺供品 → 跪拜稟告 → 擲筊求籤 → 金爐化金紙
+// 八步參拜：選購備料 → 敬天 → 上香 → 獻供 → 稟告 → 求籤 → 收供 → 化金紙。
 // 右上角「🧭 參拜指引」卡：離目標遠時「前往」會自動走過去（從大殿到廟埕先經過正門），走到附近按鈕變成這一步的動作。
 // 進度聽 temple:ritual 事件；每一步都需在現場完成。進度存在 localStorage。
 
@@ -6,13 +6,14 @@ const PILGRIM_KEY = "temple_pilgrimage";
 const PILGRIM_REWARD = 168;
 
 const PILGRIM_STEPS = [
-  { id: "supplies", title: "服務處請香", hint: "走出大殿正門，右手邊的服務處領取清香與金紙。", spot: [SERVICE_DESK_POS[0] + 1.1, SERVICE_DESK_POS[1]], face: SERVICE_DESK_POS, radius: 1.8, action: "🧧 領取", done: "supplies" },
+  { id: "supplies", title: "選購與確認材料", hint: "到供品鋪選主題、領每日補給或補買缺額，備齊後按「材料備齊，開始參拜」。", spot: [SERVICE_DESK_POS[0] + 1.1, SERVICE_DESK_POS[1]], face: SERVICE_DESK_POS, radius: 1.8, action: "🏮 選購／確認材料", done: "supplies" },
   { id: "heaven", title: "天公爐敬天", hint: "參拜先敬天：到廟埕中央的天公爐上香三拜。", spot: [0, 9.6], face: [0, 11.5], radius: 1.9, action: "🔥 上香", done: "heavenCenser" },
   { id: "main", title: "正殿向主神上香", hint: "回到大殿神案前，向主神上香。", spot: [0, 1.7], face: [0, -1], radius: 2.4, action: "🔥 上香", done: "incense", nearOnly: true },
   { id: "offer", title: "擺上供品", hint: "在神案擺好供品，恭行三獻禮呈獻。", spot: [0, 1.7], face: [0, -1], radius: 3.2, action: "🍱 擺供品", done: "feast" },
   { id: "kneel", title: "跪拜稟告", hint: "在神前跪拜，心中稟明姓名、住址與所求。", spot: [0, 1.7], face: [0, -1], radius: 3.2, action: "🧎 跪拜", done: "bow", nearOnly: true },
   { id: "chiam", title: "擲筊求籤", hint: "擲筊請示後求一支籤，聖筊確認後展開籤詩。", spot: [0, 1.7], face: [0, -1], radius: 3.5, action: "🎋 求籤", done: "chiamReceived" },
-  { id: "paper", title: "金爐化金紙", hint: "到廟埕西側的八角金爐，把金紙焚化給神明，參拜圓滿。", spot: [-12.5, 12.3], face: [-12.5, 14.5], radius: 2.4, action: "🔥 化金紙", done: "paper", nearOnly: true }
+  { id: "collect", title: "收供與整理供桌", hint: "回到供桌，將敬獻的供品全部收回背包，再到金爐化紙。若已收好，按確認繼續。", spot: [0, 1.7], face: [0, -1], radius: 3.2, action: "🧺 收供／確認", done: "offeringsCollected" },
+  { id: "paper", title: "金爐化金紙", hint: "供品收好後，到廟埕西側八角金爐化金紙，參拜圓滿。", spot: [-12.5, 12.3], face: [-12.5, 14.5], radius: 2.4, action: "🔥 化金紙", done: "paper", nearOnly: true }
 ];
 
 const pilgrimage = {
@@ -23,15 +24,21 @@ const pilgrimage = {
   load() {
     try {
       const d = JSON.parse(localStorage.getItem(PILGRIM_KEY) || "null");
-      if (d && Number.isInteger(d.step) && d.step >= 0 && d.step < PILGRIM_STEPS.length) {
-        return { active: d.active === true, step: d.step, completed: Number.isSafeInteger(d.completed) && d.completed >= 0 ? d.completed : 0 };
+      if (d && typeof d === "object") {
+        const completed = Number.isSafeInteger(d.completed) && d.completed >= 0 ? d.completed : 0;
+        const legacyIds = ["supplies", "heaven", "main", "offer", "kneel", "chiam", "paper"];
+        let id = d.version === 2 ? d.stepId : Number.isInteger(d.step) ? legacyIds[d.step] : null;
+        // 舊版已到化紙、供品卻仍在桌上時，先銜接新增的收供步驟。
+        if (d.version !== 2 && id === "paper" && window.templeInventory?.data.offering.slots.some(Boolean)) id = "collect";
+        const step = PILGRIM_STEPS.findIndex(s => s.id === id);
+        return { active: d.active === true && step >= 0, step: Math.max(0, step), completed };
       }
     } catch (e) {}
     return { active: false, step: 0, completed: 0 };
   },
 
   save() {
-    localStorage.setItem(PILGRIM_KEY, JSON.stringify(this.data));
+    localStorage.setItem(PILGRIM_KEY, JSON.stringify({ ...this.data, version: 2, stepId: PILGRIM_STEPS[this.data.step].id }));
   },
 
   get avatar() {
@@ -50,6 +57,7 @@ const pilgrimage = {
 
   isNear(step = this.step) {
     if (step?.id === "supplies" && window.templeInventory) return window.templeInventory.nearService();
+    if (["offer", "collect"].includes(step?.id) && window.templeInventory) return window.templeInventory.nearOfferingTable();
     return !!step && this.distanceTo(step.spot) < step.radius;
   },
 
@@ -79,6 +87,8 @@ const pilgrimage = {
     }
     if (step.id === "kneel" && detail.action !== "kneel") return;
     if (step.id === "chiam" && !detail.confirmed) return;
+    if (step.id === "supplies" && this.materialQuote().total !== 0) return;
+    if (step.id === "collect" && (!detail.all || window.templeInventory.data.offering.slots.some(Boolean))) return;
     this.advance();
   },
 
@@ -93,7 +103,7 @@ const pilgrimage = {
       this.render();
       if (window.addMerit) window.addMerit(PILGRIM_REWARD);
       window.emitRitual?.("pilgrimageCompleted");
-      this.notify(`🎉 完整參拜圓滿！從請香、敬天、上香、獻供、稟告、求籤到化金紙，禮數周全，功德 +${PILGRIM_REWARD}。`);
+      this.notify(`🎉 完整參拜圓滿！備料、敬天、上香、獻供、稟告、求籤、收供與化金紙皆完成，功德 +${PILGRIM_REWARD}。`);
       return;
     }
     this.save();
@@ -110,12 +120,21 @@ const pilgrimage = {
     const step = this.step;
     window.templeInventory?.claimDaily();
     window.templeAudio?.playBell(620);
-    if (step && step.id === "supplies") {
-      window.emitRitual?.("supplies");
-      this.notify("🧧 香品已備妥；庫存與每日補給可在背包查看，接著到天公爐敬天。");
-    } else {
-      window.templeBag?.open("shop");
-    }
+    window.templeBag?.open("shop");
+    if (step?.id === "supplies") this.notify("🏮 請選供品主題，確認材料；備齊後按商店內的「材料備齊，開始參拜」。");
+  },
+
+  materialNeeds() {
+    const bag = window.templeInventory, theme = bag.offeringSets[bag.data.offeringSet];
+    return bag.ritualRequirements(this.data?.active ? this.data.step : 0, theme.dishes);
+  },
+  materialQuote() { return window.templeInventory.restockQuote(this.materialNeeds()); },
+  confirmSupplies() {
+    if (this.step?.id !== "supplies" || !this.isNear()) return false;
+    if (this.materialQuote().total > 0) { this.notify("參拜材料還有缺額，請先補齊；未扣任何額外費用。"); return false; }
+    window.templeInventory.setCarryMode("basket");
+    document.getElementById("bagModal")?.classList.remove("open");
+    window.emitRitual?.("supplies"); return true;
   },
 
   // 指引卡的主按鈕：遠的時候前往，近的時候做這一步
@@ -131,6 +150,10 @@ const pilgrimage = {
       case "offer": window.openFeastModal?.(); break;
       case "kneel": document.getElementById("btnActionKneel")?.click(); break;
       case "chiam": window.chiamRitual?.start(); break;
+      case "collect":
+        if (!window.templeInventory.data.offering.slots.some(Boolean)) this.advance();
+        else window.openFeastModal?.();
+        break;
       case "paper": document.getElementById("btnBurnPaper")?.click(); break;
     }
   },
@@ -213,7 +236,7 @@ const pilgrimage = {
     if (!step) {
       set("pilgrimProgress", "🧭 參拜指引");
       set("pilgrimTitle", "完整參拜");
-      set("pilgrimHint", this.data.completed ? `已圓滿 ${this.data.completed} 次。依指引再參拜一次？` : "請香、敬天、上香、獻供、稟告、求籤、化金紙，一步步帶你走。");
+      set("pilgrimHint", this.data.completed ? `已圓滿 ${this.data.completed} 次。依指引再參拜一次？` : "備料、敬天、上香、獻供、稟告、求籤、收供、化金紙，一步步帶你走。");
       set("btnPilgrimPrimary", "開始參拜");
       document.getElementById("pilgrimDots").replaceChildren();
       document.getElementById("btnPilgrimStop").hidden = true;

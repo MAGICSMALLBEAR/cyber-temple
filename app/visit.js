@@ -10,10 +10,13 @@ const templeVisit = {
       scene.spawn3DFloatingText(text, new THREE.Vector3(at[0], 2.5, at[1])); window.setDockStatus?.(text);
     };
     const list = [
-      place("service", "服務處", "🧧", SERVICE_DESK_POS, [SERVICE_DESK_POS[0] + 1.1, SERVICE_DESK_POS[1]], 2.2, "請香／購買補給", () => window.pilgrimage?.claimSupplies()),
+      place("service", "服務處", "🧧", SERVICE_DESK_POS, [SERVICE_DESK_POS[0] + 1.1, SERVICE_DESK_POS[1]], 2.2, "供品鋪／請香補給", () => window.pilgrimage?.claimSupplies()),
+      place("offerings", "大殿供品桌", "🍱", [-2, 0.2], [-2, 1.2], 1.5, "擺供／敬獻／收供", () => window.openFeastModal?.()),
       place("heaven", "天公爐", "🔥", [0, 11.5], [0, 9.6], 2.2, "敬天上香", () => {
         if (window.templeInventory && !window.templeInventory.consume({ incense: 1 })) return;
-        scene.avatar?.triggerAction("bow"); window.templeAudio?.playBell(560);
+        if (scene.avatar?.playRitualMotion) scene.avatar.playRitualMotion("incenseOffering");
+        else scene.avatar?.triggerAction("bow");
+        window.templeAudio?.playBell(560);
         scene.spawn3DFloatingText("天公賜福 • 迎祥納吉", new THREE.Vector3(0, 2.5, 11.5));
         window.setDockStatus?.("🔥 敬拜天公爐完成，願出入平安。"); window.emitRitual?.("heavenCenser");
       }),

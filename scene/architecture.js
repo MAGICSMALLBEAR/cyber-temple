@@ -511,6 +511,8 @@ class TempleArchitectureMixin {
     tableTop.position.y = 1.25;
     tableTop.castShadow = true;
     tableTop.receiveShadow = true;
+    tableTop.userData = { type: "feastTable", tooltip: "🍱 供品桌 • 擺供、敬獻與收供" };
+    this.interactiveObjects.push(tableTop);
     altarGroup.add(tableTop);
 
     const skirt = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.75, 1.5), new THREE.MeshStandardMaterial({ color: 0x821a1a, roughness: 0.5 }));
@@ -525,8 +527,35 @@ class TempleArchitectureMixin {
       altarGroup.add(leg);
     });
 
+    this.offeringTableMaterials = { base: tableMat, skirt: skirt.material };
+    this.offeringTableDecor = new THREE.Group(); this.offeringTableDecor.userData.noCollision = true;
+    altarGroup.add(this.offeringTableDecor);
+    const trimMat = new THREE.MeshStandardMaterial({ color: 0xd9ae54, metalness: 0.7, roughness: 0.3 });
+    for (const y of [0.43, 1.12]) {
+      const border = new THREE.Mesh(new THREE.BoxGeometry(4.06, 0.035, 0.025), trimMat); border.position.set(0, y, 0.765); this.offeringTableDecor.add(border);
+    }
+    for (let i = -4; i <= 4; i++) {
+      const motif = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.014, 5, 4), trimMat);
+      motif.position.set(i * 0.43, 0.79, 0.77); motif.rotation.z = Math.PI / 4; this.offeringTableDecor.add(motif);
+    }
+    this.offeringTableCloth = new THREE.Mesh(new THREE.BoxGeometry(4.14, 0.68, 0.025), new THREE.MeshStandardMaterial({ color: 0xb01825, roughness: 0.95 }));
+    this.offeringTableCloth.position.set(0, 0.79, 0.756); this.offeringTableCloth.userData.noCollision = true; altarGroup.add(this.offeringTableCloth);
+    this.offeringTable = altarGroup;
+    this.updateOfferingTableStyle(window.templeInventory?.data.offering.style || "wood");
     this.scene.add(altarGroup);
     this.buildDeityThrone();
+  }
+
+  updateOfferingTableStyle(style = "wood") {
+    if (!this.offeringTableMaterials) return;
+    const stone = style === "stone", brocade = style === "brocade";
+    this.offeringTableMaterials.base.color.set(stone ? 0x788780 : brocade ? 0x4b1714 : 0x42150e);
+    this.offeringTableMaterials.base.roughness = stone ? 0.85 : 0.3;
+    this.offeringTableMaterials.base.metalness = stone ? 0 : 0.15;
+    this.offeringTableMaterials.skirt.color.set(stone ? 0x8b9790 : brocade ? 0xa31922 : 0x5d2716);
+    this.offeringTableCloth.visible = brocade;
+    this.offeringTableDecor.visible = !stone;
+    this.offeringTable.userData.style = stone ? "stone" : brocade ? "brocade" : "wood";
   }
 
 }

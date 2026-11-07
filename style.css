@@ -1460,14 +1460,13 @@ body {
 
 /* 御賜平安齋 */
 .feast-slot.active {
-  border-color: #ffd700 !important;
-  background: rgba(245, 158, 11, 0.25) !important;
+  border-color: #ffd700;
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
 }
 
-.feast-dish-picker:hover {
-  background: rgba(245, 158, 11, 0.3) !important;
-  border-color: #ffd700 !important;
+.feast-dish-picker:not(:disabled):hover {
+  background: rgba(245, 158, 11, 0.3);
+  border-color: #ffd700;
   transform: scale(1.05);
 }
 
@@ -2728,3 +2727,69 @@ body.hud-hidden .visit-tools { display: none; }
   .journal-fields > * { flex-basis: 120px; }
 }
 button:disabled { opacity: 0.45; cursor: default; }
+/* 供品鋪與供桌：可觸控的商品卡、五格桌面與收供操作。 */
+.feast-modal { width: min(740px, 94vw); max-height: 90dvh; overflow-y: auto; }
+.offering-eyebrow { color: #c9a66c; font-size: .72rem; letter-spacing: .2em; margin: 0 0 8px; }
+.offering-set-panel { border: 1px solid #bb954b70; border-radius: 10px; padding: 12px; margin: 16px 0; background: linear-gradient(125deg, #d8b56815, #7d272210); }
+.offering-set-panel label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: #f2d49a; font-size: .85rem; }
+.offering-set-panel select { min-height: 44px; max-width: 100%; }
+.offering-set-preview { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.offering-set-preview span { border: 1px solid #ac8d5144; background: #211a17; border-radius: 6px; padding: 7px; color: #e6d2ab; font-size: .72rem; }
+.offering-set-stock { color: #d8c197; font-size: .78rem; line-height: 1.7; }
+.offering-set-panel > button { max-width: 100%; min-height: 44px; white-space: normal; }
+#btnPilgrimSuppliesReady { width: 100%; min-height: 44px; margin: 8px 0 16px; white-space: normal; }
+.feast-modal h3 { margin: 0 0 10px; color: #f6d890; }
+.feast-modal h4 { font-size: .9rem; margin: 18px 0 10px; color: #ead9b4; }
+.feast-toolbar, .feast-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 16px 0; }
+.feast-toolbar label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .85rem; }
+.feast-toolbar select { max-width: 100%; min-height: 44px; }
+.feast-table-preview { border: 2px solid #9c6234; border-radius: 12px 12px 5px 5px; padding: 14px 12px 0; background: repeating-linear-gradient(3deg, #663725 0px, #663725 3px, #58301f 4px, #6e3e28 8px); box-shadow: inset 0 2px 6px #e5b26355, 0 8px 18px #0005; }
+.feast-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.feast-slot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 110px; border: 1px solid #b09a6b; border-radius: 8px; background: radial-gradient(ellipse, #f2e6cb 0%, #ddc49c 63%, #ad865a 67%, #eadab3 71%); color: #462b20; padding: 10px 4px; font: inherit; font-size: .75rem; cursor: pointer; overflow-wrap: anywhere; }
+.feast-slot.active { outline: 3px solid #ffde82; outline-offset: 2px; }
+.feast-slot-number { font-size: .62rem; color: #6c4e3a; }
+.feast-slot-icon { font-size: 1.65rem; line-height: 1.3; }
+.feast-table-apron { color: #e2b765; text-align: center; letter-spacing: .18em; font-size: .78rem; padding: 17px 0; margin-top: 12px; border-top: 1px solid #a47843; }
+.feast-table-preview[data-style="brocade"] { background: repeating-linear-gradient(45deg, #941b2b 0, #941b2b 12px, #a82434 12px, #a82434 13px); border-color: #e4b561; }
+.feast-table-preview[data-style="stone"] { background: linear-gradient(125deg, #78867d, #a9b2a6 46%, #6c7a72); border-color: #c3cbbd; }
+.feast-table-preview[data-style="stone"] .feast-table-apron { color: #253c30; border-color: #d0d5c5; }
+.feast-table-status { color: #ead6ac; line-height: 1.6; font-size: .85rem; }
+.feast-picker-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.feast-dish-picker { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 105px; min-width: 0; padding: 12px 6px; background: #ffffff08; border: 1px solid #b4995b55; border-radius: 8px; color: #f3e6c5; font: inherit; font-size: .78rem; cursor: pointer; }
+.feast-picker-icon { font-size: 1.5rem; }
+.feast-picker-icon[data-item="goldIngot"], .feast-picker-icon[data-item="silverIngot"], .feast-slot-icon[data-item="goldIngot"], .feast-slot-icon[data-item="silverIngot"] { font-size: 0; display: grid; place-items: center; height: 30px; }
+.feast-picker-icon[data-item="goldIngot"]::after, .feast-picker-icon[data-item="silverIngot"]::after, .feast-slot-icon[data-item="goldIngot"]::after, .feast-slot-icon[data-item="silverIngot"]::after { content: ""; display: block; width: 42px; height: 27px; background: radial-gradient(ellipse at 50% 30%, #fff2ad 0 15%, #e5b941 38%, transparent 40%), linear-gradient(160deg, #fff2ad, #f4c64e 40%, #a96b15 80%); clip-path: polygon(0 5%, 22% 30%, 38% 6%, 62% 6%, 78% 30%, 100% 5%, 87% 80%, 65% 100%, 35% 100%, 13% 80%); }
+.feast-picker-icon[data-item="silverIngot"]::after, .feast-slot-icon[data-item="silverIngot"]::after { background: radial-gradient(ellipse at 50% 30%, #ffffff 0 15%, #c3d8e4 38%, transparent 40%), linear-gradient(160deg, #f7fcff, #b9cedc 40%, #5e7c8d 80%); }
+.restock-summary > summary { cursor: pointer; color: #f5d38f; min-height: 44px; padding: 10px 0; }
+.feast-stock { display: block; color: #b7baa9; font-size: .65rem; }
+.feast-treasure { background: linear-gradient(145deg, #6b4d232e, #d6b56015); border-color: #c19b56; }
+.feast-dish-picker:disabled { opacity: .43; cursor: default; }
+.feast-actions .btn-dock-action { flex: 1 1 220px; white-space: normal; }
+#feastMessage, #bagMessage { color: #f2cf81; line-height: 1.7; font-size: .85rem; }
+.shop-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.shop-filters [aria-pressed="true"] { color: #ffdf8c; border-color: #d5ac57; background: #a8792d33; }
+.shop-catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.shop-product { min-width: 0; padding: 14px; border-radius: 10px; border: 1px solid #b5915044; background: linear-gradient(145deg, #50301d44, #1e171d); }
+.shop-product-art { height: 70px; display: grid; place-items: center; font-size: 2.6rem; background: radial-gradient(ellipse at bottom, #d6aa4c22, transparent 70%); margin-bottom: 10px; }
+.shop-product h5 { font-size: .95rem; color: #f2dbab; margin: 0 0 8px; }
+.shop-product p { color: #c0b6a4; font-size: .75rem; line-height: 1.6; margin: 0 0 8px; }
+.shop-product small { font-size: .7rem; color: #e5bd71; }
+.shop-product-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.shop-product-controls input { width: 60px; min-height: 44px; border-radius: 6px; padding: 6px; background: #171421; border: 1px solid #a98c56; color: #fff0d3; font: inherit; }
+.shop-product-controls button { flex: 1; min-height: 44px; font-size: .75rem; white-space: normal; }
+.shop-basket { background: #b48a3820; border: 1px solid #c7a26566; border-radius: 10px; padding: 14px; margin: 18px 0; }
+.shop-basket > button { margin: 5px 8px 5px 0; white-space: normal; }
+.shop-product-art[data-item="goldIngot"], .shop-product-art[data-item="silverIngot"] { font-size: 0; }
+.shop-product-art[data-item="goldIngot"]::after, .shop-product-art[data-item="silverIngot"]::after { content: ""; width: 82px; height: 44px; background: radial-gradient(ellipse at 50% 30%, #fff2ad 0 15%, #e5b941 38%, transparent 40%), linear-gradient(160deg, #fff2ad, #f4c64e 40%, #a96b15 80%); clip-path: polygon(0 5%, 22% 30%, 38% 6%, 62% 6%, 78% 30%, 100% 5%, 87% 80%, 65% 100%, 35% 100%, 13% 80%); }
+.shop-product-art[data-item="silverIngot"]::after { background: radial-gradient(ellipse at 50% 30%, #ffffff 0 15%, #c3d8e4 38%, transparent 40%), linear-gradient(160deg, #f7fcff, #b9cedc 40%, #5e7c8d 80%); }
+@media (max-width: 540px) {
+  .feast-modal { padding: 22px 14px 18px; }
+  .feast-slots { gap: 5px; }
+  .feast-slot { font-size: .64rem; min-height: 105px; padding: 9px 2px; }
+  .feast-slot-number { font-size: .55rem; }
+  .feast-table-preview { padding: 12px 7px 0; }
+  .feast-picker-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .feast-actions > button { width: 100%; min-height: 44px; }
+  .shop-product { padding: 10px; }
+  .shop-product-controls input { width: 100%; }
+}
