@@ -46,7 +46,7 @@ module.exports = {
     check("同一則祈願只出現一次", (await feed(A)).filter(t => t.includes("去重測試")).length === 1);
 
     await A.bringToFront();
-    await A.click("#liveWallModalClose", { timeout: 5000 });
+    await A.click("#liveWallModalClose");   // 三個 3D 頁面同時跑時點擊要等畫面穩定，5 秒不夠
     check("面板可關閉", !(await A.$eval("#liveWallModal", m => m.classList.contains("open"))));
     await A.click("#btnLightIncense");
     await A.waitForTimeout(600);
