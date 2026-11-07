@@ -97,4 +97,5 @@ function recordEmaToHistory(data) {
   } catch (e) {}
   stored.unshift(data);
   localStorage.setItem("temple_ema_plaques", JSON.stringify(stored.slice(0, 30)));
+  window.temple3d?.refreshWishTree?.();
 }

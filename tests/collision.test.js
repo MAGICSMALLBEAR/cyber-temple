@@ -60,7 +60,8 @@ module.exports = {
       Object.keys(a.keys).forEach(k => { a.keys[k] = false; });
       a.keys.right = true;
       let maxY = 0, maxDrawnY = 0;
-      for (let i = 0; i < 40; i++) {
+      // 低幀率時每幀步長有上限，走同樣時間的距離會變短；以走到橋尾為準，只用上限防止卡死
+      for (let i = 0; i < 300 && a.position.x <= 15; i++) {
         await new Promise(r => setTimeout(r, 60));
         maxY = Math.max(maxY, a.position.y);
         maxDrawnY = Math.max(maxDrawnY, a.playerGroup.position.y);   // 畫面上實際畫出來的高度

@@ -58,6 +58,10 @@
       }
       // 初始化前出錯（例如某支程式載入失敗）就停在錯誤提示，不讓人對著載入畫面空等
       window.addEventListener("error", fail);
+      // 腳本下載失敗的錯誤不會冒泡，要在捕捉階段攔；否則得等整頁 load，而 load 又要等外部字型
+      window.addEventListener("error", function (e) {
+        if (e.target && e.target.tagName === "SCRIPT") fail();
+      }, true);
       // 某支程式沒下載成功時不會有執行錯誤，初始化也不會跑：全部資源載完 3 秒後仍未完成就視為失敗
       window.addEventListener("load", function () {
         setTimeout(function () { if (!finished) fail(); }, 3000);
@@ -2282,6 +2286,7 @@
   <script src="scene/service.js"></script>
   <script src="scene/interior.js"></script>
   <script src="scene/market.js"></script>
+  <script src="scene/temple-plaza.js"></script>
   <script src="scene/xr.js"></script>
   <script src="scene/collision.js"></script>
   <script src="beads.js"></script>
@@ -2298,6 +2303,7 @@
   <script src="app/hall.js"></script>
   <script src="app/bag.js"></script>
   <script src="app/market.js"></script>
+  <script src="app/plaza.js"></script>
   <script src="app/ema.js"></script>
   <script src="app/passport.js"></script>
   <script src="app/achievements.js"></script>

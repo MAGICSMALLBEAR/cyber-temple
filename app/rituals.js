@@ -255,6 +255,7 @@ function submitLanternAction() {
   // 名冊只留 30 筆，累計點燈數另外記
   const litTotal = parseInt(localStorage.getItem("temple_lanterns_lit") || String(lHist.length - 1), 10) + 1;
   localStorage.setItem("temple_lanterns_lit", litTotal);
+  temple3d?.refreshLampWall?.();
 
   window.templeAudio.playBell(560);
   if (temple3d) {

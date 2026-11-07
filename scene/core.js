@@ -169,6 +169,7 @@ class Temple3DScene {
     this.buildHallInterior();
     this.buildNightMarket();
     this.buildTempleVisuals?.();   // 材質、天空、大殿殿身與天花
+    this.buildTemplePlaza?.();     // 美食街、祈願樹、淨泉、神位、光明燈牆
     this.setupSeasonalScene();
     this.setupDustParticles();
     this.scene.add(this.weatherGroup);
@@ -590,7 +591,9 @@ class Temple3DScene {
 
     if (intersects.length > 0) {
       const type = intersects[0].object.userData?.type;
-      if (type === "ringStall" || type === "puppetStage") {
+      if (type === "plazaSpot") {
+        window.templePlaza?.use(intersects[0].object.userData.spotId);
+      } else if (type === "ringStall" || type === "puppetStage") {
         window.nightMarket?.open(type === "ringStall" ? "ring" : "puppet");
       } else if (["prayerMat", "donationBox", "chiamCabinet"].includes(type)) {
         this.interactWithHallObject(intersects[0].object);
@@ -995,6 +998,7 @@ class Temple3DScene {
     this.renderer.render(this.scene, this.camera);
     window.templeQuality?.recordFrame(now);
     this.updatePuppetStage(time);
+    this.updateTemplePlaza?.(time);
   }
 }
 

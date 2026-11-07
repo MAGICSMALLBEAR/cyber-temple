@@ -9,7 +9,13 @@ class AvatarCompanionsMixin {
       { name: "虔誠香客小美", color: 0xc24b2b, pos: [0, 0, 9.6], action: "bow" }, // 天公爐前
       { name: "池畔許願小哥", color: 0x2e7d32, pos: [11.2, 0, 13.5], action: "pray" }, // 東進蓮花池拱橋前
       { name: "長廊寫願學長", color: 0x6a1b9a, pos: [-12.2, 0, 8.5], action: "meditate" }, // 西進祈願長廊
-      { name: "山門迎客道長", color: 0xd4a034, pos: [-2.2, 0, 36.5], action: "bow" } // 巍峨山門前
+      { name: "山門迎客道長", color: 0xd4a034, pos: [-2.2, 0, 36.5], action: "bow" }, // 巍峨山門前
+      { name: "樹下祈願阿嬤", color: 0x7a4a8a, pos: [-5.6, 0, 19.6], action: "pray" }, // 祈願樹旁
+      { name: "泉邊靜心少年", color: 0x2f7a8a, pos: [3.6, 0, 18.6], action: "meditate" }, // 蓮心淨泉旁
+      { name: "賣地瓜球的阿姨", color: 0xb8622c, pos: [-15.5, 0, 33.6], action: "bow" }, // 美食街攤後
+      { name: "茶攤老闆", color: 0x5a4a30, pos: [12.5, 0, 33.6], action: "bow" }, // 美食街攤後
+      { name: "逛夜市的小情侶", color: 0xc24b7a, pos: [-11, 0, 37.2], action: "pray" }, // 美食街前
+      { name: "來還願的學生", color: 0x3a5a9a, pos: [-8.2, 0, 9.4], action: "bow" } // 神位小龕前
     ];
 
     companionPresets.forEach(p => {

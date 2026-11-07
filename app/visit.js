@@ -48,6 +48,7 @@ const templeVisit = {
         [p.x, p.z], [p.x, p.z + (isMat ? 0 : 0.85)], isMat ? 0.8 : 1.1,
         isMat ? scene.avatar?.currentAction === "kneelSit" ? "起身" : "跪坐稟告" : type === "donationBox" ? "隨喜奉獻" : "重閱籤詩", () => scene.interactWithHallObject(obj), false));
     });
+    (scene.plazaSpots || []).forEach(s => list.push(place(s.id, s.title, s.icon, s.center, s.spot, s.radius, s.label, () => window.templePlaza?.use(s.id), s.map)));
     if (scene.palanquinGroup) {
       const p = scene.palanquinGroup.position;
       list.push(place("palanquin", "神轎", "🏮", [p.x, p.z], [p.x, p.z + 2], 2.8, "鑽轎腳祈福", () => scene.kneelUnderPalanquin(), false));
