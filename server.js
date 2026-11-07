@@ -49,6 +49,7 @@ const MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
+  '.glb': 'model/gltf-binary',
   '.ico': 'image/x-icon'
 };
 

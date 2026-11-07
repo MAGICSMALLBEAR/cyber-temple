@@ -163,6 +163,7 @@ class TempleDeitiesMixin {
     this.deityModel = group; this.deityStatue = body; this.deityHead = head;
     this.deityAccessories = group.children.filter(o => o !== body && o !== head);
     this.deityHalo.material.color.setHex(group.userData.halo); this.throneGroup.add(group);
+    this.syncDeityModel?.();
   }
 }
 installTempleMixin(TempleDeitiesMixin);

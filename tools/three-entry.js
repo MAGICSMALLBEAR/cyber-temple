@@ -5,6 +5,7 @@
 // 所以在這裡打包，並補上與 r128 時代一致的外觀設定，其餘程式不用改。
 import * as THREE_NS from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 // 1) 色彩：r128 沒有色彩管理，十六進位顏色直接當線性值使用；關掉以維持原本的配色
 THREE_NS.ColorManagement.enabled = false;
@@ -77,5 +78,6 @@ window.THREE = Object.freeze({
   PointLight,
   SpotLight,
   OrbitControls,
+  GLTFLoader,
   LEGACY_LIGHT_SCALE
 });

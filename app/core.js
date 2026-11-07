@@ -116,6 +116,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // 6. 收起載入畫面（index.html 最前面的 templeLoader）
   if (window.templeLoader) window.templeLoader.done();
+
+  // 7. 開場後才在背景載入 3D 模型（models/manifest.json）
+  temple3d?.loadTempleModels?.();
 });
 
 function bindEvents() {

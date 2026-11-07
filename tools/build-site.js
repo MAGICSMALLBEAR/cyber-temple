@@ -22,4 +22,11 @@ for (const f of files) {
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.copyFileSync(src, dest);
 }
-console.log(`已整理 ${files.length} 個檔案到 ${out}`);
+// 模型檔不放進預存清單（太大），用到時才快取，但部署時要一起帶上
+const modelDir = path.join(ROOT, "models");
+const models = fs.existsSync(modelDir) ? fs.readdirSync(modelDir).filter(f => f.endsWith(".glb")) : [];
+for (const f of models) {
+  fs.mkdirSync(path.join(out, "models"), { recursive: true });
+  fs.copyFileSync(path.join(modelDir, f), path.join(out, "models", f));
+}
+console.log(`已整理 ${files.length + models.length} 個檔案到 ${out}`);
