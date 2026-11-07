@@ -82,20 +82,29 @@ class TemplePlazaMixin {
       const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: 0.5, ...extra }));
       mesh.position.set(x, yy, z); mesh.userData.noCollision = true; g.add(mesh); return mesh;
     };
+    // 同款小物件用實例化，一次繪製
+    const many = (geo, material, points) => {
+      const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, ...material }), points.length), at = new THREE.Matrix4(), color = new THREE.Color();
+      points.forEach(([x, yy, z, hex], i) => { at.makeTranslation(x, yy, z); mesh.setMatrixAt(i, at); mesh.setColorAt(i, color.setHex(hex)); });
+      mesh.userData.noCollision = true; g.add(mesh);
+    };
     if (kind === "balls") {
       put(new THREE.CylinderGeometry(0.42, 0.34, 0.14, 16), 0x3a3a3e, -0.3, y + 0.08, 0.08, { metalness: 0.5 });
-      for (let i = 0; i < 18; i++) put(new THREE.SphereGeometry(0.07, 8, 6), i % 2 ? 0xe0a23c : 0xd98a26, -0.3 + Math.cos(i * 2.4) * (0.08 + i * 0.016), y + 0.18 + (i % 3) * 0.04, 0.08 + Math.sin(i * 2.4) * (0.08 + i * 0.016));
+      many(new THREE.SphereGeometry(0.07, 8, 6), {}, Array.from({ length: 18 }, (_, i) => [-0.3 + Math.cos(i * 2.4) * (0.08 + i * 0.016), y + 0.18 + (i % 3) * 0.04, 0.08 + Math.sin(i * 2.4) * (0.08 + i * 0.016), i % 2 ? 0xe0a23c : 0xd98a26]));
     } else if (kind === "sausage") {
       put(new THREE.BoxGeometry(1.5, 0.08, 0.5), 0x2a2a2c, 0, y + 0.05, 0.1, { metalness: 0.6 });
       for (let i = 0; i < 9; i++) { const s = put(new THREE.CapsuleGeometry(0.05, 0.3, 4, 8), 0xa83a24, -0.6 + i * 0.15, y + 0.13, 0.1); s.rotation.x = Math.PI / 2; }
     } else if (kind === "candy") {
       const rack = put(new THREE.CylinderGeometry(0.14, 0.14, 0.9, 10), 0xc9a06a, 0, y + 0.45, 0.1);
       rack.userData.noCollision = true;
+      const sticks = [], fruit = [];
       for (let i = 0; i < 12; i++) {
         const a = i / 12 * Math.PI * 2, r = 0.16;
-        put(new THREE.CylinderGeometry(0.008, 0.008, 0.46, 5), 0xe0d0b0, Math.cos(a) * r, y + 0.72, 0.1 + Math.sin(a) * r);
-        for (let k = 0; k < 3; k++) put(new THREE.SphereGeometry(0.05, 8, 6), 0xd42a2a, Math.cos(a) * (r + 0.02), y + 0.66 + k * 0.1, 0.1 + Math.sin(a) * (r + 0.02), { roughness: 0.15 });
+        sticks.push([Math.cos(a) * r, y + 0.72, 0.1 + Math.sin(a) * r, 0xe0d0b0]);
+        for (let k = 0; k < 3; k++) fruit.push([Math.cos(a) * (r + 0.02), y + 0.66 + k * 0.1, 0.1 + Math.sin(a) * (r + 0.02), 0xd42a2a]);
       }
+      many(new THREE.CylinderGeometry(0.008, 0.008, 0.46, 5), {}, sticks);
+      many(new THREE.SphereGeometry(0.05, 8, 6), { roughness: 0.15 }, fruit);
     } else if (kind === "jelly") {
       [-0.5, 0.5].forEach(x => {
         put(new THREE.CylinderGeometry(0.34, 0.28, 0.24, 16), 0xdfeaf0, x, y + 0.12, 0.1);
@@ -203,15 +212,17 @@ class TemplePlazaMixin {
     const petal = new THREE.SphereGeometry(0.2, 10, 8);
     petal.scale(0.62, 1.2, 0.3);
     [[12, 0.62, 1.34, 1.15, 0xeeb4c6], [10, 0.44, 1.42, 0.8, 0xf4cdd8], [8, 0.26, 1.5, 0.42, 0xfbe4ea]].forEach(([count, radius, y, tilt, color]) => {
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+      const petals = new THREE.InstancedMesh(petal, new THREE.MeshStandardMaterial({ color, roughness: 0.5 }), count), p = new THREE.Object3D();
       for (let i = 0; i < count; i++) {
-        const a = i / count * Math.PI * 2, p = new THREE.Mesh(petal, mat);
+        const a = i / count * Math.PI * 2;
         p.position.set(Math.cos(a) * radius, y, Math.sin(a) * radius);
         p.rotation.set(0, -a + Math.PI / 2, 0);
         p.rotateX(tilt);
-        p.userData.noCollision = true;
-        g.add(p);
+        p.updateMatrix();
+        petals.setMatrixAt(i, p.matrix);
       }
+      petals.userData.noCollision = true;
+      g.add(petals);
     });
     const bud = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xa86a10, emissiveIntensity: 0.5, roughness: 0.4 }));
     bud.position.y = 1.62; bud.userData.noCollision = true;

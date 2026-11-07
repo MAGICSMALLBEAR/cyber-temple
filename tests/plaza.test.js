@@ -53,6 +53,17 @@ module.exports = {
     scene.refreshWishTree();
     check("祈願資料損壞時不出錯", scene.wishTreeGold === 0, String(scene.wishTreeGold));
     check("地點表每個 id 不重複", new Set(c.TEMPLE_PLAZA_SPOTS?.map?.(s => s.id) ?? scene.plazaSpots.map(s => s.id)).size === scene.plazaSpots.length);
+    const roofMat = () => [].concat(scene.scene.getObjectByName("hallLowerRoof").material)[0];
+    const sideWall = scene.scene.getObjectByName("hallSideWall");
+    scene.applyVisualQuality({ label: "低", softShadows: false });
+    check("低畫質改用便宜材質", roofMat().isMeshLambertMaterial && scene.visualLite === true);
+    check("低畫質保留多材質面的陣列", Array.isArray(sideWall.material) && sideWall.material.every(m => m.isMeshLambertMaterial));
+    check("低畫質保留貼圖", !!roofMat().map);
+    check("低畫質關閉各向異性濾鏡", scene.visualTextures.every(t => t.anisotropy === 1));
+    scene.applyVisualQuality({ label: "高", softShadows: true });
+    check("切回高畫質還原物理材質", roofMat().isMeshStandardMaterial && sideWall.material.every(m => m.isMeshStandardMaterial));
+    check("高畫質恢復濾鏡", scene.visualTextures.every(t => t.anisotropy === 8));
+    check("遠方地面不計算燈光", scene.distantLand.material.isMeshBasicMaterial);
     note("只建立幾何與資料，未建立渲染器或瀏覽器。");
   }
 };

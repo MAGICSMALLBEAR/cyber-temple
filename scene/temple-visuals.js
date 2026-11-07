@@ -7,10 +7,10 @@ const HALL_CENTER_Z = 1.25;           // 大殿中心（後牆 -3.4、前牆 5.9
 const HALL_WALL_HEIGHT = 8;
 
 const TEMPLE_SKY_MOODS = {
-  dawn:     { stops: ["#3b3f78", "#c9758f", "#ffc79a"], sun: [0.72, 0.44, "#ffe2b8"], cloud: "#ffd2c0", hill: "#4a3550", fog: 0xd9a08f, density: 0.006, hemi: [0xffd8c8, 0x6b4a40, 0.24], ambient: 0x916d7e, ambientLevel: 0.62 },
-  noon:     { stops: ["#2f7fd0", "#7fc0ee", "#e9f1f0"], sun: [0.3, 0.16, "#fffbe8"], cloud: "#ffffff", hill: "#5d7f78", fog: 0xcfe2ea, density: 0.005, hemi: [0xffffff, 0x8a7050, 0.3], ambient: 0x8a7060, ambientLevel: 0.6 },
-  dusk:     { stops: ["#2b2360", "#a83a5e", "#ff9a4a"], sun: [0.34, 0.46, "#ffe6a8"], cloud: "#ff8f70", hill: "#3a2036", fog: 0xb4604f, density: 0.007, hemi: [0xffc09a, 0x5a3040, 0.2], ambient: 0x752e25, ambientLevel: 0.7 },
-  midnight: { stops: ["#050814", "#0e1a38", "#26304f"], sun: [0.62, 0.2, "#dfe8ff"], cloud: "#2a3558", hill: "#0c1120", fog: 0x0e1424, density: 0.012, hemi: [0x4a5a88, 0x1a1a22, 0.14], ambient: 0x1c2438, ambientLevel: 1.1 }
+  dawn:     { stops: ["#3b3f78", "#c9758f", "#ffc79a"], sun: [0.72, 0.44, "#ffe2b8"], cloud: "#ffd2c0", hill: "#4a3550", fog: 0xd9a08f, density: 0.006, hemi: [0xffd8c8, 0x6b4a40, 0.24], ambient: 0x916d7e, ambientLevel: 0.62, land: 0x6a5048 },
+  noon:     { stops: ["#2f7fd0", "#7fc0ee", "#e9f1f0"], sun: [0.3, 0.16, "#fffbe8"], cloud: "#ffffff", hill: "#5d7f78", fog: 0xcfe2ea, density: 0.005, hemi: [0xffffff, 0x8a7050, 0.3], ambient: 0x8a7060, ambientLevel: 0.6, land: 0x66705a },
+  dusk:     { stops: ["#2b2360", "#a83a5e", "#ff9a4a"], sun: [0.34, 0.46, "#ffe6a8"], cloud: "#ff8f70", hill: "#3a2036", fog: 0xb4604f, density: 0.007, hemi: [0xffc09a, 0x5a3040, 0.2], ambient: 0x752e25, ambientLevel: 0.7, land: 0x4a3032 },
+  midnight: { stops: ["#050814", "#0e1a38", "#26304f"], sun: [0.62, 0.2, "#dfe8ff"], cloud: "#2a3558", hill: "#0c1120", fog: 0x0e1424, density: 0.012, hemi: [0x4a5a88, 0x1a1a22, 0.14], ambient: 0x1c2438, ambientLevel: 1.1, land: 0x0c1018 }
 };
 
 // 固定種子，材質每次長得一樣，截圖比對才有意義
@@ -37,6 +37,7 @@ class TempleVisualsMixin {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(repeatX, repeatY);
     tex.anisotropy = 8;
+    (this.visualTextures ||= []).push(tex);
     return tex;
   }
 
@@ -44,6 +45,7 @@ class TempleVisualsMixin {
     const copy = tex.clone();
     copy.repeat.set(repeatX, repeatY);
     copy.needsUpdate = true;
+    this.visualTextures.push(copy);
     return copy;
   }
 
@@ -153,6 +155,49 @@ class TempleVisualsMixin {
     dress(s.path, this.repeatedTexture(t.slate, 3, 20), 0xd9cfc4, 0.55, 0.05);
   }
 
+  // 大面積靜態表面在低畫質改用 Lambert，省掉物理材質的逐像素運算。
+  // 只處理這批不會被其他程式改動的物件；宮燈、神像等動態材質不動。
+  liteSwapMeshes() {
+    if (this.liteMeshes) return this.liteMeshes;
+    const s = this.templeSurfaces || {}, groups = new Set(["mainHallShell", "hallCeiling", "foodStall", "wishTree", "lotusSpring", "tabletShrine", "lampWall"]);
+    const surfaces = new Set([s.hallFloor, s.plazaInner, s.plazaOuter, s.path, s.backWall?.material, s.screens?.[0]?.material].filter(Boolean));
+    const list = [];
+    this.scene.traverse(obj => {
+      if (!obj.isMesh) return;
+      let inGroup = false;
+      for (let a = obj; a; a = a.parent) if (groups.has(a.name)) { inGroup = true; break; }
+      const mats = [].concat(obj.material);
+      if ((inGroup && mats.some(m => m.isMeshStandardMaterial)) || mats.some(m => surfaces.has(m))) list.push(obj);
+    });
+    return (this.liteMeshes = list);
+  }
+
+  liteMaterial(mat) {
+    if (!mat.isMeshStandardMaterial) return mat;
+    this.liteCache ||= new Map();
+    if (!this.liteCache.has(mat)) {
+      this.liteCache.set(mat, new THREE.MeshLambertMaterial({
+        map: mat.map, color: mat.color, emissive: mat.emissive, emissiveIntensity: mat.emissiveIntensity,
+        side: mat.side, transparent: mat.transparent, opacity: mat.opacity, flatShading: mat.flatShading
+      }));
+    }
+    return this.liteCache.get(mat);
+  }
+
+  applyVisualQuality(preset) {
+    const lite = preset.label === "低", anisotropy = lite ? 1 : preset.softShadows ? 8 : 4;
+    (this.visualTextures || []).forEach(tex => {
+      if (tex.anisotropy === anisotropy) return;
+      tex.anisotropy = anisotropy; tex.needsUpdate = true;
+    });
+    this.liteSwapMeshes().forEach(mesh => {
+      mesh.userData.fullMaterial ||= mesh.material;
+      const full = mesh.userData.fullMaterial;
+      mesh.material = !lite ? full : Array.isArray(full) ? full.map(m => this.liteMaterial(m)) : this.liteMaterial(full);
+    });
+    this.visualLite = lite;
+  }
+
   // 天空穹頂與遠方地面
   buildSkyAndLand() {
     this.skyTextures = {};
@@ -166,12 +211,13 @@ class TempleVisualsMixin {
     this.skyDome.userData.noCollision = true;
     this.scene.add(this.skyDome);
 
-    const land = new THREE.Mesh(new THREE.CircleGeometry(170, 48), new THREE.MeshStandardMaterial({ color: 0x3a4032, roughness: 1 }));
+    const land = new THREE.Mesh(new THREE.CircleGeometry(170, 48), new THREE.MeshBasicMaterial({ color: 0x3a4032 }));   // 鋪滿畫面，不計算燈光
     land.name = "distantLand";
     land.rotation.x = -Math.PI / 2;
     land.position.set(0, -0.08, 15);
     land.userData.noCollision = true;
     this.scene.add(land);
+    this.distantLand = land;
 
     this.skyLight = new THREE.HemisphereLight(0xffffff, 0x665544, 0.6);
     this.scene.add(this.skyLight);
@@ -231,6 +277,7 @@ class TempleVisualsMixin {
     this.skyLight.color.setHex(mood.hemi[0]);
     this.skyLight.groundColor.setHex(mood.hemi[1]);
     this.skyLight.intensity = mood.hemi[2];
+    this.distantLand.material.color.setHex(mood.land);
     if (this.ambientLight) { this.ambientLight.color.setHex(mood.ambient); this.ambientLight.intensity = mood.ambientLevel; }
   }
 
@@ -467,12 +514,12 @@ class TempleVisualsMixin {
       pts.push([x, ridgeTop + 0.55 + Math.sin(t * Math.PI * 3) * 0.32 + t * 0.3, Math.cos(t * Math.PI * 3) * 0.22]);
     }
     group.add(this.tube(pts, 0.15, body, 10));
-    const finGeo = new THREE.ConeGeometry(0.075, 0.28, 5);
+    const fins = new THREE.InstancedMesh(new THREE.ConeGeometry(0.075, 0.28, 5), gold, 12), finAt = new THREE.Matrix4();
     for (let i = 1; i < 13; i += 1) {
-      const fin = new THREE.Mesh(finGeo, gold);
-      fin.position.set(pts[i][0], pts[i][1] + 0.2, pts[i][2]);
-      group.add(fin);
+      finAt.makeTranslation(pts[i][0], pts[i][1] + 0.2, pts[i][2]);
+      fins.setMatrixAt(i - 1, finAt);
     }
+    group.add(fins);
     const headAt = pts[pts.length - 1];
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 10), body);
     head.scale.set(1.5, 0.95, 0.95);

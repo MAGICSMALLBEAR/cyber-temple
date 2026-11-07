@@ -272,6 +272,7 @@ class TempleAtmosphereMixin {
         (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => { m.needsUpdate = true; });
       });
     }
+    this.applyVisualQuality?.(preset);
     this.applyParticleBudget();
     this.applyLightBudget();
   }
