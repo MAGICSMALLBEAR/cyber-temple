@@ -63,6 +63,7 @@ class TempleModelMixin {
       const at = new THREE.Vector3();
       target.getWorldPosition(at);
       holder.position.set(at.x, 0, at.z);
+      holder.rotation.y = target.rotation.y;   // 沿用原物件朝向
       target.visible = false;   // 點選感應區不受影響，互動照舊
     } else {
       holder.position.set(...entry.position);

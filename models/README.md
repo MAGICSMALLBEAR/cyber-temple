@@ -32,7 +32,7 @@
 
 ## 可以取代的物件
 
-`heavenCenser` 天公爐、`censer` 大殿香爐、`jossFurnace` 八角金爐、`mountainGate` 山門、`wishingPond` 蓮花池、`wishTree` 祈願樹、`lotusSpring` 蓮心淨泉、`chiamBucket` 籤筒、`muyu` 木魚、`wenchangPavilion` 文昌閣、`yuelaoPavilion` 月老閣、`caishenCave` 財神殿、`taisuiShrine` 太歲殿
+`heavenCenser` 天公爐、`stoneLionWest` 西側石獅、`stoneLionEast` 東側石獅、`censer` 大殿香爐、`jossFurnace` 八角金爐、`mountainGate` 山門、`wishingPond` 蓮花池、`wishTree` 祈願樹、`lotusSpring` 蓮心淨泉、`chiamBucket` 籤筒、`muyu` 木魚、`wenchangPavilion` 文昌閣、`yuelaoPavilion` 月老閣、`caishenCave` 財神殿、`taisuiShrine` 太歲殿
 
 神尊代號：`mazu` 媽祖、`wenchang` 文昌、`caishen` 財神、`yuelao` 月老、`guanyin` 觀音、`guangong` 關公、`tudigong` 土地公、`guaiguai` 乖乖
 
@@ -52,4 +52,4 @@
 
 | 檔案 | 來源 | 授權 |
 | :--- | :--- | :--- |
-| （尚無） | | |
+| `sample-censer.glb`、`sample-lion.glb` | `tools/make-sample-models.mjs` 程式產生 | 本專案原創；試驗用，正式美術完成後替換 |

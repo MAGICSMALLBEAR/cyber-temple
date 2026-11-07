@@ -50,8 +50,10 @@ module.exports = {
     const fresh = await p.evaluate(() => localStorage.getItem("temple_merit"));
 
     dialogAction = "dismiss";
+    lastDialog = "";
     await p.setInputFiles("#saveImportInput", file);
-    await p.waitForTimeout(800);
+    // 電腦忙碌時讀檔較慢，等對話框真的出現，不用固定秒數
+    for (let i = 0; i < 100 && !lastDialog; i++) await p.waitForTimeout(100);
     check("確認視窗顯示存檔功德", lastDialog.includes(parseInt(meritBefore, 10).toLocaleString()));
     check("取消後進度不變", (await p.evaluate(() => localStorage.getItem("temple_merit"))) === fresh);
 

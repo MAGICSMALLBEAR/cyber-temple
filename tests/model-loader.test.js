@@ -34,7 +34,9 @@ module.exports = {
     const browser = await launch();
 
     // --- 空清單：什麼都不變 ---
-    const empty = await (await newContext(browser)).newPage();
+    const emptyCtx = await newContext(browser);
+    await emptyCtx.route("**/models/manifest.json", route => route.fulfill({ contentType: "application/json", body: '{"models":[]}' }));
+    const empty = await emptyCtx.newPage();
     const emptyErrs = [];
     empty.on("pageerror", e => emptyErrs.push(e.message));
     await empty.goto(base);

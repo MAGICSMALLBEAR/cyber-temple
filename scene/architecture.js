@@ -261,6 +261,7 @@ class TempleArchitectureMixin {
 
     [-5.5, 5.5].forEach((x, idx) => {
       const lionGroup = new THREE.Group();
+      lionGroup.name = idx === 0 ? "stoneLionWest" : "stoneLionEast";
       lionGroup.position.set(x, 0, 34.0);
       lionGroup.rotation.y = x > 0 ? -Math.PI / 12 : Math.PI / 12;
 
