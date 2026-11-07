@@ -5,24 +5,41 @@
 const AVATAR_SKIN_TONES = { fair: "#ffe3cc", light: "#f5c9a3", tan: "#d9a47c", deep: "#a8724f" };
 const AVATAR_HAIR_COLORS = { black: "#1a1110", brown: "#5a3520", chestnut: "#8a4b2a", silver: "#c9c9c9", gold: "#d9a53a" };
 
+const AVATAR_FUR_COLORS = { cat: "#e8a35a", rabbit: "#f4efe8", bear: "#9a6a42", dragon: "#6fb58a" };
+const AVATAR_PANTS_COLORS = { black: "#221111", navy: "#24365c", brown: "#5a3a24", cream: "#d9c9a8", red: "#8a2a22" };
+const AVATAR_SHOE_COLORS = { black: "#1c1614", brown: "#6b4226", white: "#e8e2d6", red: "#a82a24", gold: "#c89a34" };
+// 體型：整體比例（寬、高、深）與頭部比例
+const AVATAR_BODY_SHAPES = {
+  standard: { scale: [1, 1, 1], head: 1 },
+  child: { scale: [0.8, 0.78, 0.8], head: 1.16 },
+  tall: { scale: [0.92, 1.16, 0.92], head: 0.94 },
+  plump: { scale: [1.28, 0.96, 1.28], head: 0.92 }
+};
+
 const AVATAR_OPTIONS = {
+  character: { label: "角色版本", choices: { human: "人類", cat: "貓貓", rabbit: "玉兔", bear: "小熊", dragon: "小龍" } },
+  body: { label: "體型", choices: { standard: "標準", child: "小童", tall: "高挑", plump: "圓潤" } },
+  pants: { label: "褲裝", choices: { long: "長褲", shorts: "短褲", wide: "寬褲", skirt: "長裙" } },
+  pantsColor: { label: "褲裝顏色", choices: { black: "墨黑", navy: "深藍", brown: "棕", cream: "米白", red: "暗紅" } },
+  shoes: { label: "鞋子", choices: { cloth: "布鞋", boots: "靴子", sandals: "涼鞋", bare: "赤腳" } },
+  shoesColor: { label: "鞋子顏色", choices: { black: "黑", brown: "棕", white: "白", red: "紅", gold: "金" } },
   skin: { label: "膚色", choices: { fair: "白皙", light: "自然", tan: "小麥", deep: "古銅" } },
   eyes: { label: "眼睛", choices: { round: "圓眼", smile: "笑眼", big: "大眼", closed: "閉目", dot: "豆豆眼", star: "星星眼", heart: "愛心眼", squint: "瞇瞇眼", wink: "眨眼", droopy: "下垂眼", swirl: "漩渦眼", teary: "淚眼" } },
   brows: { label: "眉毛", choices: { none: "無", thin: "細眉", thick: "粗眉", worried: "八字眉", angry: "劍眉" } },
   mouth: { label: "嘴巴", choices: { smile: "微笑", small: "小口", grin: "大笑", cat: "貓嘴", flat: "一字嘴", tongue: "吐舌" } },
   blush: { label: "腮紅", choices: { none: "無", soft: "淡淡", rosy: "紅潤" } },
   faceAcc: { label: "臉部配件", choices: { none: "無", glasses: "眼鏡", sunglasses: "墨鏡", mask: "口罩", mole: "美人痣", freckles: "雀斑", bandaid: "OK 繃", beard: "鬍子", whiskers: "貓鬍鬚", tikka: "眉心紅點", heart: "愛心貼紙" } },
-  hair: { label: "髮型", choices: { none: "光頭", short: "短髮", bangs: "齊瀏海", twinbuns: "雙丸子", ponytail: "馬尾", long: "長髮", twintails: "雙馬尾", curly: "捲髮" } },
+  hair: { label: "髮型", choices: { none: "光頭", short: "短髮", bangs: "齊瀏海", twinbuns: "雙丸子", ponytail: "馬尾", long: "長髮", twintails: "雙馬尾", curly: "捲髮", bob: "鮑伯頭", topknot: "道髻", spiky: "刺蝟頭" } },
   hairColor: { label: "髮色", choices: { black: "烏黑", brown: "深棕", chestnut: "栗色", silver: "銀灰", gold: "金色" } }
 };
 
-const AVATAR_DEFAULT_LOOK = { skin: "light", eyes: "round", brows: "none", mouth: "smile", blush: "soft", faceAcc: "none", hair: "short", hairColor: "black" };
+const AVATAR_DEFAULT_LOOK = { character: "human", body: "standard", pants: "long", pantsColor: "black", shoes: "cloth", shoesColor: "black", skin: "light", eyes: "round", brows: "none", mouth: "smile", blush: "soft", faceAcc: "none", hair: "short", hairColor: "black" };
 
 // 只保留合法的選項代號
 function normalizeLook(cfg = {}) {
   const look = {};
   for (const key of Object.keys(AVATAR_DEFAULT_LOOK)) {
-    look[key] = AVATAR_OPTIONS[key].choices[cfg[key]] ? cfg[key] : AVATAR_DEFAULT_LOOK[key];
+    look[key] = Object.hasOwn(AVATAR_OPTIONS[key].choices, String(cfg[key])) ? cfg[key] : AVATAR_DEFAULT_LOOK[key];   // hasOwn：擋掉 constructor 這類繼承屬性
   }
   return look;
 }
@@ -37,7 +54,8 @@ function randomLook() {
 }
 
 // 造型代碼：外觀＋衣著選項壓成一串短碼，可複製給別人套用
-const LOOK_CODE_KEYS = ["skin", "eyes", "brows", "mouth", "blush", "faceAcc", "hair", "hairColor"];
+// 新欄位只能往後加，舊代碼才解得開
+const LOOK_CODE_KEYS = ["skin", "eyes", "brows", "mouth", "blush", "faceAcc", "hair", "hairColor", "character", "body", "pants", "pantsColor", "shoes", "shoesColor"];
 function encodeLookCode(cfg) {
   const look = normalizeLook(cfg);
   const parts = LOOK_CODE_KEYS.map(k => Object.keys(AVATAR_OPTIONS[k].choices).indexOf(look[k]).toString(36));
@@ -46,11 +64,12 @@ function encodeLookCode(cfg) {
 }
 
 function decodeLookCode(code) {
-  const m = String(code || "").trim().match(/^TP-([0-9a-z]{8})-([0-9a-fA-F]{6})$/);
+  const m = String(code || "").trim().match(/^TP-([0-9a-z]{8}(?:[0-9a-z]{6})?)-([0-9a-fA-F]{6})$/);
   if (!m) return null;
   const look = {};
   for (let i = 0; i < LOOK_CODE_KEYS.length; i++) {
     const k = LOOK_CODE_KEYS[i];
+    if (i >= m[1].length) { look[k] = AVATAR_DEFAULT_LOOK[k]; continue; }   // 舊版八碼代碼
     const key = Object.keys(AVATAR_OPTIONS[k].choices)[parseInt(m[1][i], 36)];
     if (!key) return null;
     look[k] = key;
@@ -177,7 +196,7 @@ function createAvatarFaceMesh(texture) {
 // ---------- 髮型：掛在頭底下（頭的區域座標，中心為原點、半徑 0.24、臉朝 +z） ----------
 function buildAvatarHair(group, cfg, HY = 0) {
   const look = normalizeLook(cfg);
-  if (look.hair === "none") return [];
+  if (look.hair === "none" || look.character !== "human") return [];   // 動物造型靠耳朵與毛色，不戴頭髮
   const mat = new THREE.MeshStandardMaterial({ color: AVATAR_HAIR_COLORS[look.hairColor], roughness: 0.7 });
   const parts = [];
   const add = (geo, x, y, z, rx = 0, rz = 0) => {
@@ -197,14 +216,87 @@ function buildAvatarHair(group, cfg, HY = 0) {
     case "twinbuns": add(new THREE.SphereGeometry(0.09, 12, 12), -0.17, HY + 0.2, -0.02); add(new THREE.SphereGeometry(0.09, 12, 12), 0.17, HY + 0.2, -0.02); break;
     case "ponytail": add(new THREE.CylinderGeometry(0.05, 0.03, 0.32, 10), 0, HY - 0.04, -0.27, 0.35); add(new THREE.SphereGeometry(0.05, 10, 10), 0, HY + 0.1, -0.25); break;
     case "long": add(new THREE.BoxGeometry(0.42, 0.42, 0.08), 0, HY - 0.14, -0.17, 0.12); break;
+    case "bob": add(new THREE.SphereGeometry(0.27, 20, 12, 0, Math.PI * 2, 0.5, 1.3), 0, HY - 0.03, -0.05, -0.28); break;
+    case "topknot": add(new THREE.SphereGeometry(0.095, 12, 12), 0, HY + 0.27, -0.05); add(new THREE.CylinderGeometry(0.1, 0.1, 0.03, 12), 0, HY + 0.22, -0.05); break;
+    case "spiky": for (let k = 0; k < 9; k++) { const a = (k / 9) * Math.PI * 2, r = 0.13; add(new THREE.ConeGeometry(0.06, 0.2, 7), Math.cos(a) * r, HY + 0.25, -0.03 + Math.sin(a) * r, Math.sin(a) * 0.5, -Math.cos(a) * 0.5); } add(new THREE.ConeGeometry(0.06, 0.22, 7), 0, HY + 0.3, -0.03); break;
     case "twintails": add(new THREE.ConeGeometry(0.07, 0.4, 10), -0.26, HY - 0.08, -0.04, 0, -0.25); add(new THREE.ConeGeometry(0.07, 0.4, 10), 0.26, HY - 0.08, -0.04, 0, 0.25); break;
-    case "curly": for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; add(new THREE.SphereGeometry(0.065, 8, 8), Math.cos(a) * 0.22, HY + 0.08 + Math.sin(k) * 0.04, Math.sin(a) * 0.2 - 0.05); } break;
+    case "curly": for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; if (Math.sin(a) > 0.3) continue; add(new THREE.SphereGeometry(0.065, 8, 8), Math.cos(a) * 0.22, HY + 0.08 + Math.sin(k) * 0.04, Math.sin(a) * 0.2 - 0.05); } break;
   }
   return parts;
 }
 
 function avatarSkinColor(cfg) {
-  return AVATAR_SKIN_TONES[normalizeLook(cfg).skin];
+  const look = normalizeLook(cfg);
+  return AVATAR_FUR_COLORS[look.character] || AVATAR_SKIN_TONES[look.skin];
+}
+
+// 體型、褲裝、鞋子與動物特徵。自己與同行分身共用，別人看到的才會一致。
+// parts：{ head, legs: [{ obj, mesh, footY }] }；obj 是會跟著走路擺動的節點，footY 是腳底在 obj 內的高度
+function dressAvatar(group, parts, cfg) {
+  const look = normalizeLook(cfg), shape = AVATAR_BODY_SHAPES[look.body];
+  group.scale.set(...shape.scale);
+  parts.head.scale.setScalar(shape.head);
+  const skin = new THREE.MeshStandardMaterial({ color: avatarSkinColor(cfg), roughness: 0.6 });
+  const cloth = new THREE.MeshStandardMaterial({ color: AVATAR_PANTS_COLORS[look.pantsColor], roughness: 0.75 });
+  const shoe = new THREE.MeshStandardMaterial({ color: AVATAR_SHOE_COLORS[look.shoesColor], roughness: 0.55 });
+  const piece = (parent, geo, mat, x, y, z, scale) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    if (scale) m.scale.set(...scale);
+    m.castShadow = true;
+    m.name = "avatarDress";
+    parent.add(m);
+    return m;
+  };
+
+  parts.legs.forEach(({ obj, mesh, footY }) => {
+    mesh.material = look.pants === "shorts" || look.pants === "skirt" ? skin : cloth;
+    if (look.pants === "wide") mesh.scale.set(1.45, 1, 1.45);
+    if (look.pants === "shorts") piece(obj, new THREE.CylinderGeometry(0.085, 0.09, 0.12, 12), cloth, 0, footY + 0.2, 0);
+    const foot = new THREE.SphereGeometry(1, 12, 8);
+    if (look.shoes === "bare") { piece(obj, foot, skin, 0, footY + 0.02, 0.03, [0.07, 0.035, 0.1]); return; }
+    if (look.shoes === "sandals") {
+      piece(obj, foot, skin, 0, footY + 0.03, 0.03, [0.065, 0.032, 0.095]);
+      piece(obj, new THREE.BoxGeometry(0.15, 0.02, 0.22), shoe, 0, footY + 0.01, 0.03);
+      piece(obj, new THREE.TorusGeometry(0.058, 0.012, 6, 14), shoe, 0, footY + 0.03, 0.05, [1, 0.5, 1]).rotation.x = Math.PI / 2;
+      return;
+    }
+    piece(obj, foot, shoe, 0, footY + 0.04, 0.035, [0.082, 0.05, 0.12]);
+    if (look.shoes === "boots") piece(obj, new THREE.CylinderGeometry(0.088, 0.08, 0.16, 12), shoe, 0, footY + 0.12, 0);
+  });
+  if (look.pants === "skirt") piece(group, new THREE.CylinderGeometry(0.27, 0.36, 0.3, 16), cloth, 0, 0.17, 0);
+
+  const c = look.character;
+  if (c === "human") return;
+  const inner = new THREE.MeshStandardMaterial({ color: c === "dragon" ? "#e8c860" : "#f2b7b0", roughness: 0.6 });
+  const tail = (points, radius) => {
+    const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
+    const m = new THREE.Mesh(new THREE.TubeGeometry(curve, 16, radius, 8, false), skin);
+    m.name = "avatarDress"; m.castShadow = true; group.add(m);
+  };
+  [-1, 1].forEach(s => {
+    if (c === "cat") {
+      piece(parts.head, new THREE.ConeGeometry(0.085, 0.16, 8), skin, s * 0.15, 0.21, -0.02).rotation.z = -s * 0.28;
+      piece(parts.head, new THREE.ConeGeometry(0.05, 0.1, 8), inner, s * 0.15, 0.205, 0.03).rotation.z = -s * 0.28;
+      [-0.03, 0.02].forEach(y => { piece(parts.head, new THREE.BoxGeometry(0.14, 0.006, 0.006), new THREE.MeshBasicMaterial({ color: 0x3a2a20 }), s * 0.25, y - 0.04, 0.13).rotation.z = s * y * 3; });
+    } else if (c === "rabbit") {
+      piece(parts.head, new THREE.SphereGeometry(1, 12, 10), skin, s * 0.11, 0.34, -0.03, [0.06, 0.2, 0.05]).rotation.z = -s * 0.14;
+      piece(parts.head, new THREE.SphereGeometry(1, 10, 8), inner, s * 0.11, 0.34, 0.005, [0.035, 0.15, 0.03]).rotation.z = -s * 0.14;
+    } else if (c === "bear") {
+      piece(parts.head, new THREE.SphereGeometry(0.085, 12, 10), skin, s * 0.18, 0.18, -0.02);
+      piece(parts.head, new THREE.SphereGeometry(0.05, 10, 8), inner, s * 0.18, 0.18, 0.03);
+    } else {
+      piece(parts.head, new THREE.ConeGeometry(0.04, 0.2, 8), inner, s * 0.12, 0.25, -0.05).rotation.z = -s * 0.22;
+      piece(parts.head, new THREE.ConeGeometry(0.05, 0.1, 6), skin, s * 0.24, 0.05, -0.04).rotation.z = -s * 1.2;
+    }
+  });
+  if (c === "cat") tail([[0, 0.34, -0.26], [0.06, 0.38, -0.46], [0.02, 0.62, -0.5], [-0.06, 0.74, -0.42]], 0.04);
+  else if (c === "rabbit") piece(group, new THREE.SphereGeometry(0.09, 12, 10), skin, 0, 0.32, -0.3);
+  else if (c === "bear") piece(group, new THREE.SphereGeometry(0.065, 10, 8), skin, 0, 0.3, -0.31);
+  else {
+    tail([[0, 0.34, -0.26], [0, 0.26, -0.5], [0.04, 0.2, -0.72], [0.1, 0.24, -0.86]], 0.055);
+    [0.82, 0.7, 0.58, 0.46].forEach((y, i) => piece(group, new THREE.ConeGeometry(0.04, 0.09, 5), inner, 0, y, -0.2 - i * 0.03).rotation.x = -0.9);
+  }
 }
 
 // ---------- 頭上表情 ----------

@@ -11,7 +11,7 @@ const avatarStudio = {
 
   // ---------- 面板內容 ----------
   buildOptions() {
-    const groups = { studioFaceOptions: ["skin", "eyes", "brows", "mouth", "blush", "faceAcc"], studioHairOptions: ["hair", "hairColor"] };
+    const groups = { studioCharacterOptions: ["character", "body"], studioFaceOptions: ["skin", "eyes", "brows", "mouth", "blush", "faceAcc"], studioHairOptions: ["hair", "hairColor"], studioLegOptions: ["pants", "pantsColor", "shoes", "shoesColor"] };
     Object.entries(groups).forEach(([containerId, keys]) => {
       const box = document.getElementById(containerId);
       if (!box) return;
@@ -28,7 +28,7 @@ const avatarStudio = {
           btn.dataset.lookKey = key;
           btn.dataset.lookValue = value;
           btn.title = name;
-          const swatch = key === "skin" ? AVATAR_SKIN_TONES[value] : key === "hairColor" ? AVATAR_HAIR_COLORS[value] : null;
+          const swatch = { skin: AVATAR_SKIN_TONES, hairColor: AVATAR_HAIR_COLORS, pantsColor: AVATAR_PANTS_COLORS, shoesColor: AVATAR_SHOE_COLORS }[key]?.[value] || null;
           if (swatch) {
             btn.className = "studio-swatch";
             btn.style.background = swatch;

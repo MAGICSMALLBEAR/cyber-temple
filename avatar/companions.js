@@ -307,6 +307,7 @@ class AvatarCompanionsMixin {
     const legR = new THREE.Mesh(legGeo, limbMat);
     legR.position.set(0.13, 0.22, 0);
     peerGroup.add(legR);
+    dressAvatar(peerGroup, { head, legs: [{ obj: legL, mesh: legL, footY: -0.22 }, { obj: legR, mesh: legR, footY: -0.22 }] }, cfg);
 
     // 手持物（參拜道具顯示時可暫時隱藏，不改原本的換裝設定）
     const normalHeldGroup = new THREE.Group(); peerGroup.add(normalHeldGroup);

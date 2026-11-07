@@ -489,14 +489,18 @@
         <button class="btn-custom-pill" id="btnStudioRandom" title="五官、髮型、膚色全部隨機">🎲 隨機造型</button>
       </div>
       <div class="studio-tabs" role="tablist">
+        <button class="studio-tab" data-studio-tab="character">角色</button>
         <button class="studio-tab active" data-studio-tab="face">臉</button>
         <button class="studio-tab" data-studio-tab="hair">髮型</button>
+        <button class="studio-tab" data-studio-tab="legs">褲鞋</button>
         <button class="studio-tab" data-studio-tab="outfit">服裝與持物</button>
         <button class="studio-tab" data-studio-tab="name">名字與代碼</button>
       </div>
       <!-- 臉、髮型的選項由 app/avatar-studio.js 依 avatar/appearance.js 的清單產生 -->
+      <div class="studio-page" data-studio-page="character" id="studioCharacterOptions" hidden></div>
       <div class="studio-page" data-studio-page="face" id="studioFaceOptions"></div>
       <div class="studio-page" data-studio-page="hair" id="studioHairOptions" hidden></div>
+      <div class="studio-page" data-studio-page="legs" id="studioLegOptions" hidden></div>
       <div class="studio-page" data-studio-page="outfit" hidden>
       
       <div style="margin-bottom: 12px;">

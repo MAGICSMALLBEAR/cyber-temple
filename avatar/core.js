@@ -190,6 +190,12 @@ class TempleAvatarSystem {
     this.limbs.legR.add(legRMesh);
     this.playerGroup.add(this.limbs.legR);
 
+    // 7.5 體型、褲裝、鞋子與動物特徵
+    dressAvatar(this.playerGroup, { head: this.limbs.head, legs: [
+      { obj: this.limbs.legL, mesh: legLMesh, footY: -0.26 },
+      { obj: this.limbs.legR, mesh: legRMesh, footY: -0.26 }
+    ] }, this.config);
+
     // 8. 頭頂稱號浮空字牌 (如「悠閒的信眾」)
     this.updateTitleBadge();
     if (this.speech) showSpeechBubble(this, this.playerGroup, this.speech, this.config.title);
