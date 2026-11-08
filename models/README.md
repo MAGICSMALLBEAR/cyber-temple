@@ -55,4 +55,5 @@
 | `sample-censer.glb`、`sample-lion.glb` | `tools/make-sample-models.mjs` 程式產生 | 本專案原創；試驗用，正式美術完成後替換 |
 | `reference/mazu-front.png` | Codex 圖片生成（2026-11-08） | 建模參考圖，不隨網站發布；商用前要確認使用方案的條款 |
 | `reference/mazu-side.png`、`reference/mazu-back.png` | Codex 圖片生成（2026-11-08），以正面圖為參考畫出左側面與背面 | 同上。背面圖椅座下露出衣襬，與側面圖的實心座身不符，建模以側面圖為準 |
+| `reference/<神尊>-front.png`（文昌、財神、月老、觀音、關公、土地公） | Codex 圖片生成（2026-11-09），提示詞見 `reference/PROMPTS.md`，附媽祖正面圖統一風格 | 同媽祖參考圖 |
 | `mazu.glb` | 以 `reference/` 三張參考圖，用 Hugging Face 上的 TRELLIS（微軟開源，MIT 授權）轉成 3D（2026-11-08）。約 2 萬面、1 張貼圖、無法線（載入時自動補） | 參考圖的條款同上；轉換工具本身可商用 |
