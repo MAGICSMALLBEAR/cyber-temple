@@ -22,11 +22,33 @@ class TempleModelMixin {
     }
     if (!Array.isArray(entries) || !entries.length) return;
 
-    const loader = new THREE.GLTFLoader();
-    // 依序載入，避免手機同時解析多個大檔
-    for (const entry of entries) {
+    const loader = this.templeModelLoader = new THREE.GLTFLoader();
+    // 神像只在供奉那尊時才下載：先把神像清單記下來，物件模型照常依序載入
+    this.deityModelEntries = new Map();
+    this.deityModelLoads = new Map();
+    const records = entries.map(entry => {
       const record = { file: entry?.file, status: "failed", error: "" };
       this.templeModels.push(record);
+      if (entry?.deity && typeof entry.deity === "string") {
+        if (!MODEL_FILE_PATTERN.test(entry.file || "")) {
+          record.error = "檔名不合法，只能是 models 資料夾裡的 .glb";
+          console.warn(`模型 ${entry.file} 未載入：${record.error}`);
+        } else if (this.deityModelEntries.has(entry.deity)) {
+          record.error = `神尊 ${entry.deity} 已有模型，同一尊只用第一筆`;
+          console.warn(`模型 ${entry.file} 未載入：${record.error}`);
+        } else {
+          record.status = "deferred";
+          this.deityModelEntries.set(entry.deity, { entry, record });
+        }
+      }
+      return { entry, record };
+    });
+    // 目前供奉的神像最顯眼，排在物件模型之前
+    await this.ensureDeityModel(this.deityModel?.userData.deity);
+
+    // 依序載入，避免手機同時解析多個大檔
+    for (const { entry, record } of records) {
+      if (entry?.deity && typeof entry.deity === "string") continue;
       try {
         const holder = await this.placeTempleModel(loader, entry);
         record.status = "loaded";
@@ -36,7 +58,29 @@ class TempleModelMixin {
         console.warn(`模型 ${entry?.file} 未載入，保留原本的程式模型：${e.message}`);
       }
     }
-    if (this.templeModels.some(m => m.status === "loaded")) this.buildCollisionMap?.();
+    if (this.templeModels.some(m => m.status === "loaded" && !m.deity)) this.buildCollisionMap?.();
+  }
+
+  // 下載指定神尊的模型；同一尊只下載一次，失敗也不重試（保留程式神像）
+  ensureDeityModel(id) {
+    const item = this.deityModelEntries?.get(id);
+    if (!item || !this.templeModelLoader) return Promise.resolve(null);
+    if (!this.deityModelLoads.has(id)) {
+      const { entry, record } = item;
+      record.status = "loading";
+      record.deity = id;
+      this.deityModelLoads.set(id, this.placeTempleModel(this.templeModelLoader, entry).then(holder => {
+        record.status = "loaded";
+        record.object = holder;
+        return holder;
+      }, e => {
+        record.status = "failed";
+        record.error = e.message;
+        console.warn(`神像模型 ${entry.file} 未載入，保留原本的程式神像：${e.message}`);
+        return null;
+      }));
+    }
+    return this.deityModelLoads.get(id);
   }
 
   async placeTempleModel(loader, entry) {
@@ -108,11 +152,12 @@ class TempleModelMixin {
     return holder;
   }
 
-  // 目前神尊有模型就顯示模型，否則顯示程式模型
+  // 目前神尊有模型就顯示模型，否則顯示程式模型；還沒下載的先顯示程式模型並開始下載
   syncDeityModel() {
     const id = this.deityModel?.userData.deity, active = this.deityModelMap?.get(id);
     this.deityModelMap?.forEach(holder => { holder.visible = holder === active; });
     if (this.deityModel) this.deityModel.visible = !active;
+    if (!active) this.ensureDeityModel?.(id);
   }
 }
 

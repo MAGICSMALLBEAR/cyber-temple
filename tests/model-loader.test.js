@@ -115,6 +115,58 @@ module.exports = {
     check("切到沒有模型的神尊時回到程式神像", !deity.b.model && deity.b.statue);
     check("切回媽祖再顯示模型", deity.c.model && !deity.c.statue);
     check("過程沒有 JS 錯誤", errs.length === 0, errs.join(" | "));
+    await ctx.close();
+
+    // --- 神像延後下載：切換到哪尊才下載哪尊 ---
+    const lazyCtx = await newContext(browser);
+    const hits = {};
+    await lazyCtx.route("**/models/**", async route => {
+      const name = route.request().url().split("/").pop();
+      hits[name] = (hits[name] || 0) + 1;
+      if (name === "manifest.json") return route.fulfill({ contentType: "application/json", body: JSON.stringify({ models: [
+        { file: "mazu.glb", deity: "mazu", height: 2.3 },
+        { file: "guanyin.glb", deity: "guanyin", height: 2.3 },
+        { file: "slow.glb", deity: "yuelao", height: 2.3 },
+        { file: "broken.glb", deity: "wenchang", height: 2.3 },
+        { file: "mazu-dup.glb", deity: "mazu", height: 2.3 }
+      ] }) });
+      if (name === "slow.glb") await new Promise(r => setTimeout(r, 1500));
+      if (name === "broken.glb") return route.fulfill({ contentType: "model/gltf-binary", body: Buffer.from("這不是模型") });
+      return route.fulfill({ contentType: "model/gltf-binary", body: makeBoxGlb() });
+    });
+    const lp = await lazyCtx.newPage();
+    const lazyErrs = [];
+    lp.on("pageerror", e => lazyErrs.push(e.message));
+    await lp.goto(base);
+    await waitFor(() => lp.evaluate(() => temple3d.deityModelMap?.has("mazu") === true));
+    const start = await lp.evaluate(() => ({ statue: temple3d.deityModel.visible, model: temple3d.deityModelMap.get("mazu").visible, status: temple3d.templeModels.map(m => m.status) }));
+    check("開場載入目前供奉的媽祖模型", start.model && !start.statue);
+    check("開場不下載其他神尊的模型", !hits["guanyin.glb"] && !hits["slow.glb"] && !hits["broken.glb"], JSON.stringify(hits));
+    check("同一尊重複登記只用第一筆", !hits["mazu-dup.glb"] && start.status[4] === "failed", start.status.join(","));
+
+    await lp.evaluate(() => temple3d.switchDeityStatue("guanyin"));
+    const guanyin = await waitFor(() => lp.evaluate(() => {
+      const m = temple3d.deityModelMap.get("guanyin");
+      return m?.visible ? { statue: temple3d.deityModel.visible, mazu: temple3d.deityModelMap.get("mazu").visible } : null;
+    }));
+    check("切到觀音才下載並顯示觀音模型", !!guanyin && !guanyin.statue && !guanyin.mazu && hits["guanyin.glb"] === 1);
+
+    // 下載途中切走：載完也不能出現在別的神尊身上
+    await lp.evaluate(() => { temple3d.switchDeityStatue("yuelao"); temple3d.switchDeityStatue("caishen"); });
+    await waitFor(() => lp.evaluate(() => temple3d.deityModelMap.has("yuelao")), { timeout: 10000 });
+    const away = await lp.evaluate(() => ({ yuelao: temple3d.deityModelMap.get("yuelao").visible, statue: temple3d.deityModel.visible, deity: temple3d.deityModel.userData.deity }));
+    check("下載途中切走，載完不會錯放", !away.yuelao && away.statue && away.deity === "caishen", JSON.stringify(away));
+    const back = await lp.evaluate(() => { temple3d.switchDeityStatue("yuelao"); return { model: temple3d.deityModelMap.get("yuelao").visible, statue: temple3d.deityModel.visible }; });
+    check("切回月老直接顯示已下載的模型，不重複下載", back.model && !back.statue && hits["slow.glb"] === 1);
+
+    await lp.evaluate(() => temple3d.switchDeityStatue("wenchang"));
+    await waitFor(() => lp.evaluate(() => temple3d.templeModels[3].status === "failed"));
+    await lp.evaluate(() => { temple3d.switchDeityStatue("mazu"); temple3d.switchDeityStatue("wenchang"); });
+    await new Promise(r => setTimeout(r, 300));
+    const broken = await lp.evaluate(() => ({ statue: temple3d.deityModel.visible, error: temple3d.templeModels[3].error }));
+    check("神像模型壞掉時保留程式神像並記錄原因", broken.statue && !!broken.error, broken.error);
+    check("壞掉的神像模型不重複下載", hits["broken.glb"] === 1, String(hits["broken.glb"]));
+    check("延後下載過程沒有 JS 錯誤", lazyErrs.length === 0, lazyErrs.join(" | "));
     await browser.close();
   }
 };
