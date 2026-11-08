@@ -27,13 +27,15 @@ class TempleModelMixin {
     this.deityModelEntries = new Map();
     this.deityModelLoads = new Map();
     const records = entries.map(entry => {
-      const record = { file: entry?.file, status: "failed", error: "" };
+      const record = { file: entry?.file, status: "pending", error: "" };
       this.templeModels.push(record);
       if (entry?.deity && typeof entry.deity === "string") {
         if (!MODEL_FILE_PATTERN.test(entry.file || "")) {
+          record.status = "failed";
           record.error = "檔名不合法，只能是 models 資料夾裡的 .glb";
           console.warn(`模型 ${entry.file} 未載入：${record.error}`);
         } else if (this.deityModelEntries.has(entry.deity)) {
+          record.status = "failed";
           record.error = `神尊 ${entry.deity} 已有模型，同一尊只用第一筆`;
           console.warn(`模型 ${entry.file} 未載入：${record.error}`);
         } else {
@@ -54,6 +56,7 @@ class TempleModelMixin {
         record.status = "loaded";
         record.object = holder;
       } catch (e) {
+        record.status = "failed";
         record.error = e.message;
         console.warn(`模型 ${entry?.file} 未載入，保留原本的程式模型：${e.message}`);
       }
@@ -126,6 +129,11 @@ class TempleModelMixin {
       obj.receiveShadow = true;
       const geo = obj.geometry;
       triangles += (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
+      // 圖片轉 3D 工具常不附法線，GLTFLoader 會改用平面著色，臉上看得到多邊形；補上平滑法線
+      if (!geo.attributes.normal && geo.index) {
+        geo.computeVertexNormals();
+        for (const mat of [].concat(obj.material)) { mat.flatShading = false; mat.needsUpdate = true; }
+      }
       // 專案關閉色彩管理，貼圖一律不做色彩轉換，才會和其他程式材質一致
       for (const mat of [].concat(obj.material)) {
         for (const tex of [mat.map, mat.emissiveMap]) {

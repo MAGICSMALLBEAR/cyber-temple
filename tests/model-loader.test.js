@@ -70,7 +70,7 @@ module.exports = {
     const errs = [];
     p.on("pageerror", e => errs.push(e.message));
     await p.goto(base);
-    const done = await waitFor(() => p.evaluate(() => (temple3d.templeModels || []).length === 8 && temple3d.templeModels.every(m => m.status !== undefined) && !!temple3d.templeModels[7].error), { timeout: 30000 });
+    const done = await waitFor(() => p.evaluate(() => (temple3d.templeModels || []).length === 8 && temple3d.templeModels.every(m => m.status === "loaded" || m.status === "failed")), { timeout: 30000 });
     check("八筆清單都處理完", !!done);
 
     const r = await p.evaluate(() => {
@@ -114,6 +114,8 @@ module.exports = {
     check("媽祖有模型時顯示模型", deity.a.model && !deity.a.statue);
     check("切到沒有模型的神尊時回到程式神像", !deity.b.model && deity.b.statue);
     check("切回媽祖再顯示模型", deity.c.model && !deity.c.statue);
+    const shading = await p.evaluate(() => { let mesh; temple3d.templeModels.find(m => m.status === "loaded").object.traverse(o => { if (o.isMesh) mesh = o; }); return { normal: !!mesh.geometry.attributes.normal, flat: [].concat(mesh.material).some(m => m.flatShading) }; });
+    check("沒有法線的模型自動補上平滑法線", shading.normal && !shading.flat, JSON.stringify(shading));
     check("過程沒有 JS 錯誤", errs.length === 0, errs.join(" | "));
     await ctx.close();
 

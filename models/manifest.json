@@ -2,6 +2,7 @@
   "models": [
     { "file": "sample-censer.glb", "replace": "heavenCenser", "height": 2.6 },
     { "file": "sample-lion.glb", "replace": "stoneLionWest", "height": 2.5 },
-    { "file": "sample-lion.glb", "replace": "stoneLionEast", "height": 2.5 }
+    { "file": "sample-lion.glb", "replace": "stoneLionEast", "height": 2.5 },
+    { "file": "mazu.glb", "deity": "mazu", "height": 2.5 }
   ]
 }
