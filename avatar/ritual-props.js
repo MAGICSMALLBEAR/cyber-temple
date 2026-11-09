@@ -64,10 +64,11 @@ function disposeRitualProp(prop) {
 function disposeRitualProps(owner) {
   Object.values(owner.ritualProps || {}).forEach(disposeRitualProp);
   owner.ritualProps = {};
+  if (typeof disposeRainGear === "function") disposeRainGear(owner);   // 換裝、離線時雨具一起釋放
 }
 
 function resetRitualPoseFor(owner, limbs) {
-  if (!owner.ritualPoseActive) return;
+  if (!owner.ritualPoseActive && !owner.rainPoseActive) return;   // 撐傘也會改左手姿勢
   ["armL", "armR", "torso", "head"].forEach(key => limbs[key]?.rotation.set(0, 0, 0));
 }
 

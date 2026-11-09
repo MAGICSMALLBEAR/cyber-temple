@@ -477,6 +477,7 @@ class AvatarCompanionsMixin {
       limbs.torso.rotation.x = 0;
     }
     if (typeof animateRitualPropsFor === "function") animateRitualPropsFor(peer, limbs, peer.group, peer.action, time, !!window.templeMotion?.reduced);
+    if (typeof animateRainGearFor === "function") animateRainGearFor(peer, limbs, peer.group, peer.action, peer.config, time, !!window.templeMotion?.reduced);
   }
 }
 

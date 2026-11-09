@@ -52,7 +52,7 @@ module.exports = {
     await p.click('[data-look-key="skin"][data-look-value="deep"]');
     await p.click('[data-studio-tab="name"]');
     const code = await p.$eval("#studioLookCode", e => e.value);
-    check("顯示造型代碼", /^TP-[0-9a-z]{14}-[0-9a-f]{6}$/.test(code), code);
+    check("顯示造型代碼", /^TP-[0-9a-z]{16}-[0-9a-f]{6}$/.test(code), code);
     await p.fill("#studioLookCode", "亂打的代碼");
     await p.click("#btnStudioApplyCode");
     check("錯誤的代碼會提示", (await p.$eval("#studioCodeNote", e => e.textContent)).includes("格式不對"));

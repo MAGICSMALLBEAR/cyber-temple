@@ -836,6 +836,7 @@ class TempleAvatarSystem {
     }
 
     this.animateRitualProps?.(time);
+    this.animateRainGear?.(time);
 
     // 護體靈光環緩慢自轉與浮動
     if (this.limbs.amuletAura) {

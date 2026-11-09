@@ -11,7 +11,7 @@ const avatarStudio = {
 
   // ---------- 面板內容 ----------
   buildOptions() {
-    const groups = { studioCharacterOptions: ["character", "body"], studioFaceOptions: ["skin", "eyes", "brows", "mouth", "blush", "faceAcc"], studioHairOptions: ["hair", "hairColor"], studioLegOptions: ["pants", "pantsColor", "shoes", "shoesColor"] };
+    const groups = { studioCharacterOptions: ["character", "body"], studioFaceOptions: ["skin", "eyes", "brows", "mouth", "blush", "faceAcc"], studioHairOptions: ["hair", "hairColor"], studioLegOptions: ["pants", "pantsColor", "shoes", "shoesColor"], studioRainOptions: ["umbrella", "raincoat"] };
     Object.entries(groups).forEach(([containerId, keys]) => {
       const box = document.getElementById(containerId);
       if (!box) return;

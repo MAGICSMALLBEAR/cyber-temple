@@ -45,7 +45,7 @@ module.exports = {
     // ---- 場景 ----
     check("大殿與殿閣下有遮雨，廟埕中央沒有", c.templeSheltered(0, 0) && c.templeSheltered(8.5, 7.5) && c.templeSheltered(13.5, 23.5) && !c.templeSheltered(0, 15) && !c.templeSheltered(0, 9));
     const audio = { rain: [], thunder: 0 };
-    c.templeAudio = { startRainSound: v => audio.rain.push(["start", v]), setRainLevel: v => audio.rain.push(["level", v]), stopRainSound: () => audio.rain.push(["stop"]), playThunder: () => audio.thunder++, playShichenChime() {} };
+    c.templeAudio = { startRainSound: v => audio.rain.push(["start", v]), setRainLevel: v => audio.rain.push(["level", v]), stopRainSound: () => audio.rain.push(["stop"]), playThunder: () => audio.thunder++, playShichenChime() {}, playBell() {} };
     c.setDockStatus = msg => { c.lastStatus = msg; };
     const s = Object.create(c.Temple3DScene.prototype);
     s.scene = new THREE.Scene(); s.scene.fog = new THREE.FogExp2(0x000000, 0.01); s.weatherGroup = new THREE.Group(); s.groundRipples = [];
@@ -91,6 +91,52 @@ module.exports = {
     check("落瓣換掉時釋放幾何；多雲沒有雨", disposed && !s.blossomPoints && s.weatherPoints === null && s.weatherTarget === 0.35);
     s.setWeather("snow");
     check("未知天氣當作晴天", s.currentWeather === "clear");
+    // ---- 雨傘與雨衣 ----
+    for (const file of ["inventory.js", "scene/offering-models.js", "avatar/appearance.js", "avatar/core.js", "avatar/ritual-props.js", "avatar/rain-gear.js", "avatar/social.js", "avatar/relics.js", "avatar/companions.js"]) env.load(file);
+    const a = Object.create(c.TempleAvatarSystem.prototype), sent = [];
+    a.scene = new THREE.Scene(); a.playerGroup = new THREE.Group(); a.scene.add(a.playerGroup); a.position = new THREE.Vector3(); a.limbs = {};
+    a.config = { ...env.run("AVATAR_DEFAULT_LOOK"), robeColor: "#93422b", holdingItem: "incense", title: "雨中善信", hatType: "none" };
+    a.currentAction = "idle"; a.actionProgress = 0; a.keys = {}; a.relics = {}; a.peers = new Map(); a.lastBroadcastPos = new THREE.Vector3(); a.lastBroadcastTime = 0;
+    a.channel = { postMessage: data => sent.push(data) }; a.myPeerId = "self"; a.buildAvatarMesh();
+    const frame = (t, action = "idle") => { a.currentAction = action; a.animateLimbs(t, 0.016); };
+    c.temple3d = { currentWeather: "clear" }; a.playerGroup.position.set(0, 0, 15); frame(1);
+    check("沒下雨時不建立雨具", !a.rainGear && !a.rainPoseActive);
+    c.temple3d.currentWeather = "rain"; frame(1.1);
+    check("下雨在廟埕：預設朱紅油紙傘撐在左手，沒選雨衣就不穿", a.rainGear?.umbrella?.visible && a.rainGear.umbrella.name === "umbrella-red" && Math.abs(a.limbs.armL.rotation.x + 0.95) < 1e-6 && !a.rainGear.coat);
+    frame(1.2, "walk");
+    check("撐傘走路時左手固定不擺動", a.rainGear.umbrella.visible && Math.abs(a.limbs.armL.rotation.x + 0.95) < 1e-6 && Math.abs(a.limbs.legL.rotation.x) > 0.01);
+    a.playerGroup.position.set(0, 0, 1); frame(1.3); frame(1.31);
+    check("走進大殿自動收傘、左手放下", !a.rainGear.umbrella.visible && !a.rainPoseActive && Math.abs(a.limbs.armL.rotation.z + 0.22) > 0.1);   // 回到原本持香姿勢
+    a.playerGroup.position.set(0, 0, 15); a.setRitualCarry("basket"); frame(1.4);
+    check("提籃（右手）與撐傘（左手）可以同時", a.ritualProps.basket.visible && a.rainGear.umbrella.visible);
+    a.setRitualCarry("tray"); frame(1.5);
+    check("雙手端盤時先收傘", a.ritualProps.tray.visible && !a.rainGear.umbrella.visible);
+    a.setRitualCarry(""); frame(1.6, "kneel");
+    check("跪拜時收傘", !a.rainGear.umbrella.visible);
+    c.templeMotion = { reduced: true }; frame(2); const still = a.rainGear.umbrella.rotation.x; frame(2.7, "walk");
+    check("減少動態時傘不晃", a.rainGear.umbrella.rotation.x === still); c.templeMotion = { reduced: false };
+    let freed = 0; a.rainGear.umbrella.traverse(o => o.geometry?.addEventListener("dispose", () => freed++));
+    Object.assign(a.config, { umbrella: "none", raincoat: "yellow" }); frame(3);
+    const coat = a.rainGear.coat;
+    check("改成不撐傘、穿黃色雨衣：舊傘釋放，斗篷、兜帽、袖套都穿上", freed > 5 && !a.rainGear.umbrella && coat.length === 4 && coat.every(m => m.visible) && coat.some(m => m.parent === a.limbs.head) && coat.filter(m => m.parent === a.limbs.armL || m.parent === a.limbs.armR).length === 2);
+    a.playerGroup.position.set(0, 0, 1); frame(3.1);
+    check("雨衣在室內也照樣穿著", coat.every(m => m.visible));
+    c.temple3d.currentWeather = "clear"; frame(3.2);
+    check("雨停後雨衣收起", coat.every(m => !m.visible));
+    let coatFreed = 0; coat.forEach(m => m.geometry.addEventListener("dispose", () => coatFreed++));
+    a.buildAvatarMesh(); check("換裝重建時釋放雨具", !a.rainGear && coatFreed === 4);
+
+    c.temple3d.currentWeather = "storm";
+    a.handlePeerUpdate({ id: "friend", config: { ...a.config, umbrella: "green", raincoat: "clear" }, pos: [0, 0, 15], rot: 0, action: "walk", ritual: {}, timestamp: Date.now() });
+    const peer = a.peers.get("friend"); peer.group.position.set(0, 0, 15); a.animatePeerLimbs(peer, 4, 0.016);
+    check("同行依對方設定撐竹青傘、穿透明雨衣", peer.rainGear?.umbrella?.name === "umbrella-green" && peer.rainGear.umbrella.visible && peer.rainGear.coat.length === 4);
+    a.removePeer("friend"); check("同行離開時雨具一起釋放", !peer.rainGear);
+
+    const code = c.encodeLookCode({ umbrella: "plain", raincoat: "blue", robeColor: "#112233" }), back = c.decodeLookCode(code);
+    check("造型代碼含雨具且來回一致", /^TP-[0-9a-z]{16}-112233$/.test(code) && back.umbrella === "plain" && back.raincoat === "blue", code);
+    const older = c.decodeLookCode("TP-00000000000000-c24b2b");
+    check("舊 14 碼代碼的雨具用預設", older?.umbrella === "red" && older?.raincoat === "none");
+    check("同行送來不合法的雨具代號會改用預設", c.normalizeLook({ umbrella: "__proto__", raincoat: "gold" }).umbrella === "red" && c.normalizeLook({ raincoat: "gold" }).raincoat === "none");
     note("天氣邏輯與實際 Three.js 物件；不建立 WebGLRenderer，畫面與手機幀率需實機確認。");
   }
 };

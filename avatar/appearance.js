@@ -30,10 +30,13 @@ const AVATAR_OPTIONS = {
   blush: { label: "腮紅", choices: { none: "無", soft: "淡淡", rosy: "紅潤" } },
   faceAcc: { label: "臉部配件", choices: { none: "無", glasses: "眼鏡", sunglasses: "墨鏡", mask: "口罩", mole: "美人痣", freckles: "雀斑", bandaid: "OK 繃", beard: "鬍子", whiskers: "貓鬍鬚", tikka: "眉心紅點", heart: "愛心貼紙" } },
   hair: { label: "髮型", choices: { none: "光頭", short: "短髮", bangs: "齊瀏海", twinbuns: "雙丸子", ponytail: "馬尾", long: "長髮", twintails: "雙馬尾", curly: "捲髮", bob: "鮑伯頭", topknot: "道髻", spiky: "刺蝟頭" } },
-  hairColor: { label: "髮色", choices: { black: "烏黑", brown: "深棕", chestnut: "栗色", silver: "銀灰", gold: "金色" } }
+  hairColor: { label: "髮色", choices: { black: "烏黑", brown: "深棕", chestnut: "栗色", silver: "銀灰", gold: "金色" } },
+  // 雨具：下雨時才出現；選「不撐傘／不穿」就一律不用（avatar/rain-gear.js）
+  umbrella: { label: "雨傘（下雨在戶外時撐開）", choices: { red: "朱紅油紙傘", green: "竹青油紙傘", plain: "素白油紙傘", none: "不撐傘" } },
+  raincoat: { label: "雨衣（下雨時穿上）", choices: { none: "不穿", yellow: "黃色雨衣", clear: "透明雨衣", blue: "藍色雨衣" } }
 };
 
-const AVATAR_DEFAULT_LOOK = { character: "human", body: "standard", pants: "long", pantsColor: "black", shoes: "cloth", shoesColor: "black", skin: "light", eyes: "round", brows: "none", mouth: "smile", blush: "soft", faceAcc: "none", hair: "short", hairColor: "black" };
+const AVATAR_DEFAULT_LOOK = { character: "human", body: "standard", pants: "long", pantsColor: "black", shoes: "cloth", shoesColor: "black", skin: "light", eyes: "round", brows: "none", mouth: "smile", blush: "soft", faceAcc: "none", hair: "short", hairColor: "black", umbrella: "red", raincoat: "none" };
 
 // 只保留合法的選項代號
 function normalizeLook(cfg = {}) {
@@ -55,7 +58,7 @@ function randomLook() {
 
 // 造型代碼：外觀＋衣著選項壓成一串短碼，可複製給別人套用
 // 新欄位只能往後加，舊代碼才解得開
-const LOOK_CODE_KEYS = ["skin", "eyes", "brows", "mouth", "blush", "faceAcc", "hair", "hairColor", "character", "body", "pants", "pantsColor", "shoes", "shoesColor"];
+const LOOK_CODE_KEYS = ["skin", "eyes", "brows", "mouth", "blush", "faceAcc", "hair", "hairColor", "character", "body", "pants", "pantsColor", "shoes", "shoesColor", "umbrella", "raincoat"];
 function encodeLookCode(cfg) {
   const look = normalizeLook(cfg);
   const parts = LOOK_CODE_KEYS.map(k => Object.keys(AVATAR_OPTIONS[k].choices).indexOf(look[k]).toString(36));
@@ -64,12 +67,13 @@ function encodeLookCode(cfg) {
 }
 
 function decodeLookCode(code) {
-  const m = String(code || "").trim().match(/^TP-([0-9a-z]{8}(?:[0-9a-z]{6})?)-([0-9a-fA-F]{6})$/);
+    // 8 碼（最早）、14 碼（加角色與衣著）、16 碼（加雨具）都解得開
+  const m = String(code || "").trim().match(/^TP-([0-9a-z]{8}(?:[0-9a-z]{6}(?:[0-9a-z]{2})?)?)-([0-9a-fA-F]{6})$/);
   if (!m) return null;
   const look = {};
   for (let i = 0; i < LOOK_CODE_KEYS.length; i++) {
     const k = LOOK_CODE_KEYS[i];
-    if (i >= m[1].length) { look[k] = AVATAR_DEFAULT_LOOK[k]; continue; }   // 舊版八碼代碼
+    if (i >= m[1].length) { look[k] = AVATAR_DEFAULT_LOOK[k]; continue; }   // 舊版較短的代碼，新欄位用預設
     const key = Object.keys(AVATAR_OPTIONS[k].choices)[parseInt(m[1][i], 36)];
     if (!key) return null;
     look[k] = key;
