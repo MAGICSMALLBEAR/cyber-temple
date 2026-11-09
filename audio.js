@@ -696,8 +696,9 @@ class TempleAudioEngine {
   }
 
   // 梵天微雨環境雨聲 (Brahma Rain Ambient Sound)
-  startRainSound() {
-    if (this.isRainPlaying) return;
+  // volume：小雨 0.08、雷雨 0.15；已在下雨時只調整音量
+  startRainSound(volume = 0.08) {
+    if (this.isRainPlaying) { this.setRainLevel(volume); return; }
     this.init();
     this.isRainPlaying = true;
     const bufferSize = this.ctx.sampleRate * 2;
@@ -722,7 +723,7 @@ class TempleAudioEngine {
 
     this.rainGain = this.ctx.createGain();
     this.rainGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-    this.rainGain.gain.exponentialRampToValueAtTime(0.08, this.ctx.currentTime + 1.5);
+    this.rainGain.gain.exponentialRampToValueAtTime(Math.max(0.001, volume), this.ctx.currentTime + 1.5);
 
     this.rainSource.connect(this.rainFilter);
     this.rainFilter.connect(this.rainGain);
@@ -732,17 +733,43 @@ class TempleAudioEngine {
 
   stopRainSound() {
     if (!this.isRainPlaying || !this.rainGain) return;
+    // 只停這一次的音源；一秒內又開始下雨時，新的雨聲不會被誤停
+    const source = this.rainSource, gain = this.rainGain;
     try {
-      this.rainGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 1.0);
-      setTimeout(() => {
-        if (this.rainSource) {
-          this.rainSource.stop();
-          this.rainSource.disconnect();
-          this.rainSource = null;
-        }
-      }, 1100);
+      gain.gain.cancelScheduledValues(this.ctx.currentTime);
+      gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 1.0);
+      setTimeout(() => { try { source?.stop(); source?.disconnect(); } catch (e) {} }, 1100);
     } catch (e) {}
+    if (this.rainSource === source) this.rainSource = null;
     this.isRainPlaying = false;
+  }
+
+  setRainLevel(volume) {
+    if (!this.isRainPlaying || !this.rainGain) return;
+    const g = this.rainGain.gain, now = this.ctx.currentTime;
+    g.cancelScheduledValues(now); g.setValueAtTime(Math.max(0.001, g.value), now);
+    g.exponentialRampToValueAtTime(Math.max(0.001, volume), now + 3);
+  }
+
+  // 遠雷：低頻噪音慢慢滾過；delay 秒後才響（閃電先到、雷聲後到）
+  playThunder(delay = 1) {
+    this.init();
+    if (!this.ctx) return;
+    const start = this.ctx.currentTime + Math.max(0, delay), length = 3.2;
+    const buffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * length), this.ctx.sampleRate), data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < data.length; i++) { last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04; data[i] = last * 6; }
+    const source = this.ctx.createBufferSource(); source.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter(); filter.type = "lowpass";
+    filter.frequency.setValueAtTime(420, start); filter.frequency.exponentialRampToValueAtTime(90, start + length);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.35, start + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.12, start + 0.9);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+    source.connect(filter); filter.connect(gain); gain.connect(this.sfxBus);
+    source.start(start); source.stop(start + length);
   }
 
   // 拍立得快門喀嚓聲 (Camera Shutter Click)

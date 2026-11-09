@@ -96,6 +96,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (window.nightMarket) window.nightMarket.init();
   if (window.templeVisit) window.templeVisit.init();
   if (window.templeJournal) window.templeJournal.init();
+  if (window.templeWeather) window.templeWeather.init();
   if (window.templeReading) window.templeReading.init();
 
   // 3.45 新手引導（是否為新玩家已在每日簽到發功德之前判定）

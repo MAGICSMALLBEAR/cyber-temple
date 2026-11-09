@@ -104,6 +104,9 @@ class TempleAtmosphereMixin {
     }
 
     this.applySkyMood?.(actualKey);
+    // 天氣的陰暗與閃電以時辰天色為基準往下調
+    this.captureWeatherBase?.();
+    this.applyWeatherLighting?.();
 
     if (!silent && window.templeAudio) {
       window.templeAudio.playShichenChime(actualKey);
@@ -117,108 +120,8 @@ class TempleAtmosphereMixin {
     });
   }
 
-  // ==========================================
-  // 天候與季節氛圍系統 (Seasonal Weather Atmosphere)
-  // ==========================================
-  setWeather(weatherType) {
-    this.currentWeather = weatherType;
+  // 天氣（雨、雷雨、落瓣）在 scene/weather.js
 
-    // 清除既有天候物件
-    while (this.weatherGroup.children.length > 0) {
-      const obj = this.weatherGroup.children[0];
-      this.weatherGroup.remove(obj);
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    }
-    this.weatherPoints = null;
-    this.weatherVels = null;
-    this.blossomSeeds = null;
-    this.groundRipples = [];
-
-    if (weatherType === "rain") {
-      if (window.templeAudio) window.templeAudio.startRainSound();
-
-      // 900 顆清透雨絲粒子
-      const count = 900;
-      const geo = new THREE.BufferGeometry();
-      const pos = new Float32Array(count * 3);
-      const vels = new Float32Array(count);
-
-      for (let i = 0; i < count; i++) {
-        pos[i * 3] = (Math.random() - 0.5) * 44; // X 跨度
-        pos[i * 3 + 1] = Math.random() * 24 + 0.5; // Y 高度
-        pos[i * 3 + 2] = Math.random() * 52 - 6; // Z 跨度
-        vels[i] = 0.42 + Math.random() * 0.28;
-      }
-
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const mat = new THREE.PointsMaterial({
-        color: 0x90caf9,
-        size: 0.16,
-        transparent: true,
-        opacity: 0.75
-      });
-      const points = new THREE.Points(geo, mat);
-      this.weatherGroup.add(points);
-      this.weatherPoints = points;
-      this.weatherVels = vels;
-
-      this.spawn3DFloatingText("🌧️ 梵天甘霖 • 潤澤十方", new THREE.Vector3(0, 3.5, 8.0));
-      if (window.setDockStatus) window.setDockStatus("🌧️ 梵天甘霖微雨飄落，滌淨廟埕青石塵埃，潤澤十方信眾。");
-    } else if (weatherType === "blossoms") {
-      if (window.templeAudio) window.templeAudio.stopRainSound();
-
-      // 320 瓣春桃落瓣
-      const count = 320;
-      const geo = new THREE.BufferGeometry();
-      const pos = new Float32Array(count * 3);
-      const seeds = new Float32Array(count);
-
-      for (let i = 0; i < count; i++) {
-        pos[i * 3] = (Math.random() - 0.5) * 44;
-        pos[i * 3 + 1] = Math.random() * 18 + 0.5;
-        pos[i * 3 + 2] = Math.random() * 52 - 6;
-        seeds[i] = Math.random() * 100;
-      }
-
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      const mat = new THREE.PointsMaterial({
-        color: 0xff80ab,
-        size: 0.26,
-        transparent: true,
-        opacity: 0.85
-      });
-      const points = new THREE.Points(geo, mat);
-      this.weatherGroup.add(points);
-      this.weatherPoints = points;
-      this.blossomSeeds = seeds;
-
-      this.spawn3DFloatingText("🌸 春桃芳菲 • 祥光普照", new THREE.Vector3(0, 3.5, 8.0));
-      if (window.setDockStatus) window.setDockStatus("🌸 桃花花瓣隨微風輕舞廟埕長廊，春滿人間，吉慶祥瑞。");
-    } else {
-      // clear 晴空
-      if (window.templeAudio) window.templeAudio.stopRainSound();
-      this.spawn3DFloatingText("☀️ 天朗氣清 • 晴空萬里", new THREE.Vector3(0, 3.5, 8.0));
-      if (window.setDockStatus) window.setDockStatus("☀️ 晴空碧藍，宮闕巍峨，陽光普照神威顯赫。");
-    }
-    this.applyParticleBudget();
-  }
-
-  // 地面雨滴漣漪生成
-  spawnGroundRipple(x, z) {
-    const geo = new THREE.RingGeometry(0.04, 0.09, 16);
-    geo.rotateX(-Math.PI / 2);
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0xbbdefb,
-      transparent: true,
-      opacity: 0.65,
-      side: THREE.DoubleSide
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, 0.02, z);
-    this.weatherGroup.add(mesh);
-    this.groundRipples.push({ mesh, mat, life: 1.0 });
-  }
 
   setupDustParticles() {
     const particleCount = 260;
@@ -282,7 +185,8 @@ class TempleAtmosphereMixin {
     const factor = this.qualityPreset ? this.qualityPreset.particles : 1;
     [this.starPoints, this.dustPoints, this.weatherPoints].forEach(points => {
       if (!points) return;
-      const total = points.geometry.attributes.position.count;
+      // 雨絲幾何是共用的，小雨只畫一部分，雷雨畫全部
+      const total = points === this.rainPoints ? this.weatherRainCount || 0 : points.geometry.attributes.position.count;
       // 減少動態：飄動與落下的粒子（金塵、雨、花瓣）不畫
       const moving = points === this.dustPoints || points === this.weatherPoints;
       points.geometry.setDrawRange(0, this.reduceMotion && moving ? 0 : Math.max(1, Math.floor(total * factor)));

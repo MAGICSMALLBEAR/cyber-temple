@@ -113,26 +113,7 @@ function bindAtmosphereControls() {
     });
   }
 
-  // 天候氛圍切換 (晴空 -> 梵天微雨 -> 桃花落瓣)
-  const btnWeather = document.getElementById("btnToggleWeather");
-  if (btnWeather) {
-    const WEATHER_MODES = ["clear", "rain", "blossoms"];
-    const WEATHER_LABELS = {
-      clear: "🌧️ 晴空",
-      rain: "🌧️ 微雨",
-      blossoms: "🌸 落瓣"
-    };
-    let currentWeatherIdx = 0;
-
-    btnWeather.addEventListener("click", () => {
-      currentWeatherIdx = (currentWeatherIdx + 1) % WEATHER_MODES.length;
-      const mode = WEATHER_MODES[currentWeatherIdx];
-      btnWeather.innerText = WEATHER_LABELS[mode];
-      if (temple3d) {
-        temple3d.setWeather(mode);
-      }
-    });
-  }
+  // 天氣按鈕由 app/weather.js 綁定（依時辰自動或固定）
 
 }
 

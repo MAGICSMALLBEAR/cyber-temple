@@ -885,48 +885,8 @@ class Temple3DScene {
       }
     }
 
-    // 天候微粒與水花漣漪更新
-    if (this.currentWeather === "rain" && this.weatherPoints && this.weatherVels) {
-      const pos = this.weatherPoints.geometry.attributes.position.array;
-      for (let i = 0; i < this.weatherVels.length; i++) {
-        pos[i * 3 + 1] -= this.weatherVels[i];
-        if (pos[i * 3 + 1] < 0.05) {
-          pos[i * 3 + 1] = 24.0 + Math.random() * 3.0;
-          if (Math.random() < 0.03 && this.groundRipples.length < 25) {
-            this.spawnGroundRipple(pos[i * 3], pos[i * 3 + 2]);
-          }
-        }
-      }
-      this.weatherPoints.geometry.attributes.position.needsUpdate = true;
-    } else if (this.currentWeather === "blossoms" && this.weatherPoints && this.blossomSeeds) {
-      const pos = this.weatherPoints.geometry.attributes.position.array;
-      for (let i = 0; i < this.blossomSeeds.length; i++) {
-        const seed = this.blossomSeeds[i];
-        pos[i * 3 + 1] -= 0.035;
-        pos[i * 3] += Math.sin(time * 1.5 + seed) * 0.02 + 0.015;
-        pos[i * 3 + 2] += Math.cos(time * 1.2 + seed) * 0.01;
-        if (pos[i * 3 + 1] < 0.05) {
-          pos[i * 3 + 1] = 18.0 + Math.random() * 2.0;
-          pos[i * 3] = (Math.random() - 0.5) * 44;
-          pos[i * 3 + 2] = Math.random() * 52 - 6;
-        }
-      }
-      this.weatherPoints.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // 地面漣漪消退更新
-    for (let i = this.groundRipples.length - 1; i >= 0; i--) {
-      const rip = this.groundRipples[i];
-      rip.life -= 0.035;
-      rip.mesh.scale.multiplyScalar(1.04);
-      rip.mat.opacity = Math.max(0, rip.life * 0.65);
-      if (rip.life <= 0) {
-        this.weatherGroup.remove(rip.mesh);
-        rip.mesh.geometry.dispose();
-        rip.mat.dispose();
-        this.groundRipples.splice(i, 1);
-      }
-    }
+    // 天氣：雨絲、落瓣、漣漪、天色漸變與閃電（scene/weather.js）
+    this.updateWeather?.(time, dt);
 
     // 線上收驚除煞粒子與金光天柱更新
     for (let i = this.shoujingPurgeParticles.length - 1; i >= 0; i--) {
