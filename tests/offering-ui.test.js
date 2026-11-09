@@ -14,7 +14,7 @@ module.exports = {
       await p.addStyleTag({ content: fs.readFileSync(path.join(ROOT, "style.css"), "utf8") });
       await p.evaluate(() => {
         document.getElementById("templeLoader").remove();
-        window.state = { meritCount: 0, avatarConfig: { title: "測試善信" } };
+        window.state = { meritCount: 0, currentDeity: "mazu", avatarConfig: { title: "測試善信" } };
         window.addMerit = n => state.meritCount += n;
         window.setDockStatus = () => {}; window.templeAudio = { playBell() {}, playWoodblock() {} };
         window.temple3d = { avatar: { position: { x: -4.1, z: 8.2 }, releaseMovementKeys() {} }, updateOfferingTableStyle(s) { window.renderedStyle = s; }, updateAltarFeastOfferings(ids) { window.renderedOfferings = ids; }, celebrateFeastOffering() {} };
@@ -22,8 +22,8 @@ module.exports = {
         window.templeVisit = { go(id) { window.lastDestination = id; } };
         window.emitRitual = type => { window.lastRitual = type; };
       });
-      await p.addScriptTag({ content: 'const SERVICE_DESK_POS = [-5.2, 8.2];' });
-      for (const file of ["inventory.js", "app/bag.js", "app/feast.js", "app/reading.js"]) await p.addScriptTag({ content: fs.readFileSync(path.join(ROOT, file), "utf8") });
+      await p.addScriptTag({ content: 'const SERVICE_DESK_POS = [-5.2, 8.2]; const DEITIES = { mazu: { id: "mazu", name: "天上聖母 媽祖" } };' });
+      for (const file of ["inventory.js", "app/bag.js", "app/journal.js", "app/feast.js", "app/reading.js"]) await p.addScriptTag({ content: fs.readFileSync(path.join(ROOT, file), "utf8") });
       await p.evaluate(() => {
         const d = window.templeInventory.load(); d.coins = 100; window.templeInventory.save(d);
         window.templeBag.init(); bindFeastEvents(); window.templeReading.init(); window.templeBag.open("shop");
@@ -47,7 +47,22 @@ module.exports = {
       await p.click("#feastSlot2"); await p.locator('[data-dish="treasureBowl"]').click();
       await p.selectOption("#feastTableStyle", "brocade");
       check("擺供與換桌型同步到場景", await p.evaluate(() => window.renderedStyle === "brocade" && window.renderedOfferings[0] === "goldIngot" && window.renderedOfferings[1] === "silverIngot" && window.templeInventory.data.items.goldIngot === 1));
+      // 敬獻關聯心願手帳
+      const wishes = await p.evaluate(() => ({ a: window.templeJournal.saveEntry({ wish: "家人平安", status: "pending" }).entry.id,
+        b: window.templeJournal.saveEntry({ wish: "找到新工作", status: "fulfilled" }).entry.id,
+        done: window.templeJournal.saveEntry({ wish: "早就還願了", status: "returned" }).entry.id }));
+      check("心願選單只列未還願的心願", await p.locator("#feastWish option").count() === 3 && !await p.locator(`#feastWish option[value="${wishes.done}"]`).count());
+      await p.selectOption("#feastWish", wishes.b);
+      check("選已實現的心願預設改為答謝還願", await p.inputValue("#feastWishKind") === "thanks" && (await p.textContent("#feastWishHint")).includes("已還願"));
+      await p.selectOption("#feastWish", wishes.a);
+      check("選祈願中的心願預設為祈求保佑", await p.inputValue("#feastWishKind") === "pray");
+      await p.fill("#feastName", "信女 小美"); await p.fill("#feastWords", "保佑全家健康");
+      fs.mkdirSync(path.join(ROOT, ".test-cache"), { recursive: true });
+      await p.locator("#feastWishBox").screenshot({ path: path.join(ROOT, ".test-cache", "offering-wish-box.png"), animations: "disabled" });
       await p.click("#btnFeastPresent");
+      const visit = await p.evaluate(id => window.templeJournal.load().find(e => e.id === id).visits[0], wishes.a);
+      check("敬獻記入心願：神尊、稱呼、心意與桌上供品", visit?.kind === "pray" && visit.deity === "mazu" && visit.name === "信女 小美" && visit.message === "保佑全家健康" && visit.dishes.join() === "goldIngot,silverIngot,treasureBowl");
+      check("敬獻後清空心意與選擇、記住稱呼", await p.inputValue("#feastWish") === "" && await p.inputValue("#feastWords") === "" && await p.evaluate(() => localStorage.getItem("temple_offering_name")) === "信女 小美");
       check("敬獻增加功德並保留桌面，不能重按", await p.evaluate(() => state.meritCount === 128 && window.lastRitual === "feast" && window.templeInventory.data.offering.presented) && await p.locator("#btnFeastPresent").isDisabled());
       await p.keyboard.press("Escape");
       check("供桌可用 Escape 關閉", !await p.locator("#feastModal").evaluate(el => el.classList.contains("open")));

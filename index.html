@@ -1845,6 +1845,17 @@
         <button type="button" class="feast-dish-picker feast-treasure" data-dish="silverIngot"><span class="feast-picker-icon" data-item="silverIngot" aria-hidden="true">⬜</span><span>銀元寶盤</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker feast-treasure" data-dish="treasureBowl"><span class="feast-picker-icon" aria-hidden="true">💰</span><span>金銀聚寶盆</span><small class="feast-stock">背包 0 份</small></button>
       </div>
+      <fieldset class="feast-wish" id="feastWishBox">
+        <legend>這次敬獻的心意（都可不填）</legend>
+        <div class="feast-wish-fields">
+          <label>為哪個心願 <select id="feastWish" class="temple-select"><option value="">不指定心願</option></select></label>
+          <label>敬獻方式 <select id="feastWishKind" class="temple-select"><option value="pray">祈求保佑</option><option value="thanks">答謝還願</option></select></label>
+          <label>稱呼 <input id="feastName" class="temple-input" maxlength="20" placeholder="例如：信女 小美"></label>
+          <label>想對神明說的話 <input id="feastWords" class="temple-input" maxlength="100" placeholder="最多 100 字"></label>
+        </div>
+        <p id="feastWishHint" class="wall-footnote"></p>
+        <button type="button" class="btn-custom-pill" id="btnFeastNewWish">📖 先寫一個新心願</button>
+      </fieldset>
       <div class="feast-actions">
         <button class="btn-custom-pill" id="btnFeastReset">擺上五品組合</button>
         <button class="btn-custom-pill" id="btnFeastCollect">全部收供・放回背包</button>

@@ -85,6 +85,22 @@ module.exports = {
     const restored = makeEnvironment(THREE); restored.load("app/journal.js"); restored.context.localStorage.setItem("temple_wish_journal", exported.temple_wish_journal);
     check("匯入後手帳包含心得與還願狀態", restored.context.templeJournal.load()[0].status === "returned" && restored.context.templeJournal.load()[0].notes.includes("已完成"));
     check("刪除心願會保存且不會被舊編輯重新建立", journal.remove(result.entry.id) && !journal.saveEntry({ wish: "舊編輯", status: "pending" }, result.entry.id).ok);
+    // 敬獻與還願連動
+    const w = journal.saveEntry({ wish: "考試順利", status: "pending" }).entry, find = () => journal.load().find(e => e.id === w.id);
+    check("敬獻選單列出未還願的心願", journal.offerable().some(e => e.id === w.id));
+    let rec = journal.recordOffering(w.id, { kind: "pray", name: " 信女 小美 ", message: "保佑專心", dishes: ["fruit", "incense", "fake", "fagao"] });
+    check("祈求紀錄寫入心願，香與未知物品不算供品", rec.ok && find().status === "pending" && find().visits[0].dishes.join() === "fruit,fagao" && find().visits[0].name === "信女 小美" && find().visits[0].message === "保佑專心");
+    check("編輯心願不會清掉敬獻紀錄", journal.saveEntry({ wish: "考試順利", notes: "考完了", status: "fulfilled" }, w.id).ok && find().visits.length === 1);
+    rec = journal.recordOffering(w.id, { kind: "thanks", dishes: ["peach"] });
+    check("答謝還願標為已還願並移出敬獻選單", rec.ok && find().status === "returned" && !!find().returnedAt && find().visits.length === 2 && !journal.offerable().some(e => e.id === w.id));
+    const other = journal.saveEntry({ wish: "家人平安", status: "pending" }).entry;
+    check("已還願、不存在或方式錯誤時不寫入", !journal.recordOffering(w.id, { kind: "thanks" }).ok && !journal.recordOffering("nope", { kind: "pray" }).ok && !journal.recordOffering(other.id, { kind: "bribe" }).ok && journal.load().find(e => e.id === other.id).visits.length === 0);
+    env.nodes.get("journalFilter").value = "all"; env.nodes.get("journalSearch").value = "考試"; journal.render();
+    const card = env.text(env.nodes.get("journalList"));
+    check("手帳卡片列出敬獻經過與供品名稱", card.includes("答謝還願") && card.includes("祈求保佑") && card.includes("五福果盤") && card.includes("「保佑專心」"));
+    c.localStorage.setItem("temple_wish_journal", JSON.stringify({ version: 1, entries: [{ id: "x", wish: "壞資料", status: "pending", visits: [{ kind: "pray", at: "2026-11-09T00:00:00Z", name: "名".repeat(50), dishes: "fruit" }, { kind: "hack", at: "2026-11-09T00:00:00Z" }, { kind: "pray", at: "not-a-date" }, null] }] }));
+    const loaded = journal.load()[0].visits;
+    check("讀取時剔除壞的敬獻紀錄並截斷過長稱呼", loaded.length === 1 && loaded[0].name.length === 20 && Array.isArray(loaded[0].dishes) && loaded[0].dishes.length === 0);
     c.templeReading.apply("large"); check("大字立即套用並保存", c.document.documentElement.style.fontSize === "19px" && c.localStorage.getItem("temple_text_size") === "large");
     c.templeReading.apply("wrong"); check("無效字級回到標準", c.document.documentElement.style.fontSize === "16px");
 

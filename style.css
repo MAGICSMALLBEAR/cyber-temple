@@ -2765,6 +2765,13 @@ button:disabled { opacity: 0.45; cursor: default; }
 .feast-treasure { background: linear-gradient(145deg, #6b4d232e, #d6b56015); border-color: #c19b56; }
 .feast-dish-picker:disabled { opacity: .43; cursor: default; }
 .feast-actions .btn-dock-action { flex: 1 1 220px; white-space: normal; }
+.feast-wish { margin: 14px 0; padding: 12px 14px; border: 1px solid #b4995b55; border-radius: 10px; background: #ffffff06; }
+.feast-wish legend { color: #f5d38f; padding: 0 6px; font-size: .9rem; }
+.feast-wish-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.feast-wish-fields label { display: flex; flex-direction: column; gap: 4px; min-width: 0; color: #ead6ac; font-size: .8rem; }
+.feast-wish-fields select, .feast-wish-fields input { width: 100%; min-height: 40px; }
+@media (max-width: 600px) { .feast-wish-fields { grid-template-columns: 1fr; } }
+.journal-visits { margin: 6px 0 10px; padding-left: 20px; color: #d9c79f; font-size: .8rem; line-height: 1.7; overflow-wrap: anywhere; }
 #feastMessage, #bagMessage { color: #f2cf81; line-height: 1.7; font-size: .85rem; }
 .shop-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .shop-filters [aria-pressed="true"] { color: #ffdf8c; border-color: #d5ac57; background: #a8792d33; }

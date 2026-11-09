@@ -4,6 +4,25 @@ let currentFeastDishes = window.templeInventory.data.offering.slots.slice();
 const FEAST_DEFAULT_DISHES = ["fruit", "peach", "fagao", "redturtle", "guaiguai"];
 const FEAST_DISH_INFO = Object.fromEntries(Object.entries(BAG_ITEMS).filter(([id]) => window.templeInventory.isOffering(id)));
 let feastSceneSignature = "";
+const FEAST_NAME_KEY = "temple_offering_name";   // 稱呼記在本機，下次敬獻沿用
+
+// 敬獻可關聯心願手帳裡還沒還願的心願；已實現的預設改為答謝還願
+function renderFeastWishes() {
+  const select = document.getElementById("feastWish"); if (!select || !window.templeJournal) return;
+  const keep = select.value, entries = window.templeJournal.offerable();
+  select.replaceChildren(new Option("不指定心願", ""), ...entries.map(e => new Option(`${e.status === "fulfilled" ? "✅" : "🙏"} ${e.wish.length > 24 ? e.wish.slice(0, 24) + "…" : e.wish}`, e.id)));
+  select.value = entries.some(e => e.id === keep) ? keep : "";
+  updateFeastWishHint();
+}
+function updateFeastWishHint() {
+  const hint = document.getElementById("feastWishHint"); if (!hint || !window.templeJournal) return;
+  const id = document.getElementById("feastWish").value, entry = id && window.templeJournal.load().find(e => e.id === id);
+  const kind = document.getElementById("feastWishKind").value;
+  hint.textContent = !window.templeJournal.offerable().length ? "心願手帳裡還沒有祈願中的心願；可以先寫一個，敬獻時就能選它。"
+    : !entry ? "選一個心願，敬獻後會記在手帳裡，日後回來答謝時能看到前後經過。"
+    : kind === "thanks" ? "敬獻後這個心願會標為「已還願」，並記下這次答謝的供品。"
+    : `敬獻後記入「${entry.wish.slice(0, 24)}」的祈求紀錄${entry.status === "fulfilled" ? "；心願已實現，也可以改選答謝還願" : ""}。`;
+}
 
 function feastNotice(message) {
   const el = document.getElementById("feastMessage"); if (el) el.textContent = message;
@@ -38,6 +57,16 @@ function bindFeastEvents() {
     else feastNotice("背包中沒有可端出的供品，請先選購或收供。");
   });
   window.addEventListener("temple:inventory", updateFeastSlotsUI);
+  document.getElementById("feastWish")?.addEventListener("change", e => {
+    const entry = e.target.value && window.templeJournal?.load().find(w => w.id === e.target.value);
+    document.getElementById("feastWishKind").value = entry?.status === "fulfilled" ? "thanks" : "pray";
+    updateFeastWishHint();
+  });
+  document.getElementById("feastWishKind")?.addEventListener("change", updateFeastWishHint);
+  const nameInput = document.getElementById("feastName");
+  if (nameInput) { nameInput.value = localStorage.getItem(FEAST_NAME_KEY) || ""; nameInput.addEventListener("change", () => localStorage.setItem(FEAST_NAME_KEY, nameInput.value.trim().slice(0, 20))); }
+  document.getElementById("btnFeastNewWish")?.addEventListener("click", () => { window.closeFeastModal(); window.templeJournal?.open(); });
+  window.addEventListener("temple:journal", renderFeastWishes);
   window.addEventListener("temple:offering-motion", e => window.temple3d?.avatar?.playRitualMotion?.(e.detail.name));
   window.addEventListener("storage", e => { if (!e.key || e.key === "temple_inventory") updateFeastSlotsUI(); });
   updateFeastSlotsUI();
@@ -47,7 +76,7 @@ window.openFeastModal = function() {
   const modal = document.getElementById("feastModal"); if (!modal) return;
   modal.classList.add("open");
   document.getElementById("feastMessage").textContent = "";
-  updateFeastSlotsUI(); window.templeAudio?.playBell(528);
+  updateFeastSlotsUI(); renderFeastWishes(); window.templeAudio?.playBell(528);
 };
 window.closeFeastModal = function() { document.getElementById("feastModal")?.classList.remove("open"); };
 
@@ -102,6 +131,22 @@ function presentFeastOffering() {
   window.temple3d?.avatar?.playRitualMotion?.("presentOffering", window.templeInventory.data.offering.slots.filter(Boolean));
   if (result.reward) addMerit(result.reward);
   window.emitRitual?.("feast");
-  feastResult(result, result.reward ? "🙏 敬獻完成，今日首次獻供 +128 功德。供品保留在桌上，拜完可收供。" : "🙏 敬獻完成。今日獻供功德已領取，供品保留在桌上，拜完可收供。");
+  const wishNote = recordFeastWish();
+  feastResult(result, (result.reward ? "🙏 敬獻完成，今日首次獻供 +128 功德。供品保留在桌上，拜完可收供。" : "🙏 敬獻完成。今日獻供功德已領取，供品保留在桌上，拜完可收供。") + wishNote);
   window.closeFeastModal();
+}
+// 把這次敬獻記到選定的心願；回傳附加在提示後的說明
+function recordFeastWish() {
+  const select = document.getElementById("feastWish"), id = select?.value;
+  if (!id || !window.templeJournal) return "";
+  const name = document.getElementById("feastName").value.trim();
+  localStorage.setItem(FEAST_NAME_KEY, name.slice(0, 20));
+  const kind = document.getElementById("feastWishKind").value;
+  const rec = window.templeJournal.recordOffering(id, { kind, deity: typeof state !== "undefined" ? state.currentDeity : "", name,
+    message: document.getElementById("feastWords").value, dishes: window.templeInventory.data.offering.slots.filter(Boolean) });
+  if (!rec.ok) return ` 心願紀錄沒有寫入：${rec.error}`;
+  document.getElementById("feastWords").value = ""; select.value = ""; renderFeastWishes();
+  const wish = rec.entry.wish.length > 20 ? rec.entry.wish.slice(0, 20) + "…" : rec.entry.wish;
+  if (kind === "thanks") window.temple3d?.spawn3DFloatingText?.("🙏 誠心答謝 • 還願圓滿", new THREE.Vector3(0, 3.2, 0.1));
+  return kind === "thanks" ? ` 已答謝還願，「${wish}」標為已還願。` : ` 已記入「${wish}」的祈求紀錄，日後實現了可以回來答謝。`;
 }
