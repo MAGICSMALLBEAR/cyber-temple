@@ -132,6 +132,16 @@ const templeInventory = {
     if (mode && !Object.keys(d.items).some(id => this.isOffering(id) && d.items[id])) return false;
     d.carryMode = mode; this.save(d); return true;
   },
+  // 提籃／供盤裡顯示的供品：只取背包現有的，先依目前主題組合的順序、再依商品順序；
+  // 先各放一樣，還有空位才放第二份。只是外觀，不扣也不另存庫存。
+  carryDisplayItems(d = this.load(), limit = 3) {
+    const order = [...new Set([...(OFFERING_SETS[d.offeringSet]?.dishes || []), ...Object.keys(BAG_ITEMS)])].filter(id => this.isOffering(id) && d.items[id] > 0);
+    const left = Object.fromEntries(order.map(id => [id, d.items[id]])), picked = [];
+    while (picked.length < limit && order.some(id => left[id] > 0)) {
+      for (const id of order) { if (picked.length < limit && left[id] > 0) { picked.push(id); left[id]--; } }
+    }
+    return picked;
+  },
   // 桌面與背包寫在同一份存檔，一次完成取出／替換／歸還。
   placeOffering(slot, id) {
     if (!this.nearOfferingTable()) return { ok: false, reason: "location" };

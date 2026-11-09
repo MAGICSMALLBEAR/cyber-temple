@@ -91,7 +91,7 @@ module.exports = {
       await p.setContent('<html lang="zh-TW"><body style="margin:0;background:#201b19;color:#f5dcaa;font-family:Microsoft JhengHei,sans-serif"><h1 style="font-size:24px;text-align:center">供品鋪・供桌與金銀財寶</h1><main style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px"></main></body></html>');
       await p.setViewportSize({ width: 1400, height: 950 }); await p.addScriptTag({ content: bundle.outputFiles[0].text });
       await p.addScriptTag({ content: 'window.THREE=TemplePreview.THREE;' });
-      for (const file of ["scene/core.js", "scene/architecture.js", "scene/altar.js", "scene/service.js"]) await p.addScriptTag({ content: fs.readFileSync(path.join(ROOT, file), "utf8") });
+      for (const file of ["scene/offering-models.js", "scene/core.js", "scene/architecture.js", "scene/altar.js", "scene/service.js"]) await p.addScriptTag({ content: fs.readFileSync(path.join(ROOT, file), "utf8") });
       await p.evaluate(() => {
         const THREE = TemplePreview.THREE;
         for (const [id, title] of [["wood", "紅木雕花供桌"], ["brocade", "紅布金繡供桌"], ["stone", "青石供桌"], ["shop", "廟埕供品鋪"], ["goldIngot", "金元寶盤"], ["silverIngot", "銀元寶盤"], ["treasureBowl", "金銀聚寶盆"]]) {
@@ -120,8 +120,9 @@ module.exports = {
           const a = Object.create(TempleAvatarSystem.prototype); a.scene = new THREE.Scene(); a.playerGroup = new THREE.Group(); a.scene.add(a.playerGroup); a.limbs = {}; a.position = new THREE.Vector3();
           a.config = { ...AVATAR_DEFAULT_LOOK, robeColor: "#a83b29", holdingItem: "incense", title: "善信", hatType: "headband" }; a.relics = {}; a.currentAction = "idle"; a.actionProgress = 0; a.keys = {}; a.broadcastMyState = () => {};
           a.buildAvatarMesh(); a.limbs.titleSprite.visible = false; // SVG 不支援稱號貼圖，避免白色矩形遮住預覽。
+          a.setRitualItems(["fruit", "goldIngot", "flowers"]);   // 提籃與端盤裡放背包現有的供品
           if (id === "basket" || id === "basketWalk" || id === "tray") { a.setRitualCarry(id === "tray" ? "tray" : "basket"); if (id === "basketWalk") a.currentAction = "walk"; }
-          else { a.playRitualMotion(id); a.ritualMotion.startedAt -= RITUAL_MOTION_SECONDS[id] * 1000 * (id === "incenseOffering" ? .17 : .5); }
+          else { a.playRitualMotion(id, id === "presentOffering" ? ["treasureBowl", "peach", "redturtle"] : undefined); a.ritualMotion.startedAt -= RITUAL_MOTION_SECONDS[id] * 1000 * (id === "incenseOffering" ? .17 : .5); }
           a.animateLimbs(1.3, .016);
           a.scene.add(new THREE.AmbientLight(0xffffff, .8)); const light = new THREE.DirectionalLight(0xffefdc, .8); light.position.set(2, 4, 5); a.scene.add(light);
           const camera = new THREE.PerspectiveCamera(35, 440 / 360, .01, 20); camera.position.set(1.4, 1.2, 2.8); camera.lookAt(0, .65, .1);

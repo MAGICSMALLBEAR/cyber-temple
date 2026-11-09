@@ -62,7 +62,7 @@ module.exports = {
     c.localStorage.setItem("temple_pilgrimage", JSON.stringify({ active: true, step: 999, completed: 9 }));
     check("壞進度安全停止但保留已完成次數", !flow.load().active && flow.load().completed === 9);
 
-    for (const file of ["avatar/appearance.js", "avatar/core.js", "avatar/ritual-props.js", "avatar/social.js", "avatar/relics.js", "avatar/companions.js"]) env.load(file);
+    for (const file of ["scene/offering-models.js", "avatar/appearance.js", "avatar/core.js", "avatar/ritual-props.js", "avatar/social.js", "avatar/relics.js", "avatar/companions.js"]) env.load(file);
     const a = Object.create(c.TempleAvatarSystem.prototype), messages = [];
     a.scene = new THREE.Scene(); a.playerGroup = new THREE.Group(); a.scene.add(a.playerGroup); a.position = new THREE.Vector3(); a.limbs = {};
     a.config = { ...env.run("AVATAR_DEFAULT_LOOK"), robeColor: "#93422b", holdingItem: "incense", title: "測試善信", hatType: "none" };
@@ -76,6 +76,17 @@ module.exports = {
     check("端盤使用雙手且只有一個參拜道具顯示", a.ritualProps.tray.visible && !a.ritualProps.basket.visible && a.limbs.armL.rotation.x < -1 && a.limbs.armR.rotation.x < -1);
     a.setRitualCarry(""); a.animateLimbs(1.3, .016);
     check("放下道具恢復原持物與設定", !a.ritualProps.tray.visible && a.limbs.heldObject.visible && a.config.holdingItem === "incense");
+    a.setRitualItems(["goldIngot", "fruit"]); a.setRitualCarry("basket"); a.animateLimbs(1.31, .016);
+    const filled = a.ritualProps.basket;
+    check("提籃裝的是背包裡的供品，籃內不放盤子", !!filled.getObjectByName("carry-goldIngot") && !!filled.getObjectByName("carry-fruit") && !filled.getObjectByName("plate"));
+    let oldItems = 0; filled.traverse(o => o.geometry?.addEventListener("dispose", () => oldItems++));
+    a.setRitualItems(["peach"]); a.animateLimbs(1.32, .016);
+    check("背包內容改變時換掉籃內供品並釋放舊模型", a.ritualProps.basket !== filled && !filled.parent && oldItems > 5 && !!a.ritualProps.basket.getObjectByName("carry-peach") && !a.ritualProps.basket.getObjectByName("carry-fruit"));
+    a.setRitualCarry("tray"); a.animateLimbs(1.33, .016);
+    check("端盤上每樣供品各有小盤", !!a.ritualProps.tray.getObjectByName("carry-peach")?.getObjectByName("plate"));
+    a.setRitualItems([]); a.animateLimbs(1.34, .016);
+    check("背包沒有供品時是空盤", a.ritualProps.tray.visible && !a.ritualProps.tray.children.some(o => o.name.startsWith("carry-")));
+    a.setRitualItems(["peach", "flowers"]); a.setRitualCarry(""); a.animateLimbs(1.35, .016);
     const baseTime = c.Date.now();
     a.playRitualMotion("placeOffering"); env.setTime(new Date(baseTime + 650).toISOString()); a.animateLimbs(1.5, .016);
     check("擺供有前伸端盤動作", a.ritualProps.tray.visible && a.ritualProps.tray.position.z > .5 && a.limbs.torso.rotation.x > .1);
@@ -84,14 +95,21 @@ module.exports = {
     const payload = messages.at(-1); payload.id = "other";
     a.handlePeerUpdate(payload); const peer = a.peers.get("other"); a.animatePeerLimbs(peer, 1.6, .016);
     check("同行收到同款參拜道具與動作", peer.ritualProps.incense.visible && peer.ritualMotion.name === "incenseOffering");
+    check("同行收到提籃裡的供品清單", peer.ritualItems.join() === "peach,flowers");
     env.setTime(new Date(baseTime + 5000).toISOString()); a.animateLimbs(5, .016); a.animatePeerLimbs(peer, 5, .016);
     check("自己與同行的短動作會到期並恢復持物", !a.ritualMotion && !peer.ritualMotion && !a.ritualProps.incense.visible && a.limbs.heldObject.visible);
     a.playRitualMotion("presentOffering"); a.currentAction = "walk"; a.animateLimbs(5.1, .016);
     check("移動可中斷獻供動作，不會鎖住角色", !a.ritualMotion);
+    a.currentAction = "idle"; a.playRitualMotion("presentOffering", ["treasureBowl", "fake", "fruit", "peach", "fagao"]); a.animateLimbs(5.15, .016);
+    check("敬獻端的是桌上供品，清單過濾後最多三樣", a.ritualMotion.items.join() === "treasureBowl,fruit,peach" && !!a.ritualProps.tray.getObjectByName("carry-treasureBowl") && !a.ritualProps.tray.getObjectByName("carry-flowers"));
+    const sent = messages.at(-1).ritual;
+    check("敬獻動作連同供品清單送給同行", sent.motion.items.join() === "treasureBowl,fruit,peach" && sent.items.join() === "peach,flowers");
     a.setRitualCarry("tray"); a.triggerAction("kneelSit"); a.animateLimbs(5.2, .016);
     check("跪坐時暫時放下供盤", !a.ritualProps.tray.visible);
     const invalid = env.run('normalizeRitualState({carry:"fake", motion:{name:"incenseOffering",startedAt:Infinity}})');
     check("拒絕不合法的同行道具與時序", invalid.carry === "" && invalid.motion === null);
+    const listed = env.run('normalizeRitualState({carry:"basket", items:["fruit","__proto__",3,"peach","fagao","flowers"]})');
+    check("同行供品清單只收已知代號且最多三樣", listed.items.join() === "fruit,peach,fagao" && env.run('normalizeRitualState({items:"fruit"})').items.length === 0);
     let peerReleased = 0; Object.values(peer.ritualProps).forEach(prop => prop.traverse(o => o.geometry?.addEventListener("dispose", () => peerReleased++)));
     a.handlePeerUpdate({ ...payload, config: { ...payload.config, robeColor: "#224488" } });
     check("同行換裝會釋放舊參拜道具", peerReleased > 0);

@@ -3,7 +3,7 @@ module.exports = {
   name: "地圖站位與實際碰撞（無繪圖）",
   async run({ check, note }) {
     const THREE = await import("three"), env = makeEnvironment(THREE), c = env.context;
-    for (const file of ["scene/core.js", "scene/architecture.js", "scene/temple-visuals.js", "scene/deities.js", "scene/seasonal.js", "scene/altar.js", "scene/courtyard.js", "scene/halls.js", "scene/festival.js", "scene/service.js", "scene/interior.js", "scene/market.js", "scene/temple-plaza.js", "scene/collision.js", "app/visit.js"]) env.load(file);
+    for (const file of ["scene/core.js", "scene/architecture.js", "scene/temple-visuals.js", "scene/deities.js", "scene/seasonal.js", "scene/offering-models.js", "scene/altar.js", "scene/courtyard.js", "scene/halls.js", "scene/festival.js", "scene/service.js", "scene/interior.js", "scene/market.js", "scene/temple-plaza.js", "scene/collision.js", "app/visit.js"]) env.load(file);
     const Scene = c.Temple3DScene, init = Scene.prototype.init;
     Scene.prototype.init = function() { this.scene = new THREE.Scene(); };
     const scene = new Scene("canvas3dContainer"); Scene.prototype.init = init;

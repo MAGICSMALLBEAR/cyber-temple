@@ -3,7 +3,7 @@ module.exports = {
   name: "供品購買、擺供收供與財寶模型（無繪圖）",
   async run({ check, note }) {
     const THREE = await import("three"), env = makeEnvironment(THREE), c = env.context;
-    for (const file of ["scene/core.js", "scene/service.js", "scene/architecture.js", "scene/deities.js", "scene/altar.js", "inventory.js", "save-data.js"]) env.load(file);
+    for (const file of ["scene/core.js", "scene/service.js", "scene/architecture.js", "scene/deities.js", "scene/offering-models.js", "scene/altar.js", "inventory.js", "save-data.js"]) env.load(file);
     const bag = c.templeInventory;
     c.temple3d = { avatar: { position: new THREE.Vector3(-4.1, 0, 8.2) } };
     c.localStorage.setItem("temple_feast_dishes", JSON.stringify(["fruit", "peach", "fagao", "redturtle", "guaiguai"]));
@@ -52,6 +52,13 @@ module.exports = {
     check("五品組合可一次擺上且重擺不吃掉庫存", bag.placeOfferingSet(["fruit", "peach", "fagao", "redturtle", "guaiguai"]).ok && bag.placeOfferingSet(["fruit", "peach", "fagao", "redturtle", "guaiguai"]).ok && bag.data.items.fruit === 4);
     d = bag.load(); d.items.fruit = 1000000; bag.save(d); before = snapshot();
     check("背包滿時整批收供被拒絕且不遺失物品", bag.collectOfferings().reason === "full" && snapshot() === before);
+    d = bag.load(); Object.keys(d.items).forEach(id => d.items[id] = 0); Object.assign(d.items, { flowers: 1, goldIngot: 3, incense: 9, paper: 9 }); d.offeringSet = "peace"; bag.save(d);
+    check("提籃先依主題組合順序、各放一樣再放第二份", bag.carryDisplayItems().join() === "flowers,goldIngot,goldIngot");
+    d = bag.load(); d.offeringSet = "wealth"; bag.save(d);
+    check("換主題組合改變排序，香與金紙不進提籃", bag.carryDisplayItems().join() === "goldIngot,flowers,goldIngot");
+    check("提籃數量上限可調，只讀不寫存檔", bag.carryDisplayItems(bag.load(), 1).join() === "goldIngot" && JSON.parse(snapshot()).items.goldIngot === 3);
+    d = bag.load(); d.items.flowers = 0; d.items.goldIngot = 0; bag.save(d);
+    check("背包沒有供品時提籃是空的", bag.carryDisplayItems().length === 0);
     const scene = Object.create(c.Temple3DScene.prototype); scene.scene = new THREE.Scene(); scene.interactiveObjects = [];
     scene.buildAltarAndDeity(); scene.buildOfferings(); scene.buildServiceDesk();
     check("供桌與供品鋪有可點選模型", scene.interactiveObjects.some(o => o.userData.type === "feastTable") && scene.serviceDesk.children.some(o => o.name === "treasureBowl"));

@@ -53,6 +53,7 @@ window.closeFeastModal = function() { document.getElementById("feastModal")?.cla
 
 function updateFeastSlotsUI() {
   const bag = window.templeInventory, d = bag.data, table = d.offering, near = bag.nearOfferingTable();
+  window.temple3d?.avatar?.setRitualItems?.(bag.carryDisplayItems(d));
   window.temple3d?.avatar?.setRitualCarry?.(d.carryMode);
   const carry = document.getElementById("btnBagCarry"); if (carry) carry.textContent = d.carryMode ? "🧺 放下提籃／供盤" : "🧺 提起供品籃";
   const sets = document.getElementById("feastOfferingSets"); if (sets && window.templeBag?.renderOfferingSets) { sets.replaceChildren(); window.templeBag.renderOfferingSets(sets, "table"); }
@@ -98,7 +99,7 @@ function presentFeastOffering() {
   const result = window.templeInventory.presentOfferings();
   if (!result.ok) { feastResult(result, ""); return; }
   window.temple3d?.celebrateFeastOffering?.();
-  window.temple3d?.avatar?.playRitualMotion?.("presentOffering");
+  window.temple3d?.avatar?.playRitualMotion?.("presentOffering", window.templeInventory.data.offering.slots.filter(Boolean));
   if (result.reward) addMerit(result.reward);
   window.emitRitual?.("feast");
   feastResult(result, result.reward ? "🙏 敬獻完成，今日首次獻供 +128 功德。供品保留在桌上，拜完可收供。" : "🙏 敬獻完成。今日獻供功德已領取，供品保留在桌上，拜完可收供。");

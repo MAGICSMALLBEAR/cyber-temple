@@ -168,7 +168,7 @@ class AvatarCompanionsMixin {
       ],
       rot: parseFloat(this.playerGroup.rotation.y.toFixed(3)),
       action: this.currentAction,
-      ritual: { carry: this.ritualCarry || "", motion: this.ritualMotion || null },
+      ritual: { carry: this.ritualCarry || "", items: this.ritualItems || [], motion: this.ritualMotion || null },
       emote: this.emote,
       speech: this.speech,
       hidden: document.hidden,
@@ -225,7 +225,7 @@ class AvatarCompanionsMixin {
     peer.targetRot = data.rot;
     peer.action = data.action || "idle";
     if (typeof normalizeRitualState === "function") {
-      const ritual = normalizeRitualState(data.ritual); peer.ritualCarry = ritual.carry; peer.ritualMotion = ritual.motion;
+      const ritual = normalizeRitualState(data.ritual); peer.ritualCarry = ritual.carry; peer.ritualItems = ritual.items; peer.ritualMotion = ritual.motion;
     }
     peer.lastSeen = performance.now();
     peer.hidden = data.hidden === true;

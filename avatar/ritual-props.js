@@ -1,15 +1,22 @@
 // 參拜道具為外觀，不另存一份庫存；自己與同行共用模型、姿勢與動作時序。
 const RITUAL_MOTION_SECONDS = { placeOffering: 1.35, collectOffering: 1.25, presentOffering: 2.4, incenseOffering: 2.8 };
+const RITUAL_ITEM_LIMIT = 3;
+
+// 提籃／供盤裡的供品清單：只收已知供品代號，最多三樣
+function normalizeRitualItems(list) {
+  const known = typeof OFFERING_MODEL_TYPES !== "undefined" ? OFFERING_MODEL_TYPES : [];
+  return Array.isArray(list) ? list.filter(id => known.includes(id)).slice(0, RITUAL_ITEM_LIMIT) : [];
+}
 
 function normalizeRitualState(value) {
   const carry = ["basket", "tray"].includes(value?.carry) ? value.carry : "";
   const m = value?.motion, now = Date.now();
   const motion = m && Object.hasOwn(RITUAL_MOTION_SECONDS, m.name) && Number.isFinite(m.startedAt) && m.startedAt <= now + 1000 && now - m.startedAt < RITUAL_MOTION_SECONDS[m.name] * 1000
-    ? { name: m.name, startedAt: Math.min(m.startedAt, now) } : null;
-  return { carry, motion };
+    ? { name: m.name, startedAt: Math.min(m.startedAt, now), ...(Array.isArray(m.items) ? { items: normalizeRitualItems(m.items) } : {}) } : null;
+  return { carry, items: normalizeRitualItems(value?.items), motion };
 }
 
-function createRitualProp(kind) {
+function createRitualProp(kind, items = []) {
   const group = new THREE.Group(); group.name = `ritual-${kind}`; group.userData.noCollision = true;
   const wood = new THREE.MeshStandardMaterial({ color: 0x9b6536, roughness: 0.85 });
   const gold = new THREE.MeshStandardMaterial({ color: 0xdbb65c, metalness: 0.65, roughness: 0.35 });
@@ -33,20 +40,30 @@ function createRitualProp(kind) {
     for (const z of [-0.155, 0.155]) add(new THREE.BoxGeometry(0.6, 0.035, 0.018), gold, [0, 0.026, z]);
     for (const x of [-0.29, 0.29]) add(new THREE.BoxGeometry(0.018, 0.035, 0.32), gold, [x, 0.026, 0]);
   }
-  // 小型果品作為提籃／端盤的視覺提示；實際擺盤仍由供桌模型呈現。
-  for (let i = -1; i <= 1; i++) {
-    const mat = new THREE.MeshStandardMaterial({ color: i === 0 ? 0xf5a33d : 0xd94041, roughness: 0.4 });
-    add(new THREE.SphereGeometry(kind === "basket" ? 0.06 : 0.065, 10, 8), mat, [i * (kind === "basket" ? 0.085 : 0.14), kind === "basket" ? 0.1 : 0.08, 0]);
+  // 裝的是背包裡實際有的供品（外觀與神案供盤同款，縮小）；提籃裡不放盤子，供盤上每樣各放小盤。
+  if (typeof buildOfferingDish === "function") {
+    const basket = kind === "basket", gap = basket ? 0.1 : 0.19;
+    items.forEach((id, i) => {
+      const dish = buildOfferingDish(id, { plate: !basket });
+      dish.name = `carry-${id}`; dish.scale.setScalar(basket ? 0.62 : 0.55);
+      dish.position.set((i - (items.length - 1) / 2) * gap, basket ? 0.085 : 0.0175, 0);
+      dish.traverse(o => { if (o.isMesh) o.castShadow = true; });
+      group.add(dish);
+    });
   }
+  group.userData.items = items.slice();
   return group;
 }
 
-function disposeRitualProps(owner) {
+function disposeRitualProp(prop) {
   const geometries = new Set(), materials = new Set();
-  Object.values(owner.ritualProps || {}).forEach(prop => {
-    prop.removeFromParent(); prop.traverse(o => { if (o.geometry) geometries.add(o.geometry); if (o.material) materials.add(o.material); });
-  });
-  geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); owner.ritualProps = {};
+  prop.removeFromParent(); prop.traverse(o => { if (o.geometry) geometries.add(o.geometry); if (o.material) materials.add(o.material); });
+  geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose());
+}
+
+function disposeRitualProps(owner) {
+  Object.values(owner.ritualProps || {}).forEach(disposeRitualProp);
+  owner.ritualProps = {};
 }
 
 function resetRitualPoseFor(owner, limbs) {
@@ -65,8 +82,11 @@ function animateRitualPropsFor(owner, limbs, root, action, time, reduced = false
   if (limbs.heldObject) limbs.heldObject.visible = !kind;
   owner.ritualPoseActive = !!kind;
   if (!kind || !limbs.armL || !limbs.armR) return;
+  // 敬獻時端的是桌上的供品（動作自帶清單），平常是背包裡的；清單變了才重建
+  const items = kind === "incense" ? [] : motion?.items || owner.ritualItems || [];
   let prop = owner.ritualProps[kind];
-  if (!prop) { prop = createRitualProp(kind); owner.ritualProps[kind] = prop; }
+  if (prop && prop.userData.items?.join() !== items.join()) { disposeRitualProp(prop); prop = null; }
+  if (!prop) { prop = createRitualProp(kind, items); owner.ritualProps[kind] = prop; }
   if (prop.parent !== root) root.add(prop);
   prop.visible = true; prop.rotation.set(0, 0, 0);
   const bob = reduced ? 0 : Math.sin(time * (action === "walk" ? 8 : 2)) * 0.012;
@@ -99,10 +119,17 @@ class AvatarRitualPropsMixin {
     if (this.ritualCarry === mode) return;
     this.ritualCarry = mode; this.broadcastMyState?.(true);
   }
-  playRitualMotion(name) {
+  setRitualItems(items = []) {
+    items = normalizeRitualItems(items);
+    if ((this.ritualItems || []).join() === items.join()) return;
+    this.ritualItems = items; this.broadcastMyState?.(true);
+  }
+  // items：這個動作端著的供品，例如敬獻時端的是桌上的；不給就用背包裡的
+  playRitualMotion(name, items) {
     if (!Object.hasOwn(RITUAL_MOTION_SECONDS, name)) return false;
     this.triggerAction("idle");
-    this.ritualMotion = { name, startedAt: Date.now() }; this.broadcastMyState?.(true); return true;
+    this.ritualMotion = { name, startedAt: Date.now(), ...(Array.isArray(items) ? { items: normalizeRitualItems(items) } : {}) };
+    this.broadcastMyState?.(true); return true;
   }
   resetRitualPose() { resetRitualPoseFor(this, this.limbs); }
   animateRitualProps(time) {
