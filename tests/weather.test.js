@@ -42,6 +42,47 @@ module.exports = {
     const seen = []; for (let i = 0; i < 6; i++) { btn.click(); seen.push(w.mode()); }
     check("按鈕依序切換六種模式再回到自動", seen.join() === "clear,cloudy,rain,storm,blossoms,auto");
 
+    // ---- 真實天氣來源 ----
+    const wmo = c.weatherFromWmo;
+    check("WMO 天氣代碼對應：晴、多雲、霧、毛毛雨、陣雨、雷雨", wmo(0) === "clear" && wmo(1) === "clear" && wmo(3) === "cloudy" && wmo(45) === "cloudy" && wmo(53) === "rain" && wmo(81) === "rain" && wmo(95) === "storm" && wmo(99) === "storm" && wmo("x") === null);
+    const urls = []; let reply = { current: { weather_code: 95 } }, failing = false;
+    c.navigator = { onLine: true };
+    c.fetch = async url => { urls.push(url); if (failing) throw new Error("network"); return { ok: true, json: async () => reply }; };
+    const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(r => setImmediate(r)); };
+    calls.length = 0; env.setTime("2026-11-09T04:00:00Z");
+    check("設定視窗預設模擬、地點選單隱藏", w.setSource("sim") && env.nodes.get("selectWeatherSource").value === "sim" && env.nodes.get("weatherCityRow").hidden === true);
+    w.setSource("real"); await settle();
+    check("改成真實天氣：向 Open-Meteo 查台北目前天氣", urls.length === 1 && urls[0].includes("latitude=25.04") && urls[0].includes("longitude=121.56") && urls[0].includes("current=weather_code"));
+    check("取得雷雨後套用到場景並顯示來源", w.current() === "storm" && calls.at(-1)[0] === "storm" && w.label().includes("真實・台北") && !env.nodes.get("weatherCityRow").hidden && env.nodes.get("weatherStatus").textContent.includes("台北目前雷雨"));
+    env.setTime("2026-11-09T04:10:00Z"); w.apply(); await settle();
+    check("20 分鐘內不重複查詢", urls.length === 1);
+    reply = { current: { weather_code: 61 } }; env.setTime("2026-11-09T04:25:00Z"); w.apply(); await settle();
+    check("超過 20 分鐘重新查詢並更新成雨", urls.length === 2 && w.current() === "rain");
+    failing = true; env.setTime("2026-11-09T05:00:00Z"); w.apply(); await settle();
+    check("查詢失敗時先沿用三小時內的舊資料並說明", urls.length === 3 && w.current() === "rain" && env.nodes.get("weatherStatus").textContent.includes("暫時取不到"));
+    w.apply(); w.apply(); env.setTime("2026-11-09T05:03:00Z"); w.apply(); await settle();
+    check("失敗後 5 分鐘內不重試（不會一直打天氣服務）", urls.length === 3);
+    env.setTime("2026-11-09T09:00:00Z"); w.apply(); await settle();
+    check("舊資料超過三小時又取不到就改用模擬", w.current() === w.forecast() && w.label().includes("模擬・真實天氣取不到"));
+    failing = false; reply = { current: { weather_code: 0 } };
+    w.setCity("kaohsiung"); await settle();
+    check("換地點立即查新地點", urls.at(-1).includes("latitude=22.63") && w.current() === "clear" && w.label().includes("高雄"));
+    check("不合法的地點被拒絕", !w.setCity("tokyo") && w.settings().city === "kaohsiung");
+    w.setMode("storm");
+    check("固定天氣優先於真實天氣", w.current() === "storm" && w.label().includes("固定"));
+    w.setMode("auto");
+    const before = urls.length; c.navigator.onLine = false; env.setTime("2026-11-09T12:30:00Z"); w.apply(); await settle();
+    check("離線時不查詢，改用模擬並說明", urls.length === before && w.current() === w.forecast() && env.nodes.get("weatherStatus").textContent.includes("離線"));
+    c.navigator.onLine = true;
+    c.navigator.geolocation = { getCurrentPosition: (ok) => ok({ coords: { latitude: 23.123456, longitude: 120.987654 } }) };
+    await w.useHere(); await settle();
+    check("目前位置只取到小數兩位並用來查詢", w.settings().city === "here" && w.settings().here.lat === 23.12 && urls.at(-1).includes("latitude=23.12&longitude=120.99") && w.label().includes("目前位置"));
+    c.navigator.geolocation = { getCurrentPosition: (ok, fail) => fail(new Error("denied")) };
+    w.setCity("taipei"); await settle(); const ok = await w.useHere();
+    check("不同意定位時地點維持原設定", !ok && w.settings().city === "taipei" && env.nodes.get("weatherStatus").textContent.includes("沒有取得定位同意"));
+    c.localStorage.setItem("temple_weather_real", "{壞"); check("真實天氣快取損壞時忽略", w.cached("taipei") === null);
+    w.setSource("sim"); calls.length = 0;
+
     // ---- 場景 ----
     check("大殿與殿閣下有遮雨，廟埕中央沒有", c.templeSheltered(0, 0) && c.templeSheltered(8.5, 7.5) && c.templeSheltered(13.5, 23.5) && !c.templeSheltered(0, 15) && !c.templeSheltered(0, 9));
     const audio = { rain: [], thunder: 0 };

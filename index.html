@@ -162,7 +162,7 @@
           <option value="midnight">🌌 子時 • 深夜星空</option>
         </select>
       </div>
-      <button class="btn-header" id="btnToggleWeather" title="天氣：依時辰自動變化，按一下可固定某種天氣">☀️ 晴（依時辰）</button>
+      <button class="btn-header" id="btnToggleWeather" title="天氣：跟隨設定中的天氣來源，按一下可固定某種天氣">☀️ 晴（依時辰）</button>
       <button class="btn-header" id="btnSoundMenu" title="聲音與音量：禪音、靜音、三軌音量" aria-haspopup="true" aria-expanded="false">🔊 聲音</button>
       <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
       <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶" aria-label="每日修行">🗓️<span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
@@ -691,6 +691,13 @@
 
       <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>節慶布置</span><select class="temple-select" id="selectFestivalScene" aria-describedby="festivalSceneStatus"><option value="auto">依日期自動</option><option value="none">日常廟景</option><option value="newyear">預覽：新春迎福</option><option value="lantern">預覽：元宵燈會</option><option value="moon">預覽：中秋團圓</option><option value="birthday">預覽：神尊慶典</option></select></label>
       <p class="wall-footnote" id="festivalSceneStatus" role="status" aria-live="polite">依農曆自動切換；預覽不影響修行進度。</p>
+
+      <div class="daily-section-title">🌦️ 天氣</div>
+      <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>天氣來源</span><select class="temple-select" id="selectWeatherSource" aria-describedby="weatherStatus"><option value="sim">模擬：依時辰與季節（不需連網）</option><option value="real">真實天氣（需連網）</option></select></label>
+      <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;" id="weatherCityRow" hidden><span>地點</span><select class="temple-select" id="selectWeatherCity"><option value="taipei">台北</option><option value="keelung">基隆</option><option value="taoyuan">桃園</option><option value="hsinchu">新竹</option><option value="taichung">台中</option><option value="changhua">彰化</option><option value="chiayi">嘉義</option><option value="tainan">台南</option><option value="kaohsiung">高雄</option><option value="pingtung">屏東</option><option value="yilan">宜蘭</option><option value="hualien">花蓮</option><option value="taitung">台東</option><option value="penghu">澎湖</option><option value="kinmen">金門</option><option value="here">目前位置（需同意定位）</option></select></label>
+      <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>固定天氣</span><select class="temple-select" id="selectWeatherMode"><option value="auto">不固定，跟隨天氣來源</option><option value="clear">晴</option><option value="cloudy">多雲</option><option value="rain">雨</option><option value="storm">雷雨</option><option value="blossoms">落瓣</option></select></label>
+      <p class="wall-footnote" id="weatherStatus" role="status" aria-live="polite">依台灣時間的時辰與季節變化。</p>
+      <p class="wall-footnote">真實天氣只會把地點座標送給天氣服務 Open-Meteo（選「目前位置」時取到約一公里精度），不會送出其他資料。取不到時自動改用模擬。</p>
 
       <div style="display: flex; gap: 10px;">
         <button class="btn-dock-action" id="btnSaveSettings" style="flex: 1; justify-content: center;">
