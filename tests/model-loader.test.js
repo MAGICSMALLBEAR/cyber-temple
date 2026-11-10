@@ -60,7 +60,9 @@ module.exports = {
         { file: "missing.glb", replace: "wishingPond", height: 3 },
         { file: "../secret.glb", position: [0, 0, 0] },
         { file: "http://example.com/x.glb", position: [0, 0, 0] },
-        { file: "box.glb", replace: "不存在的物件" }
+        { file: "box.glb", replace: "不存在的物件" },
+        { file: "box.glb", replace: "muyu", height: 0.3 },
+        { file: "box.glb", replace: "prayerMat", height: 0.2, replaceAll: true, collision: false }
       ] }) });
       if (url.endsWith("box.glb")) return route.fulfill({ contentType: "model/gltf-binary", body: makeBoxGlb() });
       if (url.endsWith("broken.glb")) return route.fulfill({ contentType: "model/gltf-binary", body: Buffer.from("這不是模型") });
@@ -70,8 +72,8 @@ module.exports = {
     const errs = [];
     p.on("pageerror", e => errs.push(e.message));
     await p.goto(base);
-    const done = await waitFor(() => p.evaluate(() => (temple3d.templeModels || []).length === 8 && temple3d.templeModels.every(m => m.status === "loaded" || m.status === "failed")), { timeout: 30000 });
-    check("八筆清單都處理完", !!done);
+    const done = await waitFor(() => p.evaluate(() => (temple3d.templeModels || []).length === 10 && temple3d.templeModels.every(m => m.status === "loaded" || m.status === "failed")), { timeout: 30000 });
+    check("十筆清單都處理完", !!done);
 
     const r = await p.evaluate(() => {
       const t = temple3d, models = t.templeModels, ok = models.filter(m => m.status === "loaded");
@@ -79,7 +81,11 @@ module.exports = {
       const censer = box(ok[0].object);
       return {
         status: models.map(m => m.status), censer,
-        censerHidden: t.heavenCenser.visible === false,
+        censerHidden: t.heavenCenser.getObjectByName("heavenCenserBowl")?.visible === false || (() => { let shown = 0; t.heavenCenser.traverse(o => { if (o.isMesh && o.visible && !/heavenCenser(Stick|Ember)/.test(o.name)) shown++; }); return shown === 0; })(),
+        censerEffectsKept: ["heavenCenserStick", "heavenCenserEmber"].every(n => { const o = t.heavenCenser.getObjectByName(n); if (!o) return false; for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }),
+        muyu: box(ok[3].object), muyuTableY: (() => { const v = new THREE.Vector3(); t.scene.getObjectByName("muyu").getWorldPosition(v); return v.y; })(),
+        mats: t.scene.children.filter(o => o.name.startsWith("model-box.glb") && o !== ok[0].object && o !== ok[2].object && o !== ok[3].object).length,
+        matsHidden: (() => { const list = []; t.scene.traverse(o => { if (o.name === "prayerMat") list.push(o); }); return list.length === 2 && list.every(g => { let shown = 0; g.traverse(o => { if (o.isMesh && o.visible) shown++; }); return shown === 0; }); })(),
         censerStillClickable: t.interactiveObjects.some(o => o.userData?.type === "heavenCenser"),
         censerCollision: t.collisionBoxes.some(b => b.minX < 0 && b.maxX > 0 && b.minZ < 11.5 && b.maxZ > 11.5),
         furnaceKept: t.jossFurnace.visible === true, pondKept: t.wishingPond.visible === true,
@@ -87,11 +93,14 @@ module.exports = {
         errors: models.map(m => m.error)
       };
     });
-    check("三筆正常模型載入成功，其餘失敗", r.status.filter(s => s === "loaded").length === 3, r.status.join(","));
+    check("五筆正常模型載入成功，其餘失敗", r.status.filter(s => s === "loaded").length === 5, r.status.join(","));
     check("依指定高度縮放", Math.abs(r.censer.h - 2) < 0.01, String(r.censer.h));
     check("底部貼地", Math.abs(r.censer.min) < 0.01, String(r.censer.min));
     check("置中在被取代物件的位置", Math.abs(r.censer.x) < 0.01 && Math.abs(r.censer.z - 11.5) < 0.01, `${r.censer.x},${r.censer.z}`);
-    check("原物件隱藏", r.censerHidden);
+    check("原物件的實體部分隱藏", r.censerHidden);
+    check("原物件的大香與火光保留可見", r.censerEffectsKept);
+    check("桌上物件沿用原本高度，不會掉到地上", r.muyuTableY > 1 && Math.abs(r.muyu.min - r.muyuTableY) < 0.01, `${r.muyu.min} / ${r.muyuTableY}`);
+    check("replaceAll 換掉所有同名物件", r.mats === 2 && r.matsHidden, `${r.mats}`);
     check("原物件的點選互動保留", r.censerStillClickable);
     check("替換後碰撞改由模型提供", r.censerCollision);
     check("自由放置的位置正確", Math.abs(r.free.x - 6) < 0.01 && Math.abs(r.free.z - 21) < 0.01 && Math.abs(r.free.h - 1) < 0.01, JSON.stringify(r.free));

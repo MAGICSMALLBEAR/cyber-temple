@@ -8,7 +8,9 @@ const TRIGGERS = [
   ["祈願木牌閣", -13.5, 8.5, 2.6], ["文昌閣", 13.5, 5.5, 3.2], ["月老閣", 13.5, 23.5, 3.2],
   ["財神洞窟", -13.5, 23.5, 3.2], ["太歲殿", -13.5, 5.5, 3.2], ["山門", 0, 38, 3.8],
   ["西石獅", -5.5, 34, 2.6], ["東石獅", 5.5, 34, 2.6], ["香案", 0, 0, 1.6], ["筊杯", 0, 1.8, 1.4],
-  ["籤筒", 1.4, 0, 1.5], ["木魚", -1.4, 0, 1.5], ["東天鐘樓", 9.5, 30, 3.2], ["西暮鼓樓", -9.5, 30, 3.2]
+  ["籤筒", 1.4, 0, 1.5], ["木魚", -1.4, 0, 1.5], ["東天鐘樓", 9.5, 30, 3.2], ["西暮鼓樓", -9.5, 30, 3.2],
+  // 同行供席：點選開啟，不是 [E]；仍要走得到桌邊（距桌心 1.1m 內）
+  ["東一席", 3.15, 1.15, 1.1], ["西一席", -3.15, 1.15, 1.1], ["東二席", 2.95, 5.0, 1.1], ["西二席", -2.95, 5.0, 1.1]
 ];
 
 module.exports = {
@@ -111,6 +113,22 @@ module.exports = {
       return triggers.filter(([, tx, tz, d]) => !cells.some(([x, z]) => Math.hypot(x - tx, z - tz) < d - 0.1)).map(t => t[0]);
     }, TRIGGERS);
     check("每個 [E] 觸發點都走得到觸發距離以內", unreachable.length === 0, unreachable.join("、"));
+
+    // 同行供席不能和大殿原有擺設重疊：與供席範圍相交、又超出範圍的碰撞方塊就是別的物件
+    const overlaps = await p.evaluate(() => {
+      const t = window.temple3d, out = [];
+      t.peerTablesGroup.updateMatrixWorld(true);
+      t.peerTableSlots.forEach(slot => {
+        const r = new THREE.Box3().setFromObject(slot.tableMeshGroup);
+        t.collisionBoxes.forEach(b => {
+          const hit = b.maxX > r.min.x + 0.01 && b.minX < r.max.x - 0.01 && b.maxZ > r.min.z + 0.01 && b.minZ < r.max.z - 0.01;
+          const inside = b.minX >= r.min.x - 0.02 && b.maxX <= r.max.x + 0.02 && b.minZ >= r.min.z - 0.02 && b.maxZ <= r.max.z + 0.02;
+          if (hit && !inside) out.push(`${slot.label}×${b.name}`);
+        });
+      });
+      return out;
+    });
+    check("同行供席不壓到大殿原有擺設", overlaps.length === 0, overlaps.join("、"));
     check("沒有 JS 錯誤", errs.length === 0, errs.join(" | "));
     await browser.close();
   }

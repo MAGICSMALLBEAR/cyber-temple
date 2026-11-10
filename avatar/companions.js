@@ -1,5 +1,11 @@
 // avatar/companions.js - 同殿的其他人：真人連線的同行分身（BroadcastChannel／SSE 同步）與廟內 NPC 善信
 
+// 分流房間：預設四殿，其餘是自訂密室房號（與 server.js normalizeRoom 相同規則）
+const PEER_ROOM_NAMES = { main: "天樞殿", east: "玉衡殿", west: "開陽殿", zen: "天璇殿" };
+function normalizePeerRoom(name) {
+  return typeof name === "string" ? (name.trim().slice(0, 32) || "main") : "main";
+}
+
 class AvatarCompanionsMixin {
   // 生成遍布三進廟宇各處的同行 NPC 善信 (沉浸式寧靜零社交同在氛圍)
   spawnQuietCompanions() {
@@ -81,26 +87,36 @@ class AvatarCompanionsMixin {
     // 背景分頁不繪圖時仍維持真人連線。
     // 背景分頁暫停繪圖時，固定每 2 秒強制送心跳（非強制會因「距上次不足 1.8 秒」被跳過，間隔可能拉長到近 4 秒）
     setInterval(() => { if (document.hidden) this.broadcastMyState(true); }, 2000);
+    this.currentRoom = normalizePeerRoom(localStorage.getItem("temple_room"));
     if (this.channel) {
       this.channel.addEventListener("message", (event) => {
         const data = event.data;
-        if (!data) return;
+        if (!data || !this.isSameRoom(data)) return;
 
         if (data.type === "PEER_AVATAR_UPDATE") {
           if (data.id === this.myPeerId) return;
           this.handlePeerUpdate(data);
+        } else if (data.type === "PEER_TABLE_UPDATE") {
+          if (data.id === this.myPeerId) return;
+          this.handlePeerTable(data);
         } else if (data.type === "PEER_AVATAR_LEAVE") {
           this.removePeer(data.id);
         } else if (data.type === "PEER_AVATAR_HELLO") {
           if (data.id !== this.myPeerId) {
             this.broadcastMyState(true);
+            this.broadcastMyOfferingTable();
           }
         }
       });
 
       // 入殿時向全頻道打招呼，請求既有信眾同步
-      this.channel.postMessage({ type: "PEER_AVATAR_HELLO", id: this.myPeerId });
+      this.channel.postMessage({ type: "PEER_AVATAR_HELLO", id: this.myPeerId, room: this.currentRoom });
     }
+
+    // 監聽本地供品異動，自動廣播最新供桌狀態
+    window.addEventListener("temple:inventory", () => {
+      this.broadcastMyOfferingTable();
+    });
 
     // 關閉頁面會先觸發 visibilitychange 的「背景」心跳，對方會以 120 秒逾時保留分身，必須明確告知離開。
     window.addEventListener("pagehide", () => this.announceLeave());
@@ -110,31 +126,126 @@ class AvatarCompanionsMixin {
       this.broadcastMyState(true);
     });
 
-    // 有即時伺服器時才用 SSE 跨裝置同步（偵測結果見 live-wall.js 的 window.templeServer）
+    // 監聽重新回到畫面或網路恢復，主動檢查連線並重新同步同行分身
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        this.checkAndReconnectServer();
+        this.broadcastMyState(true);
+      }
+    });
+    window.addEventListener("online", () => {
+      this.checkAndReconnectServer();
+      this.broadcastMyState(true);
+    });
+
+    this.connectServerEvents();
+  }
+
+  connectServerEvents() {
+    if (this.evtSource) {
+      try { this.evtSource.close(); } catch (e) {}
+      this.evtSource = null;
+    }
     const serverReady = window.templeServer ? window.templeServer.ready : Promise.resolve(false);
     serverReady.then(ok => {
       if (!ok) return;
       try {
-        const evtSource = new EventSource("/api/events");
+        const room = this.currentRoom;
+        const evtSource = new EventSource(`/api/events?room=${encodeURIComponent(room)}`);
+        this.evtSource = evtSource;
         evtSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (!data) return;
+            if (!data || !this.isSameRoom(data)) return;
             if (data.type === "PEER_AVATAR_UPDATE" && data.id !== this.myPeerId) {
               this.handlePeerUpdate(data);
+            } else if (data.type === "PEER_TABLE_UPDATE" && data.id !== this.myPeerId) {
+              this.handlePeerTable(data);
             } else if (data.type === "PEER_AVATAR_LEAVE") {
               this.removePeer(data.id);
             }
           } catch (e) {}
         };
+        evtSource.onerror = () => {
+          // 一般斷線 EventSource 會自己重連；只有被關閉（例如 503 滿線）才由這裡稍後重試
+          if (evtSource.readyState === EventSource.CLOSED && this.evtSource === evtSource) {
+            this.evtSource = null;
+            setTimeout(() => this.connectServerEvents(), 3000);
+          }
+        };
       } catch (err) {}
     });
+  }
+
+  // 只處理同一房間的訊息；舊版沒帶房間的訊息視為主殿
+  isSameRoom(data) {
+    return normalizePeerRoom(data.room) === this.currentRoom;
+  }
+
+  // 同行供桌：分身還沒出現就先記著，等分身建立再擺；分身離開時一併清掉
+  handlePeerTable(data) {
+    if (!data.id) return;
+    if (!this.peers.has(data.id)) {
+      if (!this.pendingPeerTables) this.pendingPeerTables = new Map();
+      this.pendingPeerTables.set(data.id, data);
+      return;
+    }
+    window.temple3d?.updatePeerOfferingTable?.(data.id, data);
+  }
+
+  // 廣播本機供桌布置。只送角色稱呼與桌上供品，心願手帳與敬獻時填的稱呼屬於私人資料，不送出
+  broadcastMyOfferingTable() {
+    if (this.hasLeft) return;
+    const inv = window.templeInventory?.load?.();
+    if (!inv) return;
+    const off = inv.offering || {};
+    const msg = {
+      type: "PEER_TABLE_UPDATE",
+      id: this.myPeerId,
+      room: this.currentRoom,
+      name: String(this.config?.title || "善信").slice(0, 20),
+      slots: (Array.isArray(off.slots) ? off.slots : []).slice(0, 5),
+      tableStyle: off.style || "wood",
+      presented: !!off.presented
+    };
+    if (this.channel) this.channel.postMessage(msg);
+    if (window.templeServer && window.templeServer.available) {
+      fetch("/api/broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(msg)
+      }).catch(() => {});
+    }
+  }
+
+  // 切換分流房間：先向舊房間告別、清掉舊房的分身與供桌，再連新房間
+  switchRoom(newRoom = "main") {
+    const room = normalizePeerRoom(newRoom);
+    if (this.currentRoom === room) return;
+    this.announceLeave();
+    [...this.peers.keys()].forEach(id => this.removePeer(id));
+    this.pendingPeerTables?.clear();
+    this.hasLeft = false;
+    this.currentRoom = room;
+    localStorage.setItem("temple_room", room);
+    this.connectServerEvents();
+    if (this.channel) this.channel.postMessage({ type: "PEER_AVATAR_HELLO", id: this.myPeerId, room });
+    this.broadcastMyState(true);
+    this.broadcastMyOfferingTable();
+    window.dispatchEvent(new CustomEvent("temple:roomchange", { detail: { room } }));
+    if (window.liveTempleWall) window.liveTempleWall.showBroadcastNotice(`🏛️ 已切換分流房間：【${PEER_ROOM_NAMES[room] || "密室 " + room}】`);
+  }
+
+  checkAndReconnectServer() {
+    if (!this.evtSource || this.evtSource.readyState === EventSource.CLOSED) {
+      this.connectServerEvents();
+    }
   }
 
   // 告知同行本機已離開：同瀏覽器走 BroadcastChannel，跨裝置走伺服器；sendBeacon 在頁面關閉時仍送得出去
   announceLeave() {
     this.hasLeft = true;
-    const msg = { type: "PEER_AVATAR_LEAVE", id: this.myPeerId };
+    const msg = { type: "PEER_AVATAR_LEAVE", id: this.myPeerId, room: this.currentRoom };
     if (this.channel) this.channel.postMessage(msg);
     if (window.templeServer && window.templeServer.available && navigator.sendBeacon) {
       navigator.sendBeacon("/api/broadcast", new Blob([JSON.stringify(msg)], { type: "application/json" }));
@@ -160,6 +271,7 @@ class AvatarCompanionsMixin {
     const payload = {
       type: "PEER_AVATAR_UPDATE",
       id: this.myPeerId,
+      room: this.currentRoom,
       config: this.config,
       pos: [
         parseFloat(this.position.x.toFixed(3)),
@@ -199,6 +311,10 @@ class AvatarCompanionsMixin {
       if (window.templeAudio) {
         window.templeAudio.playBell(720);
       }
+      // 新同行（含跨裝置剛進房的人）：補送自己的供桌，並擺上先前收到的對方供桌
+      this.broadcastMyOfferingTable();
+      const pendingTable = this.pendingPeerTables?.get(data.id);
+      if (pendingTable) { this.pendingPeerTables.delete(data.id); window.temple3d?.updatePeerOfferingTable?.(data.id, pendingTable); }
       const title = (data.config && data.config.title) ? data.config.title : "善信";
       if (document.getElementById("dockStatusBar")) {
         document.getElementById("dockStatusBar").innerText = `✨ 善信【${title}】已踏入大殿，同頻共修！`;
@@ -392,6 +508,8 @@ class AvatarCompanionsMixin {
       this.scene.remove(peer.group);
       this.peers.delete(id);
     }
+    this.pendingPeerTables?.delete(id);
+    window.temple3d?.removePeerOfferingTable?.(id);
   }
 
   // 更新所有同行分身位移與動作動畫

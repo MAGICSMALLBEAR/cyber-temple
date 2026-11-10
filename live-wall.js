@@ -112,19 +112,43 @@ class LiveTempleWall {
       this.channel = new BroadcastChannel("temple_realtime_stream");
       this.channel.onmessage = (event) => this.receive(event.data);
     }
+    const connectSSE = () => {
+      if (this.eventSource) {
+        try { this.eventSource.close(); } catch (e) {}
+        this.eventSource = null;
+      }
+      try {
+        const es = this.eventSource = new EventSource("/api/events");
+        es.onmessage = (event) => {
+          try {
+            this.receive(JSON.parse(event.data));
+          } catch (e) {}
+        };
+        es.onerror = () => {
+          if (es.readyState === EventSource.CLOSED) {
+            this.eventSource = null;
+            setTimeout(connectSSE, 3000);
+          }
+        };
+      } catch (e) {}
+    };
+
     window.templeServer.ready.then(ok => {
       if (!ok || !("EventSource" in window)) {
         this.showNoServerNote();
         return;
       }
-      try {
-        this.eventSource = new EventSource("/api/events");
-        this.eventSource.onmessage = (event) => {
-          try {
-            this.receive(JSON.parse(event.data));
-          } catch (e) {}
-        };
-      } catch (e) {}
+      connectSSE();
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && (!this.eventSource || this.eventSource.readyState === EventSource.CLOSED)) {
+          connectSSE();
+        }
+      });
+      window.addEventListener("online", () => {
+        if (!this.eventSource || this.eventSource.readyState === EventSource.CLOSED) {
+          connectSSE();
+        }
+      });
     });
   }
 

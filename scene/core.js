@@ -164,6 +164,7 @@ class Temple3DScene {
     this.buildChiamBucket();
     this.buildMuyu();
     this.buildOfferings();
+    this.initPeerTables?.();   // 多人同行信眾供席
     this.buildLanternPagodas();
     this.buildServiceDesk();   // 廟埕服務處（完整參拜流程的第一站）
     this.buildHallInterior();
@@ -601,6 +602,9 @@ class Temple3DScene {
         window.pilgrimage?.claimSupplies();
       } else if (type === "feastTable") {
         window.openFeastModal?.();
+      } else if (type === "peerAltarTable") {
+        const slotIdx = intersects[0].object.userData.slotIndex;
+        window.openPeerTableModal?.(slotIdx);
       } else if (type === "censer") {
         document.getElementById("btnLightIncense")?.click();
       } else if (type === "bwa") {

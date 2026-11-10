@@ -1853,6 +1853,12 @@
         <button type="button" class="feast-dish-picker feast-treasure" data-dish="goldIngot"><span class="feast-picker-icon" data-item="goldIngot" aria-hidden="true">🟨</span><span>金元寶盤</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker feast-treasure" data-dish="silverIngot"><span class="feast-picker-icon" data-item="silverIngot" aria-hidden="true">⬜</span><span>銀元寶盤</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker feast-treasure" data-dish="treasureBowl"><span class="feast-picker-icon" aria-hidden="true">💰</span><span>金銀聚寶盆</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker feast-treasure" data-dish="ingotTower"><span class="feast-picker-icon" aria-hidden="true">🪙</span><span>九層元寶塔</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker feast-treasure" data-dish="goldBars"><span class="feast-picker-icon" aria-hidden="true">🧱</span><span>萬兩金條盤</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker feast-treasure" data-dish="coinString"><span class="feast-picker-icon" aria-hidden="true">📿</span><span>五帝銅錢串</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="teaSet"><span class="feast-picker-icon" aria-hidden="true">🍵</span><span>三才清茶組</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="flowerBasket"><span class="feast-picker-icon" aria-hidden="true">🧺</span><span>精緻祈安花籃</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="fruitTower"><span class="feast-picker-icon" aria-hidden="true">🍍</span><span>十全水果塔</span><small class="feast-stock">背包 0 份</small></button>
       </div>
       <fieldset class="feast-wish" id="feastWishBox">
         <legend>這次敬獻的心意（都可不填）</legend>
@@ -1959,6 +1965,7 @@
         <div class="pavilion-card" id="btnOpenJournal" data-cat="lore"><div class="card-icon">📖</div><div class="card-body"><div class="card-title">心願手帳</div><div class="card-desc">自己的祈願、心得與還願紀錄，也可關聯籤詩</div></div></div>
         <div class="pavilion-card" id="btnOpenMarket" data-cat="grounds"><div class="card-icon">🏮</div><div class="card-body"><div class="card-title">廟埕小夜市</div><div class="card-desc">免費套圈圈贏平安幣、觀賞平安掌中戲《借傘記》</div></div></div>
         <div class="pavilion-card" id="btnOpenBagPavilion" data-cat="grounds"><div class="card-icon">🎒</div><div class="card-body"><div class="card-title">平安行囊與服務處</div><div class="card-desc">每日補給、平安幣、香品供品、胸前平安符與籤詩收藏</div></div></div>
+        <div class="pavilion-card" id="btnOpenRoomPavilion" data-cat="grounds"><div class="card-icon">🏛️</div><div class="card-body"><div class="card-title">殿堂房間分流</div><div class="card-desc">目前在<span id="roomCardName">天樞殿</span>；可切換玉衡、開陽、天璇或自訂同頻密室</div></div></div>
         <!-- 殿堂與廟埕 -->
         <div class="pavilion-card" id="btnOpenSideHalls" data-cat="grounds">
           <div class="card-icon">🏛️</div>
@@ -2275,6 +2282,48 @@
     </div>
   </div>
 
+  <!-- 殿堂房間分流彈窗 -->
+  <div class="modal-overlay" id="roomModal">
+    <div class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
+      <button class="modal-close" id="roomClose" aria-label="關閉分流視窗">&times;</button>
+      <h3 id="roomTitle">🏛️ 殿堂房間分流</h3>
+      <p class="wall-footnote" style="margin-bottom: 12px;">選擇不同分流大殿，可與同房間善信即時同頻、互見分身與供桌。滿房時可切換空閒分流。</p>
+      <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;" id="roomQuickPickGroup">
+        <button class="btn-custom-pill room-pick-btn active" data-room="main">🌟 天樞殿 (主線)</button>
+        <button class="btn-custom-pill room-pick-btn" data-room="east">🌅 玉衡殿 (東翼)</button>
+        <button class="btn-custom-pill room-pick-btn" data-room="west">🌇 開陽殿 (西翼)</button>
+        <button class="btn-custom-pill room-pick-btn" data-room="zen">📿 天璇殿 (清修)</button>
+      </div>
+      <div style="margin-top: 10px;">
+        <label for="customRoomInput">或輸入專屬密室房號（與好友同頻）：</label>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <input class="temple-input" id="customRoomInput" placeholder="例如：room-888" maxlength="24">
+          <button class="btn-dock-action" id="btnJoinCustomRoom" style="width: auto; padding: 0 16px;">進入房間</button>
+        </div>
+      </div>
+      <p id="roomCurrentStatus" class="wall-footnote" style="margin-top: 14px; color: var(--gold-bright);">目前所在分流：🌟 天樞殿 (main)</p>
+    </div>
+  </div>
+
+  <!-- 同行善信供桌互動彈窗 -->
+  <div class="modal-overlay" id="peerTableModal">
+    <div class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="peerTableTitle">
+      <button class="modal-close" id="peerTableClose" aria-label="關閉供席視窗">&times;</button>
+      <h3 id="peerTableTitle">🍱 同行善信虔誠供席</h3>
+      <div id="peerTableContent" style="padding: 10px 0;">
+        <p id="peerTableName" style="font-size: 1.15rem; color: var(--gold-bright); font-weight: bold; margin-bottom: 6px;"></p>
+        <p id="peerTableWish" style="font-size: 0.95rem; color: #ddd; margin-bottom: 12px;"></p>
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 0.85rem; color: #aaa;">桌上敬獻供品：</label>
+          <div id="peerTableDishesList" style="display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;"></div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+          <button class="btn-dock-action" id="btnPeerPraise">🙏 隨喜讚嘆 (+6 功德)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 引入 3D WebGL 與功能模組 -->
   <!-- Three.js r187（含 OrbitControls、VRButton）打包成一支腳本；重新產生：npm run build:three -->
   <script src="libs/three.bundle.min.js"></script>
@@ -2316,6 +2365,7 @@
   <script src="scene/market.js"></script>
   <script src="scene/temple-plaza.js"></script>
   <script src="scene/model-loader.js"></script>
+  <script src="scene/peer-tables.js"></script>
   <script src="scene/xr.js"></script>
   <script src="scene/collision.js"></script>
   <script src="beads.js"></script>

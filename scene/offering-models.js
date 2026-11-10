@@ -2,8 +2,8 @@
 // 神案供盤、供品鋪樣品、角色提籃與端盤共用同一套外觀；每次呼叫都建新的幾何與材質，呼叫端負責釋放。
 // 原點在盤底中央、朝上擺放，盤子直徑約 0.36。
 
-const OFFERING_MODEL_TYPES = ["fruit", "peach", "fagao", "redturtle", "guaiguai", "milktea", "chicken", "flowers", "goldIngot", "silverIngot", "treasureBowl"];
-const TREASURE_MODEL_TYPES = ["goldIngot", "silverIngot", "treasureBowl"];
+const OFFERING_MODEL_TYPES = ["fruit", "peach", "fagao", "redturtle", "guaiguai", "milktea", "chicken", "flowers", "goldIngot", "silverIngot", "treasureBowl", "ingotTower", "goldBars", "coinString", "teaSet", "flowerBasket", "fruitTower"];
+const TREASURE_MODEL_TYPES = ["goldIngot", "silverIngot", "treasureBowl", "ingotTower", "goldBars", "coinString"];
 
 function buildIngotModel(silver = false) {
   const group = new THREE.Group(); group.name = silver ? "silver-ingot" : "gold-ingot";
@@ -25,6 +25,52 @@ function buildTreasureOffering(type) {
     const red = new THREE.MeshStandardMaterial({ color: 0x9d1b26, roughness: 0.38, metalness: 0.25 });
     const vessel = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.09, 0.11, 20), red); vessel.position.y = 0.08; g.add(vessel);
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.013, 6, 24), new THREE.MeshStandardMaterial({ color: 0xeabd50, metalness: 0.8, roughness: 0.3 })); rim.rotation.x = Math.PI / 2; rim.position.y = 0.138; g.add(rim);
+  }
+  if (type === "ingotTower") {
+    // 🪙 九層元寶塔：三層立體堆疊金元寶
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xf6c34b, metalness: 0.88, roughness: 0.25 });
+    for (let i = 0; i < 4; i++) {
+      const ing = buildIngotModel(false); ing.scale.setScalar(0.42);
+      const angle = (i / 4) * Math.PI * 2;
+      ing.position.set(Math.cos(angle) * 0.08, 0.04, Math.sin(angle) * 0.08);
+      ing.rotation.y = angle; g.add(ing);
+    }
+    for (let i = 0; i < 2; i++) {
+      const ing = buildIngotModel(false); ing.scale.setScalar(0.38);
+      ing.position.set((i - 0.5) * 0.08, 0.095, 0); g.add(ing);
+    }
+    const topIngot = buildIngotModel(false); topIngot.scale.setScalar(0.35); topIngot.position.set(0, 0.145, 0); g.add(topIngot);
+    const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), goldMat); pearl.position.set(0, 0.21, 0); g.add(pearl);
+    return g;
+  }
+  if (type === "goldBars") {
+    // 🧱 萬兩金條盤：雙排 6 根黃金條磚
+    const goldBarMat = new THREE.MeshStandardMaterial({ color: 0xf6ba35, metalness: 0.85, roughness: 0.22 });
+    for (let layer = 0; layer < 2; layer++) {
+      for (let i = 0; i < 3; i++) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.026, 0.045), goldBarMat);
+        bar.position.set((i - 1) * 0.05, 0.04 + layer * 0.028, (layer % 2 === 0 ? 0 : 0.01));
+        if (layer === 1) bar.rotation.y = Math.PI / 2;
+        g.add(bar);
+      }
+    }
+    return g;
+  }
+  if (type === "coinString") {
+    // 📿 五帝銅錢串：紅線串連五枚古幣與朱紅流蘇
+    const coinMat = new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.8, roughness: 0.3 });
+    const redCord = new THREE.MeshStandardMaterial({ color: 0xb91c1c, roughness: 0.6 });
+    for (let i = 0; i < 5; i++) {
+      const c = new THREE.Mesh(new THREE.TorusGeometry(0.028, 0.006, 6, 16), coinMat);
+      c.rotation.x = Math.PI / 2;
+      c.position.set((i - 2) * 0.042, 0.04 + (i % 2) * 0.008, 0);
+      g.add(c);
+    }
+    const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.24, 8), redCord);
+    cord.rotation.z = Math.PI / 2; cord.position.set(0, 0.042, 0); g.add(cord);
+    const tassel = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.06, 8), redCord);
+    tassel.rotation.z = -Math.PI / 2; tassel.position.set(0.14, 0.042, 0); g.add(tassel);
+    return g;
   }
   const count = bowl ? 5 : 3;
   for (let i = 0; i < count; i++) {
@@ -106,6 +152,39 @@ function buildOfferingDish(type, { plate = true } = {}) {
     add(new THREE.CylinderGeometry(0.04, 0.03, 0.12, 12), vaseMat, 0, 0.07, 0);
     const flowerMat = new THREE.MeshStandardMaterial({ color: 0xfef08a });
     for (let f = 0; f < 3; f++) add(new THREE.SphereGeometry(0.03, 8, 8), flowerMat, (f - 1) * 0.025, 0.14, 0);
+  } else if (type === "teaSet") {
+    // 🍵 三才敬神清茶組
+    const cupMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.2 });
+    const teaLiquidMat = new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.1 });
+    const trayMat = new THREE.MeshStandardMaterial({ color: 0x5c2b16, roughness: 0.4 });
+    add(new THREE.BoxGeometry(0.24, 0.015, 0.1), trayMat, 0, 0.035, 0);
+    [-0.07, 0, 0.07].forEach(cx => {
+      add(new THREE.CylinderGeometry(0.024, 0.016, 0.04, 12), cupMat, cx, 0.06, 0);
+      add(new THREE.CircleGeometry(0.021, 10), teaLiquidMat, cx, 0.078, 0).rotation.x = -Math.PI / 2;
+    });
+  } else if (type === "flowerBasket") {
+    // 🧺 精緻祈安花籃
+    const basketMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.75 });
+    const petalRed = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.3 });
+    const petalPink = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.3 });
+    add(new THREE.CylinderGeometry(0.09, 0.065, 0.08, 14), basketMat, 0, 0.05, 0);
+    const handle = new THREE.Mesh(new THREE.TorusGeometry(0.08, 0.008, 6, 16, Math.PI), basketMat);
+    handle.position.set(0, 0.085, 0); dishGroup.add(handle);
+    for (let f = 0; f < 5; f++) {
+      const a = (f / 5) * Math.PI * 2;
+      add(new THREE.SphereGeometry(0.026, 8, 8), f % 2 === 0 ? petalRed : petalPink, Math.cos(a) * 0.045, 0.095, Math.sin(a) * 0.045);
+    }
+  } else if (type === "fruitTower") {
+    // 🍍 十全水果塔
+    const pineappleMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 });
+    const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.35 });
+    const grapeMat = new THREE.MeshStandardMaterial({ color: 0x7e22ce, roughness: 0.2 });
+    add(new THREE.CylinderGeometry(0.055, 0.065, 0.12, 12), pineappleMat, 0, 0.08, 0);
+    for (let o = 0; o < 4; o++) {
+      const a = (o / 4) * Math.PI * 2;
+      add(new THREE.SphereGeometry(0.028, 8, 8), orangeMat, Math.cos(a) * 0.05, 0.14, Math.sin(a) * 0.05);
+    }
+    add(new THREE.SphereGeometry(0.026, 8, 8), grapeMat, 0, 0.18, 0);
   }
   // 沒用到的共用材質一併釋放，避免累積
   [goldPlateMat, redPlateMat, greenMat].forEach(mat => { let used = false; dishGroup.traverse(o => { if (o.material === mat) used = true; }); if (!used) mat.dispose(); });

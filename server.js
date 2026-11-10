@@ -4,7 +4,20 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = Number(process.env.PORT) || 8080;
-const sseClients = new Set();
+// 房間分流：Map<房名, Set<Response>>。預設四殿之外也可自訂密室房號，房名只在這裡正規化一次
+const rooms = new Map();
+const DEFAULT_ROOM = 'main';
+const PRESET_ROOMS = ['main', 'east', 'west', 'zen'];
+
+function normalizeRoom(name) {
+  return typeof name === 'string' ? (name.trim().slice(0, 32) || DEFAULT_ROOM) : DEFAULT_ROOM;
+}
+
+function totalClientCount() {
+  let count = 0;
+  rooms.forEach(set => { count += set.size; });
+  return count;
+}
 const MAX_BROADCAST_BYTES = 64 * 1024;
 // 同時連線的即時頻道上限，避免被大量連線拖垮
 const MAX_SSE_CLIENTS = Number(process.env.MAX_SSE_CLIENTS) || 200;
@@ -40,6 +53,20 @@ setInterval(() => {
   buckets.forEach((b, k) => { if (b.at < cutoff) buckets.delete(k); });
 }, 60000).unref();
 
+// 定期向所有房間的 SSE 即時連線發送心跳保活註解（:keepalive），防止中介代理或行動裝置逾時切斷
+setInterval(() => {
+  rooms.forEach((set, roomName) => {
+    set.forEach(client => {
+      try {
+        client.write(':keepalive\n\n');
+      } catch (e) {
+        set.delete(client);
+      }
+    });
+    if (set.size === 0) rooms.delete(roomName);
+  });
+}, 15000).unref();
+
 const MIME_TYPES = {
   '.html': 'text/html; charset=UTF-8',
   '.css': 'text/css; charset=UTF-8',
@@ -54,33 +81,50 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
+  const reqUrl = new URL(req.url, 'http://localhost');
+
   // 0. 連線偵測：前端用來判斷有沒有伺服器（放在靜態空間時沒有，就改為單機模式）
-  if (req.url === '/api/ping') {
+  if (reqUrl.pathname === '/api/ping') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     res.end('{"ok":true}');
     return;
   }
 
-  // 1. 即時連線 SSE 頻道 (供跨裝置/區域網路多人分身同頻)
-  if (req.url === '/api/events') {
-    if (sseClients.size >= MAX_SSE_CLIENTS) {
+  // 0.1 預設四殿的連線數；自訂密室的房號不列出，避免被別人看到或闖入
+  if (reqUrl.pathname === '/api/rooms' && req.method === 'GET') {
+    const list = {};
+    PRESET_ROOMS.forEach(name => { list[name] = rooms.get(name)?.size || 0; });
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: true, defaultRoom: DEFAULT_ROOM, rooms: list }));
+    return;
+  }
+
+  // 1. 即時連線 SSE 頻道 (支援分流房間 ?room=xxx)
+  if (reqUrl.pathname === '/api/events') {
+    if (totalClientCount() >= MAX_SSE_CLIENTS) {
       res.writeHead(503, { 'Content-Type': 'text/plain; charset=UTF-8', 'Retry-After': '30' });
       res.end('503 同時連線人數已滿');
       return;
     }
+    const room = normalizeRoom(reqUrl.searchParams.get('room'));
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
     });
     res.write('retry: 3000\n\n');
-    sseClients.add(res);
-    req.on('close', () => sseClients.delete(res));
+    if (!rooms.has(room)) rooms.set(room, new Set());
+    const roomSet = rooms.get(room);
+    roomSet.add(res);
+    req.on('close', () => {
+      roomSet.delete(res);
+      if (roomSet.size === 0 && rooms.get(room) === roomSet) rooms.delete(room);
+    });
     return;
   }
 
-  // 2. 廣播分身與科儀訊息 API
-  if (req.url === '/api/broadcast' && req.method === 'POST') {
+  // 2. 廣播分身、供桌與科儀訊息 API (支援房間轉發)
+  if (reqUrl.pathname === '/api/broadcast' && req.method === 'POST') {
     if (!allowBroadcast(clientKey(req))) {
       res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '1' });
       res.end('{"ok":false,"error":"too many messages"}');
@@ -100,15 +144,19 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       if (res.writableEnded) return;
       // 只轉發合法 JSON，並重新序列化：內容裡夾帶換行就無法偽造出額外的 SSE 事件
-      let line;
+      let parsed;
       try {
-        line = JSON.stringify(JSON.parse(body));
+        parsed = JSON.parse(body);
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end('{"ok":false,"error":"invalid json"}');
         return;
       }
-      sseClients.forEach(client => {
+      // 只送給同一房間；沒人在的房間不建立，避免任意房名把 rooms 撐大
+      const room = normalizeRoom(parsed && typeof parsed === 'object' ? parsed.room : undefined);
+      const line = JSON.stringify(parsed);
+      const targetClients = rooms.get(room) || new Set();
+      targetClients.forEach(client => {
         try {
           client.write(`data: ${line}\n\n`);
         } catch (e) {}

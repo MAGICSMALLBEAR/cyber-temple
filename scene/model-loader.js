@@ -107,17 +107,43 @@ class TempleModelMixin {
     }
 
     if (target) {
-      const at = new THREE.Vector3();
-      target.getWorldPosition(at);
-      holder.position.set(at.x, 0, at.z);
-      holder.rotation.y = target.rotation.y;   // 沿用原物件朝向
-      target.visible = false;   // 點選感應區不受影響，互動照舊
+      this.placeOverTarget(holder, target, entry);
+      // replaceAll：同名物件（例如一對石獅）全部換掉，每一件都複製一份模型
+      if (entry.replaceAll) {
+        const others = [];
+        this.scene.traverse(o => { if (o.name === entry.replace && o !== target) others.push(o); });
+        others.forEach((other, i) => {
+          const copy = holder.clone(true);
+          copy.name = `model-${entry.file}-${i + 2}`;
+          this.placeOverTarget(copy, other, entry);
+          if (entry.collision === false) copy.traverse(o => { o.userData.noCollision = true; });
+          this.scene.add(copy);
+        });
+      }
     } else {
       holder.position.set(...entry.position);
     }
     if (entry.collision === false) holder.traverse(o => { o.userData.noCollision = true; });
     this.scene.add(holder);
     return holder;
+  }
+
+  // 放到被取代物件的位置與朝向；高度沿用原物件（桌上的木魚、籤筒不會掉到地上），ground: true 才強制貼地。
+  // 只隱藏原物件的實體網格，火焰、大香、香煙與光源留著照常動；隱藏的網格仍可點選（射線不看 visible），互動照舊
+  placeOverTarget(holder, target, entry) {
+    const at = new THREE.Vector3();
+    target.getWorldPosition(at);
+    const offsetY = Number.isFinite(entry.offsetY) ? entry.offsetY : 0;
+    holder.position.set(at.x, (entry.ground === true ? 0 : at.y) + offsetY, at.z);
+    holder.rotation.y = target.rotation.y;   // 沿用原物件朝向
+    const isEffect = o => o.isLight || o.isPoints || o.userData?.keepEffect || /flame|ember|smoke|fire/i.test(o.name || "");
+    target.traverse(o => {
+      if (!o.isMesh || isEffect(o)) return;
+      let hasEffectChild = false;
+      o.traverse(c => { if (c !== o && isEffect(c)) hasEffectChild = true; });
+      if (!hasEffectChild) o.visible = false;
+    });
+    target.userData.replacedByModel = holder.name;
   }
 
   // 依指定高度等比縮放，底部貼地、水平置中，所以模型的原點與比例不必完全正確

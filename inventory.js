@@ -12,7 +12,13 @@ const BAG_ITEMS = {
   chicken: { name: "香脆雞排", icon: "🍗", price: 8 }, flowers: { name: "百合素花", icon: "🌸", price: 6 },
   goldIngot: { name: "金元寶盤", icon: "🟨", price: 12, category: "treasure", description: "三枚船形金元寶，置於朱紅供盤" },
   silverIngot: { name: "銀元寶盤", icon: "⬜", price: 10, category: "treasure", description: "三枚銀色元寶，搭配藍白供盤" },
-  treasureBowl: { name: "金銀聚寶盆", icon: "💰", price: 20, category: "treasure", description: "紅金寶盆盛放金銀元寶與銅錢" }
+  treasureBowl: { name: "金銀聚寶盆", icon: "💰", price: 20, category: "treasure", description: "紅金寶盆盛放金銀元寶與銅錢" },
+  ingotTower: { name: "九層元寶塔", icon: "🪙", price: 28, category: "treasure", description: "九層堆疊金元寶塔，招財鎮殿、步步高升" },
+  goldBars: { name: "萬兩金條盤", icon: "🧱", price: 18, category: "treasure", description: "成排萬兩黃金條磚，富貴吉祥、金玉滿堂" },
+  coinString: { name: "五帝銅錢串", icon: "📿", price: 10, category: "treasure", description: "朱砂紅繩串連五帝古錢，辟邪鎮煞、招納財氣" },
+  teaSet: { name: "三才清茶組", icon: "🍵", price: 8, description: "三只青花如意清茶，敬奉天地人三才" },
+  flowerBasket: { name: "精緻祈安花籃", icon: "🧺", price: 15, description: "繁花錦簇祈安竹籃，百合牡丹、清香宜人" },
+  fruitTower: { name: "十全水果塔", icon: "🍍", price: 16, description: "金鑽鳳梨底座三層豐收果塔，象徵十全大吉" }
 };
 const DAILY_BAG = { incense: 6, paper: 3, fruit: 2, peach: 2, fagao: 2, redturtle: 2, guaiguai: 2 };
 // 遊戲中的主題搭配，可逐盤自行更換。

@@ -155,6 +155,69 @@ function bindEvents() {
 
   // 新版 UI 外殼：下拉選單、萬寶閣、沉浸模式、操作秘笈
   bindModernUIShell();
+
+  // 行動裝置：軟鍵盤彈起時彈窗不被遮住
+  setupMobileExperience();
+
+  // 多人分流房間與同行供桌事件
+  bindMultiplayerRoomAndTableEvents();
+}
+
+// 行動端：軟鍵盤彈起時補彈窗底部空間並把輸入框捲到中間。只在觸控為主的裝置生效，電腦上不改版面
+function setupMobileExperience() {
+  const touchFirst = () => window.matchMedia?.("(pointer: coarse)").matches;
+  const adjustForInput = (target) => {
+    if (!touchFirst() || !target || !("closest" in target)) return;
+    const modal = target.closest(".settings-modal, .modal-content, .pavilion-modal, .journal-modal");
+    if (!modal) return;
+    modal.style.paddingBottom = "280px";
+    setTimeout(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 120);
+  };
+
+  const resetModalPadding = (target) => {
+    if (!target || !("closest" in target)) return;
+    const modal = target.closest(".settings-modal, .modal-content, .pavilion-modal, .journal-modal");
+    if (!modal) return;
+    setTimeout(() => {
+      if (!modal.contains(document.activeElement)) {
+        modal.style.paddingBottom = "";
+      }
+    }, 150);
+  };
+
+  window.addEventListener("focusin", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) {
+      adjustForInput(t);
+    }
+  });
+
+  window.addEventListener("focusout", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT")) {
+      resetModalPadding(t);
+    }
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      if (!touchFirst()) return;
+      const openModal = document.querySelector(".modal-overlay.open :is(.settings-modal, .modal-content, .pavilion-modal, .journal-modal)");
+      if (!openModal) return;
+      const keyboardH = window.innerHeight - window.visualViewport.height;
+      if (keyboardH > 80) {
+        openModal.style.paddingBottom = `${keyboardH + 24}px`;
+        if (document.activeElement && openModal.contains(document.activeElement)) {
+          document.activeElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      } else if (!document.activeElement || !openModal.contains(document.activeElement)) {
+        openModal.style.paddingBottom = "";
+      }
+    });
+  }
+
 }
 
 function addMerit(points) {
@@ -174,4 +237,104 @@ function updateMeritDisplay() {
 function setDockStatus(text) {
   const el = document.getElementById("dockStatusBar");
   if (el) el.innerText = text;
+}
+
+// 多人房間分流與同行供桌事件處理
+function bindMultiplayerRoomAndTableEvents() {
+  const ROOM_NAMES = {
+    main: "🌟 天樞殿 (主線)",
+    east: "🌅 玉衡殿 (東翼)",
+    west: "🌇 開陽殿 (西翼)",
+    zen: "📿 天璇殿 (清修)"
+  };
+
+  const updateRoomUI = () => {
+    const cur = normalizePeerRoom(localStorage.getItem("temple_room"));
+    const label = ROOM_NAMES[cur] || `🔒 密室 (${cur})`;
+    // 頂部列已滿（多一顆按鈕在 1280 寬會換行蓋到其他按鈕），目前房間顯示在萬寶閣卡片與分流視窗
+    const topLabel = document.getElementById("roomCardName");
+    if (topLabel) topLabel.textContent = PEER_ROOM_NAMES[cur] || "密室";
+    const statusText = document.getElementById("roomCurrentStatus");
+    if (statusText) statusText.textContent = `目前所在分流：${label}`;
+    document.querySelectorAll(".room-pick-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.room === cur);
+    });
+  };
+
+  const openRoomModal = () => {
+    updateRoomUI();
+    document.getElementById("roomModal")?.classList.add("open");
+  };
+
+  document.getElementById("btnOpenRoomPavilion")?.addEventListener("click", () => {
+    document.getElementById("pavilionModal")?.classList.remove("open");
+    openRoomModal();
+  });
+  document.getElementById("roomClose")?.addEventListener("click", () => {
+    document.getElementById("roomModal")?.classList.remove("open");
+  });
+
+  document.querySelectorAll(".room-pick-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const targetRoom = btn.dataset.room;
+      window.temple3d?.avatar?.switchRoom?.(targetRoom);
+      updateRoomUI();
+      document.getElementById("roomModal")?.classList.remove("open");
+    });
+  });
+
+  document.getElementById("btnJoinCustomRoom")?.addEventListener("click", () => {
+    const custom = document.getElementById("customRoomInput")?.value.trim();
+    if (custom) {
+      window.temple3d?.avatar?.switchRoom?.(custom);
+      updateRoomUI();
+      document.getElementById("roomModal")?.classList.remove("open");
+    }
+  });
+
+  window.addEventListener("temple:roomchange", updateRoomUI);
+  updateRoomUI();
+
+  // 同行供桌彈窗：只顯示對方的角色稱呼與桌上供品。隨喜讚嘆每位同行每次入殿只算一次功德
+  const praisedPeers = new Set();
+  let praiseTarget = null;
+  window.openPeerTableModal = function(slotIndex) {
+    const slot = window.temple3d?.peerTableSlots?.[slotIndex];
+    if (!slot) return;
+    const peerEntry = slot.occupiedBy ? window.temple3d?.peerTables?.get(slot.occupiedBy) : null;
+    praiseTarget = peerEntry ? slot.occupiedBy : null;
+    const praiseBtn = document.getElementById("btnPeerPraise");
+    if (praiseBtn) {
+      praiseBtn.disabled = !praiseTarget || praisedPeers.has(praiseTarget);
+      praiseBtn.textContent = praiseTarget && praisedPeers.has(praiseTarget) ? "🙏 已隨喜讚嘆" : "🙏 隨喜讚嘆 (+6 功德)";
+    }
+    const nameEl = document.getElementById("peerTableName");
+    const wishEl = document.getElementById("peerTableWish");
+    const dishesList = document.getElementById("peerTableDishesList");
+    if (!peerEntry) {
+      nameEl.textContent = `🏮 ${slot.label} • 虛位以待`;
+      wishEl.textContent = "此供桌目前尚無善信入座，等待同行信眾擺供祈願。";
+      dishesList.innerHTML = `<span style="color:#888;">尚未敬奉供品</span>`;
+    } else {
+      const d = peerEntry.data || {};
+      nameEl.textContent = `🏮 善信【${d.name || "同行善信"}】${d.presented ? "已敬獻" : "布置中"}`;
+      wishEl.textContent = d.presented ? "供品已敬獻神前。" : "正在布置供桌。";
+      const dishes = peerTableDishes(d).filter(Boolean);
+      dishesList.innerHTML = dishes.map(id => `<span class="btn-custom-pill" style="pointer-events:none;">${BAG_ITEMS[id].icon} ${BAG_ITEMS[id].name}</span>`).join("") || `<span style="color:#888;">空盤</span>`;
+    }
+    document.getElementById("peerTableModal")?.classList.add("open");
+  };
+
+  document.getElementById("peerTableClose")?.addEventListener("click", () => {
+    document.getElementById("peerTableModal")?.classList.remove("open");
+  });
+
+  document.getElementById("btnPeerPraise")?.addEventListener("click", () => {
+    if (!praiseTarget || praisedPeers.has(praiseTarget)) return;
+    praisedPeers.add(praiseTarget);
+    addMerit(6);
+    window.templeAudio?.playChiamGood?.();
+    setDockStatus("🙏 隨喜讚嘆同行的供桌，功德 +6");
+    document.getElementById("peerTableModal")?.classList.remove("open");
+  });
 }

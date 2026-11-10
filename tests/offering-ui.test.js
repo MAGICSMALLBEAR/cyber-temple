@@ -28,9 +28,14 @@ module.exports = {
         const d = window.templeInventory.load(); d.coins = 100; window.templeInventory.save(d);
         window.templeBag.init(); bindFeastEvents(); window.templeReading.init(); window.templeBag.open("shop");
       });
-      check("供品鋪列出十一款可擺供品與香紙", await p.locator(".shop-product").count() === 13);
+      // 數量依背包定義計算，新增商品時不必改測試；每款都要出現在「全部」與自己的分類
+      const counts = await p.evaluate(() => { const all = Object.entries(BAG_ITEMS); return { all: all.length, treasure: all.filter(([, d]) => d.category === "treasure").length, food: all.filter(([id, d]) => !d.category && window.templeInventory.isOffering(id)).length }; });
+      check("供品鋪列出全部供品與香紙", await p.locator(".shop-product").count() === counts.all && counts.all >= 19, String(counts.all));
       await p.getByRole("button", { name: "金銀財寶", exact: true }).click();
-      check("財寶分類可篩選三款商品", await p.locator(".shop-product").count() === 3);
+      check("財寶分類列出所有金銀財寶（含元寶塔、金條、銅錢串）", await p.locator(".shop-product").count() === counts.treasure && counts.treasure >= 6 && await p.locator('[data-product="ingotTower"]').count() === 1);
+      await p.getByRole("button", { name: "鮮花供品", exact: true }).click();
+      check("鮮花供品分類含茶組、花籃、水果塔", await p.locator(".shop-product").count() === counts.food && await p.locator('[data-product="teaSet"], [data-product="flowerBasket"], [data-product="fruitTower"]').count() === 3);
+      await p.getByRole("button", { name: "金銀財寶", exact: true }).click();
       await p.locator('[data-product="goldIngot"] input').fill("2");
       await p.locator('[data-product="goldIngot"] button').click();
       await p.locator('[data-product="silverIngot"] button').click();

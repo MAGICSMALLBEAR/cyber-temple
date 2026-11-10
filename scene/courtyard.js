@@ -34,10 +34,14 @@ class TempleCourtyardMixin {
       new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.7 })
     );
     bigStick.position.y = 2.3;
+    bigStick.name = "heavenCenserStick";
+    bigStick.userData.keepEffect = true;
     this.heavenCenser.add(bigStick);
 
     const ember = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff4400 }));
     ember.position.y = 3.05;
+    ember.name = "heavenCenserEmber";
+    ember.userData.keepEffect = true;
     this.heavenCenser.add(ember);
 
     this.interactiveObjects.push(bowl);

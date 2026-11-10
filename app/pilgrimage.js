@@ -188,9 +188,20 @@ const pilgrimage = {
     if (!a || !r) return;
     // 玩家自己按方向鍵：交給玩家，停止自動走
     if (["forward", "backward", "left", "right"].some(k => a.keys[k])) { this.cancelRoute(); this.render(); return; }
-    if (a.targetPos) return;   // 還在走
+    
     const [x, z] = r.points[r.index];
-    if (Math.hypot(a.position.x - x, a.position.z - z) < 0.5) {
+    const distToWp = Math.hypot(a.position.x - x, a.position.z - z);
+
+    // 中途轉折路點提前平滑切換，避免在轉角停頓減速
+    if (r.index < r.points.length - 1 && distToWp < 0.65) {
+      r.index++;
+      this.nextWaypoint();
+      return;
+    }
+
+    if (a.targetPos) return;   // 還在朝終點走
+
+    if (distToWp < 0.5) {
       r.index++;
       if (r.index < r.points.length) { this.nextWaypoint(); return; }
       this.cancelRoute();
