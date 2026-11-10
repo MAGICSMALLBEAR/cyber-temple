@@ -289,6 +289,16 @@ function layoutBelowHeader() {
     const below = Math.max(bottom, camNav ? Math.round(camNav.getBoundingClientRect().bottom) : 0);
     danmaku.style.top = `${Math.max(70, below + 8)}px`;
   }
+  // 參拜指引卡在右上角：頂部按鈕換成兩、三行時（1280 寬、字型載入或功德數字變長後）往下讓，不蓋住按鈕
+  const card = document.getElementById("pilgrimCard");
+  if (card) {
+    let buttonsBottom = 0;
+    document.querySelectorAll("#templeHeader .btn-header").forEach(btn => {
+      const r = btn.getBoundingClientRect();
+      if (r.width && r.height) buttonsBottom = Math.max(buttonsBottom, Math.round(r.bottom));
+    });
+    card.style.top = buttonsBottom + 8 > 110 ? `${buttonsBottom + 8}px` : "";
+  }
 }
 
 function bindModernUIShell() {
@@ -296,6 +306,9 @@ function bindModernUIShell() {
   window.addEventListener("resize", layoutBelowHeader);
   // 字型載入完成後按鈕寬度會變，再排一次
   document.fonts?.ready.then(layoutBelowHeader);
+  // 頂部列內容變動（功德數字、時辰文字）也可能換行
+  const header = document.getElementById("templeHeader");
+  if (header && "ResizeObserver" in window) new ResizeObserver(() => layoutBelowHeader()).observe(header);
   const $ = (id) => document.getElementById(id);
   const closeAllDropdowns = (except) => {
     ["deityDropdownMenu", "cameraNavDropdown", "soundMenuPanel"].forEach(id => {
