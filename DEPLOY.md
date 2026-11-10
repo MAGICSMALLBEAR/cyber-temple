@@ -2,7 +2,9 @@
 
 部署後任何人拿到網址都能開，手機可以「加到主畫面」安裝、斷網可開，Quest 等 VR 頭盔的瀏覽器也能進入 VR（瀏覽器規定這些都要 https）。
 
-**目前狀態：** 設定檔都已準備好，**尚未發布**。下面兩種方式擇一，由你決定要不要、何時做。
+**目前狀態：** 2026-11-10 已用 **A. GitHub Pages** 發布：https://magicsmallbear.github.io/cyber-temple/ （repo `MAGICSMALLBEAR/cyber-temple` 已改為公開）。線上版沒有伺服器，多人同行、同行供席、房間分流、跨裝置香火牆不會運作；要這些功能可再加開 B. Render。
+
+**更新網站：** 推送程式碼後執行 `gh workflow run pages.yml`（網站不會自動更新）。
 
 ## 兩種方式比較
 
@@ -22,26 +24,28 @@
 
 ## A. GitHub Pages
 
-1. 建立 repo 並推送（**這一步就會公開程式碼**）：
+（11/10 已完成第 1、2 步，實際做法如下；之後只需要第 3 步。）
+
+1. 把 repo 改成公開（**這一步就會公開程式碼**）：
    ```
-   gh repo create virtual-temple --public --source . --push
+   gh repo edit MAGICSMALLBEAR/cyber-temple --visibility public --accept-visibility-change-consequences
    ```
-2. 到 repo 的 **Settings → Pages → Build and deployment → Source** 選「**GitHub Actions**」。
+2. Pages 來源設為「GitHub Actions」（或到 repo 的 **Settings → Pages → Source** 選）：
+   ```
+   gh api -X POST repos/MAGICSMALLBEAR/cyber-temple/pages -f build_type=workflow
+   ```
 3. 發布（只能手動觸發，之後推送程式碼**不會**自動更新網站）：
    ```
    gh workflow run pages.yml
    ```
    或在 GitHub 網頁的 **Actions → 部署到 GitHub Pages → Run workflow**。
-4. 幾分鐘後打開 `https://magicsmallbear.github.io/virtual-temple/`。之後改了程式要更新網站，重複第 3 步。
+4. 幾分鐘後打開 `https://magicsmallbear.github.io/cyber-temple/`。之後改了程式要更新網站，重複第 3 步。
 
 公開的只有網頁本身需要的檔案（由 `tools/build-site.js` 依 `sw.js` 的預存清單挑出），測試、工具、文件、`server.js` 不會放到網站上；但 repo 本身是公開的，裡面的所有檔案都看得到。
 
 ## B. Render（保留多人同行）
 
-1. 建立**私人** repo 並推送：
-   ```
-   gh repo create virtual-temple --private --source . --push
-   ```
+1. repo 已在 GitHub（`MAGICSMALLBEAR/cyber-temple`，目前公開）；Render 公開或私人 repo 都能用。
 2. 到 [render.com](https://render.com) 註冊，並授權讀取你的 GitHub repo。
 3. 在 Render 選 **New → Blueprint**，選這個 repo。Render 會讀 `render.yaml` 建立服務（免費方案、`node server.js`、健康檢查 `/api/ping`）。
 4. 部署完成後，Render 會給你一個 `https://….onrender.com` 網址。之後推送程式碼，Render 會自動重新部署。
