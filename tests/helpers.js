@@ -20,7 +20,10 @@ function loadPlaywright() {
     throw new Error("找不到 Playwright。請先執行：npm i -g playwright（或在專案內 npm i -D playwright）");
   }
 }
-const { chromium } = loadPlaywright();
+// 真的要開瀏覽器時才載入 Playwright：輕量檢查（npm test，CI 也跑）不需要安裝它
+let chromiumCache = null;
+const chromium = { get pw() { return chromiumCache || (chromiumCache = loadPlaywright().chromium); },
+  launch: (...a) => chromium.pw.launch(...a), launchPersistentContext: (...a) => chromium.pw.launchPersistentContext(...a) };
 
 // 預設用電腦上的 Chrome；沒有 Chrome 可設 TEST_BROWSER_CHANNEL=msedge
 const CHANNEL = process.env.TEST_BROWSER_CHANNEL || "chrome";
