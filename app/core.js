@@ -10,7 +10,7 @@ const DEITIES = {
   guanyin: { id: "guanyin", name: "觀世音菩薩", title: "大慈大悲 • 聞聲救苦", blessing: "楊枝甘露灑淨，心安無懼，眾苦離散，身心清涼。" },
   guangong: { id: "guangong", name: "關聖帝君 恩主公", title: "忠義仁勇 • 伏魔護正", blessing: "正氣凜然，信義為本，事業守正必得貴人護持。" },
   tudigong: { id: "tudigong", name: "福德正神 土地公", title: "守護鄉里 • 福德生財", blessing: "安家守土，五穀豐登，生意興隆，出入平安。" },
-  guaiguai: { id: "guaiguai", name: "科技守護 綠色乖乖神", title: "伺服器乖乖 • 永無Bug", blessing: "主機綠燈長亮，部署零故障，代碼順暢神仙保佑！" }
+  guaiguai: { id: "guaiguai", name: "綠燈星君", title: "機房守護 • 永無Bug", blessing: "主機綠燈長亮，部署零故障，代碼順暢神仙保佑！" }
 };
 
 // 詩意隨機稱號庫
@@ -238,6 +238,33 @@ function setDockStatus(text) {
   const el = document.getElementById("dockStatusBar");
   if (el) el.innerText = text;
 }
+
+// 重要的完成訊息：狀態列＋頂部通知條（通知條層級高於彈窗，在抄經、禪修視窗裡也看得到）。取代會卡住 3D 與聲音的 alert()。
+function templeNotify(text) {
+  setDockStatus(text);
+  window.liveTempleWall?.showBroadcastNotice(text);
+}
+window.templeNotify = templeNotify;
+
+// 每日功德上限：同一種修行一天最多給 cap 功德，回傳這次實際給了多少（已滿就給 0）。
+// 存在 temple_merit_daily，跨日自動歸零；以本機日期為準。
+const MERIT_DAILY_KEY = "temple_merit_daily";
+function claimDailyMerit(kind, amount, cap) {
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  let rec;
+  try { rec = JSON.parse(localStorage.getItem(MERIT_DAILY_KEY) || "null"); } catch (e) { rec = null; }
+  if (!rec || rec.date !== today || typeof rec.used !== "object" || !rec.used) rec = { date: today, used: {} };
+  const used = Math.max(0, Number(rec.used[kind]) || 0);
+  const grant = Math.max(0, Math.min(amount, cap - used));
+  if (grant > 0) {
+    rec.used[kind] = used + grant;
+    localStorage.setItem(MERIT_DAILY_KEY, JSON.stringify(rec));
+    addMerit(grant);
+  }
+  return grant;
+}
+window.claimDailyMerit = claimDailyMerit;
 
 // 多人房間分流與同行供桌事件處理
 function bindMultiplayerRoomAndTableEvents() {

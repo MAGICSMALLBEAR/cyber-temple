@@ -86,7 +86,7 @@ class BeadsMeditationSystem {
     }
 
     this.renderDisplay();
-    alert("🎉 賀！恭喜圓滿完成 108 顆念珠持誦修行！\n心靈澄澈，雜念盡消，全殿為您注入 +108 功德！");
+    window.templeNotify?.("🎉 圓滿完成 108 顆念珠持誦！心靈澄澈，雜念盡消，功德 +108！");
   }
 
   renderDisplay() {

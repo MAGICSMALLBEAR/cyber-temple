@@ -86,9 +86,12 @@ module.exports = {
       const f = path.join(dir, name);
       fs.writeFileSync(f, content);
       lastDialog = "";
+      await p.$eval("#saveDataStatus", e => { e.textContent = ""; });
       await p.setInputFiles("#saveImportInput", f);
-      await p.waitForTimeout(600);
-      check(`錯誤檔案被拒：${expect}`, lastDialog.includes(expect), lastDialog);
+      // 錯誤訊息顯示在護照的存檔區（不再跳 alert）；等它出現，不用固定秒數
+      await p.waitForFunction(() => document.getElementById("saveDataStatus").textContent.includes("無法匯入"), null, { timeout: 10000 }).catch(() => {});
+      const status = await p.$eval("#saveDataStatus", e => e.textContent);
+      check(`錯誤檔案被拒：${expect}`, status.includes(expect) && !lastDialog, `${status} | dialog: ${lastDialog}`);
     }
     check("錯誤檔案沒有改動進度", (await p.evaluate(() => localStorage.getItem("temple_merit"))) === meritBefore);
     check("沒有 JS 錯誤", errs.length === 0, errs.join(" | "));

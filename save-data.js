@@ -63,14 +63,14 @@ const templeSave = {
   importFile(file) {
     if (!file) return;
     if (file.size > SAVE_MAX_BYTES) {
-      alert("檔案太大，不像是功德存檔。");
+      this.showStatus("⚠️ 檔案太大，不像是功德存檔。");
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       const result = this.parse(String(reader.result));
       if (!result.ok) {
-        alert(`無法匯入：${result.error}`);
+        this.showStatus(`⚠️ 無法匯入：${result.error}`);
         return;
       }
       const { payload } = result;
@@ -97,6 +97,14 @@ const templeSave = {
     }
     toRemove.forEach(k => localStorage.removeItem(k));
     Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, v));
+  },
+
+  // 匯入失敗等訊息直接顯示在護照的存檔區（不用 alert），並唸給螢幕閱讀器
+  showStatus(text) {
+    const el = document.getElementById("saveDataStatus");
+    if (!el) return;
+    el.setAttribute("role", "alert");
+    el.textContent = text;
   },
 
   renderStatus() {

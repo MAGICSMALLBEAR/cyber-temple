@@ -41,6 +41,11 @@ let isSutraDrawing = false;
 let sutraLastX = 0, sutraLastY = 0;
 let sutraBrushColor = "#18181b";
 let sutraBrushSize = 6;
+// 這張紙上寫了多少筆畫距離（換紙或清除歸零）；沒寫字不能落款領功德
+let sutraInkMoves = 0;
+let sutraSealed = false;
+const SUTRA_MIN_INK_MOVES = 40;
+const SUTRA_DAILY_MERIT = 150;   // 每天第一次抄經圓滿 +150，之後只蓋印不加功德
 
 const SUTRA_TEXTS = {
   heart: [
@@ -82,6 +87,8 @@ function drawSutraCanvas(key = "heart") {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
+  sutraInkMoves = 0;
+  sutraSealed = false;
 
   // 宣紙底色
   ctx.fillStyle = "#fefae0";
@@ -171,6 +178,7 @@ function initSutraCanvasEvents() {
 
     sutraLastX = pos.x;
     sutraLastY = pos.y;
+    sutraInkMoves++;
   }
 
   function stopDraw(e) {
@@ -193,6 +201,15 @@ function completeSutraCopying() {
   const ctx = canvas.getContext("2d");
   const targetInput = document.getElementById("sutraDedicationTarget");
   const target = (targetInput ? targetInput.value.trim() : "") || "天下蒼生";
+  if (sutraSealed) {
+    window.templeNotify?.("🪷 這張已經落款蓋印。要再抄一張，請按「清除」或換一部經文。");
+    return;
+  }
+  if (sutraInkMoves < SUTRA_MIN_INK_MOVES) {
+    window.templeNotify?.("✍️ 請先在宣紙上一筆一畫抄寫經文，再按完成落款。");
+    return;
+  }
+  sutraSealed = true;
 
   // 在右下角加蓋正統硃砂雙印「心安即福」
   ctx.save();
@@ -211,14 +228,15 @@ function completeSutraCopying() {
   ctx.fillText(`迴向信眾：【 ${target} 】 虔心手抄`, 105, canvas.height - 48);
   ctx.restore();
 
-  addMerit(150);
+  const granted = claimDailyMerit("sutra", SUTRA_DAILY_MERIT, SUTRA_DAILY_MERIT);
   if (window.templeAudio) window.templeAudio.playBell(108);
 
-  const msg = `🪷 抄經圓滿！將無量功德迴向給【${target}】！消除業障，功德 +150！`;
+  const msg = granted
+    ? `🪷 抄經圓滿！朱印已鈐蓋，功德迴向【${target}】，功德 +${granted}！`
+    : `🪷 抄經圓滿！朱印已鈐蓋，功德迴向【${target}】。（今日抄經功德已領，明日再來）`;
   if (window.liveTempleWall) window.liveTempleWall.addDanmaku(msg);
   if (typeof showFloatingDanmaku !== "undefined") showFloatingDanmaku(msg, "#6ee7b7");
-  if (window.setDockStatus) window.setDockStatus(msg);
-  alert(`🪷 虔心抄經功德圓滿！朱印已鈐蓋於墨寶之上，功德 +150，願力廣被【${target}】！`);
+  window.templeNotify?.(msg);
 }
 
 function downloadSutraPNG() {

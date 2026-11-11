@@ -2,7 +2,7 @@
 
 部署後任何人拿到網址都能開，手機可以「加到主畫面」安裝、斷網可開，Quest 等 VR 頭盔的瀏覽器也能進入 VR（瀏覽器規定這些都要 https）。
 
-**目前狀態：** 2026-11-10 已用 **A. GitHub Pages** 發布：https://magicsmallbear.github.io/cyber-temple/ （repo `MAGICSMALLBEAR/cyber-temple` 已改為公開）。線上版沒有伺服器，多人同行、同行供席、房間分流、跨裝置香火牆不會運作；要這些功能可再加開 B. Render。
+**目前狀態：** 2026-11-10 已用 **A. GitHub Pages** 發布：https://magicsmallbear.github.io/cyber-temple/ （repo `MAGICSMALLBEAR/cyber-temple` 已改為公開）。線上版沒有伺服器，多人同行、同行供席、房間分流、跨裝置香火牆不會運作；11/11 起偵測到沒有伺服器時自動收起這些介面（單機模式）。要線上多人可再加開 B. Render，或改做持久化後端。
 
 **更新網站：** 推送程式碼後執行 `gh workflow run pages.yml`（網站不會自動更新）。
 

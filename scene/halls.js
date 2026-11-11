@@ -83,7 +83,7 @@ class TempleHallsMixin {
   loadEmaPlaques() {
     const defaultPlaques = [
       { name: "考生小明", type: "exam", wish: "文昌帝君保佑考研順利上岸！", icon: "🎓" },
-      { name: "科技碼農", type: "tech", wish: "乖乖神保佑專案零Bug、伺服器常綠！", icon: "🟢" },
+      { name: "科技碼農", type: "tech", wish: "綠燈星君保佑專案零Bug、伺服器常綠！", icon: "🟢" },
       { name: "虔誠信女", type: "romance", wish: "月老爺爺賜良緣，覓得相知相守之人。", icon: "❤️" },
       { name: "創業阿榮", type: "wealth", wish: "武財神賜福正偏財亨通，生意興隆！", icon: "💰" },
       { name: "雲端居士", type: "peace", wish: "天上聖母慈悲護佑，信眾全家康泰祥和。", icon: "🛡️" }

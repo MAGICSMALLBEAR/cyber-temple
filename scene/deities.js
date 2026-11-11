@@ -132,15 +132,21 @@ function createTempleDeity(id) {
     rod("dragon-walking-stick", mat(0x654026), [0.75, 0.08, 0.4], [0.75, 1.93, 0.4], 0.045);
     ball("dragon-cane-head", gold, [0.7, 1.93, 0.42], [0.14, 0.09, 0.08]); yuanbao([-0.39, 1.04, 0.56], 0.23); trim(0.67, 0.24);
   } else {
-    // 乖乖：完整袋身與鋸齒封口，與人形神尊使用不同幾何。
-    const green = mat(0x27a447); halo = 0x71f39a;
-    body = box("snack-packet", green, [0, 1.03, 0], [1.12, 1.65, 0.48]);
-    for (const y of [0.19, 1.87]) { box("packet-seal", gold, [0, y, 0], [1.2, 0.1, 0.5]); for (let i = 0; i < 11; i++) box("seal-ridge", green, [(i - 5) * 0.105, y, 0.27], [0.025, 0.13, 0.025]); }
-    head = ball("packet-emblem", ivory, [0, 1.2, 0.255], [0.39, 0.4, 0.035]);
-    const canvas = document.createElement("canvas"); canvas.width = 256; canvas.height = 256;
-    const ctx = canvas.getContext("2d"); ctx.fillStyle = "#fff3cf"; ctx.fillRect(0, 0, 256, 256); ctx.textAlign = "center"; ctx.fillStyle = "#198b3b"; ctx.font = "bold 76px sans-serif"; ctx.fillText("乖乖", 128, 116); ctx.font = "30px sans-serif"; ctx.fillText("綠燈常亮", 128, 180);
-    mesh("packet-lettering", new THREE.PlaneGeometry(0.74, 0.74), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas) }), [0, 1.18, 0.3]);
-    mesh("green-lotus-base", new THREE.CylinderGeometry(0.7, 0.8, 0.17, 16), gold, [0, 0.08, 0]);
+    // 綠燈星君（id 沿用 guaiguai 以相容舊存檔）：原創的機房守護星君。
+    // 墨綠星官袍、七星冠、手持「常明綠燈」燈杖，胸前一面護心鏡；象徵系統指示燈長保綠色。
+    const green = mat(0x1f6b45), deep = mat(0x123d2a);
+    const lamp = new THREE.MeshStandardMaterial({ color: 0x5dff9a, emissive: 0x2bd96b, emissiveIntensity: 1.2, roughness: 0.3 });
+    halo = 0x71f39a; seat(mat(0x2c3a35), 0.68);
+    body = robe("star-lord-robe", green, [[0.6, 0.18], [0.63, 0.5], [0.46, 1.05], [0.4, 1.38], [0.26, 1.56]]);
+    head = face(skin, 1.86, 0.27, 0.33); hands(1.05, 0.4); beard(dark, 1.4, 0.42, 0.13);
+    for (const s of [-1, 1]) ball("star-lord-sleeve", green, [s * 0.42, 1.05, 0.1], [0.21, 0.36, 0.28]);
+    box("seven-star-crown", deep, [0, 2.2, 0.03], [0.5, 0.22, 0.42]);
+    for (let i = 0; i < 7; i++) ball("crown-star", lamp, [(i - 3) * 0.075, 2.36 + (i % 2) * 0.04, 0.12], [0.028, 0.028, 0.028]);
+    mesh("heart-mirror", new THREE.CylinderGeometry(0.15, 0.15, 0.03, 20), gold, [0, 1.3, 0.47]).rotation.x = Math.PI / 2;
+    rod("lamp-staff", mat(0x4a3a28), [0.62, 0.1, 0.42], [0.62, 2.05, 0.42], 0.035);
+    box("lamp-cage", gold, [0.62, 2.18, 0.42], [0.2, 0.24, 0.2]);
+    ball("ever-green-lamp", lamp, [0.62, 2.18, 0.42], [0.08, 0.1, 0.08]);
+    trim(0.63, 0.24);
   }
   group.userData.halo = halo;
   return { group, body, head };

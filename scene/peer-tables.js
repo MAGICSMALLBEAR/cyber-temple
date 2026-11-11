@@ -182,6 +182,18 @@ class TemplePeerTablesMixin {
     }
     this.peerTables.delete(peerId);
   }
+
+  // 單機模式（GitHub Pages 等沒有 server.js 的空間）：沒有人會入座，四張空桌與水牌全部收起，
+  // 不擋路、不能點選；若碰撞已整理過就重整一次，免得留下看不見的障礙。
+  disablePeerTables() {
+    if (!this.peerTablesGroup || this.peerTablesDisabled) return;
+    this.peerTablesDisabled = true;
+    this.peerTablesGroup.visible = false;
+    for (let i = this.interactiveObjects.length - 1; i >= 0; i--) {
+      if (this.interactiveObjects[i].userData?.type === "peerAltarTable") this.interactiveObjects.splice(i, 1);
+    }
+    if (this.collisionBoxes) this.buildCollisionMap?.();
+  }
 }
 
 // 收到的供品清單來自網路：最多五盤，只接受背包裡有定義的供品，其餘當空盤

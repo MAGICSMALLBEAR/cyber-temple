@@ -164,7 +164,8 @@ class Temple3DScene {
     this.buildChiamBucket();
     this.buildMuyu();
     this.buildOfferings();
-    this.initPeerTables?.();   // 多人同行信眾供席
+    this.initPeerTables?.();   // 多人同行信眾供席（沒有伺服器時收起）
+    window.templeServer?.ready?.then(ok => { if (!ok) this.disablePeerTables?.(); });
     this.buildLanternPagodas();
     this.buildServiceDesk();   // 廟埕服務處（完整參拜流程的第一站）
     this.buildHallInterior();

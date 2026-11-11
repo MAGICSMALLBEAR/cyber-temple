@@ -326,6 +326,11 @@ body {
   font-weight: normal;
 }
 
+/* 單機模式（沒有 server.js，例如 GitHub Pages）：多人專用的介面一律收起，不顯示永遠空著的功能 */
+html.solo-mode .solo-hide { display: none !important; }
+.btn-dock-action:disabled { opacity: 0.55; cursor: default; }
+html.solo-mode .wall-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
 /* 頂部「香火」按鈕上的在線人數 */
 .hud-online-pill {
   display: inline-block;
@@ -359,7 +364,7 @@ body {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s, transform 0.3s;
-  z-index: 60;
+  z-index: 1100;   /* 高於彈窗（1000）：抄經、禪修等視窗裡的完成訊息也看得到 */
 }
 
 .temple-broadcast-notice.show {
@@ -2800,3 +2805,40 @@ button:disabled { opacity: 0.45; cursor: default; }
   .shop-product { padding: 10px; }
   .shop-product-controls input { width: 100%; }
 }
+
+/* PWA 新版本提示（app/pwa.js）：底部置中，高於彈窗 */
+.pwa-update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(94vw, 560px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(40, 12, 8, 0.96);
+  border: 1px solid var(--gold-primary);
+  color: var(--gold-bright);
+  font-size: 0.9rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+.pwa-update-banner button {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--gold-primary);
+  background: #7a1f12;
+  color: #fff3d6;
+  font: inherit;
+  cursor: pointer;
+}
+.pwa-update-banner button.pwa-update-later { background: transparent; color: var(--gold-bright); }
+
+/* 免責聲明：解籤結果下方的小字、設定裡的「關於本站與聲明」 */
+.ai-disclaimer { margin: 8px 0 0; font-size: 0.75rem; color: #7c4a2a; line-height: 1.5; }
+.about-disclaimer { margin: 10px 0 14px; font-size: 0.8rem; color: #dfc18b; line-height: 1.6; }
+.about-disclaimer summary { cursor: pointer; color: var(--gold-bright); font-weight: 600; }
+.about-disclaimer p { margin: 6px 0 0; }

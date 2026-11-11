@@ -137,7 +137,7 @@
             <span>🌾</span> 福德正神 (土地公)
           </button>
           <button class="btn-deity-pill" data-deity="guaiguai">
-            <span>🟢</span> 綠色乖乖守護神
+            <span>🟢</span> 綠燈星君
           </button>
         </div>
       </div>
@@ -166,7 +166,7 @@
       <button class="btn-header" id="btnSoundMenu" title="聲音與音量：禪音、靜音、三軌音量" aria-haspopup="true" aria-expanded="false">🔊 聲音</button>
       <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
       <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶" aria-label="每日修行">🗓️<span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
-      <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態" aria-label="即時香火牆">🏮<span class="hud-online-pill" id="hudOnlineCount">1</span></button>
+      <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態" data-solo-title="香火牆：今日香火、點燈與祈願動態" aria-label="即時香火牆">🏮<span class="hud-online-pill solo-hide" id="hudOnlineCount">1</span></button>
       <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
       <button class="btn-header" id="btnOpenBag" title="平安幣、背包與收藏" aria-label="平安幣與背包">🎒</button>
       <button class="btn-header" id="btnOpenSettings" title="AI 神諭與系統設定">⚙️ 設定</button>
@@ -390,9 +390,9 @@
   <div class="emote-panel" id="emotePanel" role="dialog" aria-label="表情與動作">
     <div class="onboarding-head"><span>😊 表情（頭上跳出 3 秒）</span><button class="onboarding-skip" id="btnCloseEmotes" aria-label="關閉">✕</button></div>
     <div class="emote-grid" id="emoteGrid"></div>
-    <div class="onboarding-head" style="margin-top: 10px;"><span>💬 同行對話（顯示 6 秒）</span></div>
-    <div id="quickSpeechGrid" class="quick-speech-grid"></div>
-    <form id="speechForm" class="speech-form">
+    <div class="onboarding-head solo-hide" style="margin-top: 10px;"><span>💬 同行對話（顯示 6 秒）</span></div>
+    <div id="quickSpeechGrid" class="quick-speech-grid solo-hide"></div>
+    <form id="speechForm" class="speech-form solo-hide">
       <input id="speechInput" class="temple-input" maxlength="64" placeholder="對同行說一句話（最多 32 字）" aria-label="同行對話">
       <button class="btn-dock-action" type="submit">說話</button>
     </form>
@@ -615,6 +615,7 @@
         <div class="ai-result-card" id="aiResultCard">
           <!-- AI 即時解籤內容 -->
         </div>
+        <p class="ai-disclaimer">解籤內容由程式或 AI 產生，僅供娛樂與心靈參考，不能取代醫療、法律、財務等專業意見。</p>
       </div>
 
       <div style="font-size: 0.9rem; font-weight: bold; color: #7c1a1a; margin-bottom: 16px;" id="scrollAdvice">
@@ -667,7 +668,8 @@
 
       <div style="margin-bottom: 14px;">
         <label style="font-size: 0.85rem; color: var(--gold-bright); display: block; margin-bottom: 6px;">Google Gemini API Key：</label>
-        <input type="password" class="temple-input" id="txtGeminiKey" placeholder="AIzaSy... (僅存於您個人瀏覽器，安全無外洩)" style="width: 100%;">
+        <input type="password" class="temple-input" id="txtGeminiKey" placeholder="AIzaSy...（只存在這個瀏覽器，只會送給 Google）" style="width: 100%;">
+        <p class="wall-footnote" style="margin-top: 6px;">使用 Gemini 解籤時，你寫的問題與抽到的籤詩會送到 Google 處理；不會送出你的分身稱呼或其他進度資料。不想送出時清除 Key 即可，改用本地解籤。</p>
       </div>
 
       <div class="daily-section-title" style="margin-top: 4px;">🖥️ 畫質</div>
@@ -698,6 +700,14 @@
       <label class="sound-slider-row" style="grid-template-columns: 5em 1fr;"><span>固定天氣</span><select class="temple-select" id="selectWeatherMode"><option value="auto">不固定，跟隨天氣來源</option><option value="clear">晴</option><option value="cloudy">多雲</option><option value="rain">雨</option><option value="storm">雷雨</option><option value="blossoms">落瓣</option></select></label>
       <p class="wall-footnote" id="weatherStatus" role="status" aria-live="polite">依台灣時間的時辰與季節變化。</p>
       <p class="wall-footnote">真實天氣只會把地點座標送給天氣服務 Open-Meteo（選「目前位置」時取到約一公里精度），不會送出其他資料。取不到時自動改用模擬。</p>
+
+      <details class="about-disclaimer" id="aboutDisclaimer">
+        <summary>ℹ️ 關於本站與聲明</summary>
+        <p>賽博虛擬神殿是一款以台灣廟宇參拜文化為題材的線上體驗作品，與任何真實宮廟、宗教團體或品牌沒有關聯，也不代表任何宗教立場。</p>
+        <p>求籤、擲筊、解籤、收驚、安太歲、靈符等內容僅供娛樂與文化體驗，不能取代醫療、法律、財務等專業意見；身心不適請尋求專業協助。</p>
+        <p>籤詩釋義、神尊介紹、節慶與科儀說明為本站整理改寫，可能與各地習俗或出處有出入，歡迎指正。「綠燈星君」是本站原創角色，不是傳統信仰中的神明。</p>
+        <p>本站沒有金流，功德與平安幣都是遊戲內數值，不能兌換現金或實物。所有進度只存在你的瀏覽器裡。</p>
+      </details>
 
       <div style="display: flex; gap: 10px;">
         <button class="btn-dock-action" id="btnSaveSettings" style="flex: 1; justify-content: center;">
@@ -731,7 +741,7 @@
             <button class="btn-custom-pill active" data-type="exam" data-icon="🎓">🎓 金榜題名 (文昌加持)</button>
             <button class="btn-custom-pill" data-type="romance" data-icon="❤️">❤️ 永結同心 (月老牽線)</button>
             <button class="btn-custom-pill" data-type="wealth" data-icon="💰">💰 招財進寶 (武財賜福)</button>
-            <button class="btn-custom-pill" data-type="tech" data-icon="🟢">🟢 系統無Bug (乖乖守護)</button>
+            <button class="btn-custom-pill" data-type="tech" data-icon="🟢">🟢 系統無Bug (星君守護)</button>
             <button class="btn-custom-pill" data-type="peace" data-icon="🛡️">🛡️ 闔家平安 (媽祖庇佑)</button>
           </div>
         </div>
@@ -791,11 +801,11 @@
       <button class="modal-close" id="liveWallModalClose" style="color: var(--gold-bright);">&times;</button>
       <div style="text-align: center; margin-bottom: 14px;">
         <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">🏮 即時香火牆</h3>
-        <div style="font-size: 0.82rem; color: #dfc18b;">同殿善信的香火與祈願，即時同步</div>
+        <div style="font-size: 0.82rem; color: #dfc18b;" data-solo-text="你今天的香火、點燈與祈願（單機版只記在本機）">同殿善信的香火與祈願，即時同步</div>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px;">
-        <div class="passport-stat-box" title="你自己，加上目前連線中的同行分身">
+      <div class="wall-stat-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 8px;">
+        <div class="passport-stat-box solo-hide" title="你自己，加上目前連線中的同行分身">
           <div class="stat-label">🟢 在線同行</div>
           <div class="stat-val" id="statOnlineCount">1</div>
         </div>
@@ -820,7 +830,7 @@
       <button class="modal-close" id="passportModalClose" style="color: var(--gold-bright);">&times;</button>
       <div style="text-align: center; margin-bottom: 14px;">
         <h3 style="color: var(--gold-bright); margin-bottom: 4px; letter-spacing: 2px;">📜 善信功德修持護照</h3>
-        <div style="font-size: 0.82rem; color: #dfc18b;">賽博神殿 • 雲端功德修持明細與靈籤總錄</div>
+        <div style="font-size: 0.82rem; color: #dfc18b;">賽博神殿 • 功德修持明細與靈籤總錄（存在本機瀏覽器）</div>
       </div>
 
       <!-- 修行境界勳章卡 -->
@@ -1054,8 +1064,8 @@
         </button>
         <button type="button" class="amulet-card-item" data-amulet="guaiguai" aria-pressed="false">
           <span class="amulet-badge">綠燈永續</span>
-          <span class="amulet-title">科技乖乖 • 機房綠燈符</span>
-          <span class="amulet-desc">主機安穩、系統乖乖、部署零Bug</span>
+          <span class="amulet-title">綠燈星君 • 機房綠燈符</span>
+          <span class="amulet-desc">主機安穩、系統順暢、部署零Bug</span>
         </button>
         <button type="button" class="amulet-card-item" data-amulet="taisui" aria-pressed="false">
           <span class="amulet-badge">辟邪化煞</span>
@@ -1846,7 +1856,7 @@
         <button type="button" class="feast-dish-picker" data-dish="peach"><span class="feast-picker-icon" aria-hidden="true">🍑</span><span>長生仙桃</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker" data-dish="fagao"><span class="feast-picker-icon" aria-hidden="true">🍞</span><span>富貴發糕</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker" data-dish="redturtle"><span class="feast-picker-icon" aria-hidden="true">🐢</span><span>紅龜粿</span><small class="feast-stock">背包 0 份</small></button>
-        <button type="button" class="feast-dish-picker" data-dish="guaiguai"><span class="feast-picker-icon" aria-hidden="true">🟢</span><span>金牌乖乖</span><small class="feast-stock">背包 0 份</small></button>
+        <button type="button" class="feast-dish-picker" data-dish="guaiguai"><span class="feast-picker-icon" aria-hidden="true">🟢</span><span>綠豆糕</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker" data-dish="milktea"><span class="feast-picker-icon" aria-hidden="true">🧋</span><span>特大珍奶</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker" data-dish="chicken"><span class="feast-picker-icon" aria-hidden="true">🍗</span><span>香脆雞排</span><small class="feast-stock">背包 0 份</small></button>
         <button type="button" class="feast-dish-picker" data-dish="flowers"><span class="feast-picker-icon" aria-hidden="true">🌸</span><span>百合素花</span><small class="feast-stock">背包 0 份</small></button>
@@ -1965,7 +1975,7 @@
         <div class="pavilion-card" id="btnOpenJournal" data-cat="lore"><div class="card-icon">📖</div><div class="card-body"><div class="card-title">心願手帳</div><div class="card-desc">自己的祈願、心得與還願紀錄，也可關聯籤詩</div></div></div>
         <div class="pavilion-card" id="btnOpenMarket" data-cat="grounds"><div class="card-icon">🏮</div><div class="card-body"><div class="card-title">廟埕小夜市</div><div class="card-desc">免費套圈圈贏平安幣、觀賞平安掌中戲《借傘記》</div></div></div>
         <div class="pavilion-card" id="btnOpenBagPavilion" data-cat="grounds"><div class="card-icon">🎒</div><div class="card-body"><div class="card-title">平安行囊與服務處</div><div class="card-desc">每日補給、平安幣、香品供品、胸前平安符與籤詩收藏</div></div></div>
-        <div class="pavilion-card" id="btnOpenRoomPavilion" data-cat="grounds"><div class="card-icon">🏛️</div><div class="card-body"><div class="card-title">殿堂房間分流</div><div class="card-desc">目前在<span id="roomCardName">天樞殿</span>；可切換玉衡、開陽、天璇或自訂同頻密室</div></div></div>
+        <div class="pavilion-card solo-hide" id="btnOpenRoomPavilion" data-cat="grounds"><div class="card-icon">🏛️</div><div class="card-body"><div class="card-title">殿堂房間分流</div><div class="card-desc">目前在<span id="roomCardName">天樞殿</span>；可切換玉衡、開陽、天璇或自訂同頻密室</div></div></div>
         <!-- 殿堂與廟埕 -->
         <div class="pavilion-card" id="btnOpenSideHalls" data-cat="grounds">
           <div class="card-icon">🏛️</div>
@@ -2181,9 +2191,9 @@
           <div class="card-icon">🏮</div>
           <div class="card-body">
             <div class="card-title">即時香火牆</div>
-            <div class="card-desc">在線同行、今日香火與點燈、同殿善信祈願動態</div>
+            <div class="card-desc" data-solo-text="今日香火與點燈、你的祈願動態">在線同行、今日香火與點燈、同殿善信祈願動態</div>
           </div>
-          <span class="card-badge">同行連線</span>
+          <span class="card-badge" data-solo-text="今日香火">同行連線</span>
         </div>
 
         <div class="pavilion-card" data-proxy="btnOpenPassport" data-cat="lore">

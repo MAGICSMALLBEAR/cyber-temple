@@ -2,13 +2,13 @@
 const BAG_KEY = "temple_inventory";
 const AMULET_TYPES = {
   mazu: "媽祖平安符", wenchang: "文昌功名符", caishen: "財神招財符", yuelao: "月老良緣符",
-  guaiguai: "乖乖守護符", taisui: "太歲平安符", guanyin: "觀音護身符", guangong: "關公護身符", tudigong: "土地公平安符"
+  guaiguai: "綠燈星君符", taisui: "太歲平安符", guanyin: "觀音護身符", guangong: "關公護身符", tudigong: "土地公平安符"
 };
 const BAG_ITEMS = {
   incense: { name: "清香一份", icon: "🔥", price: 2 }, paper: { name: "金紙一份", icon: "🧧", price: 4 },
   fruit: { name: "五福果盤", icon: "🍎", price: 6 }, peach: { name: "長生仙桃", icon: "🍑", price: 6 },
   fagao: { name: "富貴發糕", icon: "🍞", price: 6 }, redturtle: { name: "紅龜粿", icon: "🐢", price: 6 },
-  guaiguai: { name: "金牌乖乖", icon: "🟢", price: 6 }, milktea: { name: "特大珍奶", icon: "🧋", price: 8 },
+  guaiguai: { name: "綠豆糕", icon: "🟢", price: 6 }, milktea: { name: "特大珍奶", icon: "🧋", price: 8 },
   chicken: { name: "香脆雞排", icon: "🍗", price: 8 }, flowers: { name: "百合素花", icon: "🌸", price: 6 },
   goldIngot: { name: "金元寶盤", icon: "🟨", price: 12, category: "treasure", description: "三枚船形金元寶，置於朱紅供盤" },
   silverIngot: { name: "銀元寶盤", icon: "⬜", price: 10, category: "treasure", description: "三枚銀色元寶，搭配藍白供盤" },
@@ -24,7 +24,7 @@ const DAILY_BAG = { incense: 6, paper: 3, fruit: 2, peach: 2, fagao: 2, redturtl
 // 遊戲中的主題搭配，可逐盤自行更換。
 const OFFERING_SETS = {
   peace: { name: "平安祈福", icon: "🪷", note: "鮮花與素果，為日常平安備供", dishes: ["fruit", "flowers", "redturtle", "fagao", "guaiguai"] },
-  study: { name: "求學精進", icon: "📚", note: "以果品、糕點與乖乖表達心意", dishes: ["fruit", "fagao", "guaiguai", "peach", "flowers"] },
+  study: { name: "求學精進", icon: "📚", note: "以果品、發糕、綠豆糕與鮮花表達心意", dishes: ["fruit", "fagao", "guaiguai", "peach", "flowers"] },
   wealth: { name: "招財納福", icon: "💰", note: "金銀元寶與聚寶盆的主題擺設", dishes: ["goldIngot", "silverIngot", "treasureBowl", "fruit", "fagao"] },
   birthday: { name: "祝壽添喜", icon: "🍑", note: "雙份仙桃搭配鮮花、糕點", dishes: ["peach", "peach", "flowers", "redturtle", "fagao"] },
   thanks: { name: "答謝還願", icon: "🙏", note: "鮮花、水果與點心，帶著感謝回來", dishes: ["flowers", "fruit", "peach", "redturtle", "guaiguai"] }

@@ -75,6 +75,7 @@ let zenMode = "box"; // "box", "478", "free"
 let zenTargetDuration = 300; // 秒 (預設 5 分鐘, 0 為無限)
 let zenStartTime = 0;
 let zenElapsedSeconds = 0;
+const ZEN_DAILY_MERIT_CAP = 300;
 let zenAnimFrameId = null;
 
 window.openZenModal = function() {
@@ -280,17 +281,20 @@ function stopZenMeditation(isCompleted = false) {
     btnStart.style.background = "#2e7d32";
   }
 
-  const minutes = Math.max(1, Math.round(zenElapsedSeconds / 60));
-  const earnedMerit = Math.max(30, minutes * 30);
-  addMerit(earnedMerit);
+  // 每滿一分鐘 +30，未滿一分鐘不計；每天禪修功德最多 300（十分鐘）
+  const minutes = Math.floor(zenElapsedSeconds / 60);
+  const earnedMerit = minutes > 0 ? claimDailyMerit("zen", minutes * 30, ZEN_DAILY_MERIT_CAP) : 0;
 
   const titleText = isCompleted ? "🎉 禪修圓滿！出定收功！" : "🧘 暫歇禪修，功德圓融！";
-  const msg = `${titleText} 總計修持 ${minutes} 分鐘，積攢功德 +${earnedMerit}！心如止水，福慧增長！`;
+  const msg = minutes < 1
+    ? "🧘 靜坐未滿一分鐘，這次不計功德。再坐久一點，心會更靜。"
+    : earnedMerit > 0
+      ? `${titleText} 總計修持 ${minutes} 分鐘，功德 +${earnedMerit}！心如止水，福慧增長！`
+      : `${titleText} 總計修持 ${minutes} 分鐘。今日禪修功德已滿 ${ZEN_DAILY_MERIT_CAP}，明日再來。`;
 
   const pEl = document.getElementById("zenPhaseText");
   if (pEl) pEl.innerText = "禪修圓滿 • 福慧雙全";
   drawZenMandala("idle", 0.5);
 
-  if (window.setDockStatus) window.setDockStatus(msg);
-  alert(msg);
+  window.templeNotify?.(msg);
 }

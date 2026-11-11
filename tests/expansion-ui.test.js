@@ -103,7 +103,7 @@ module.exports = {
       await p.addScriptTag({ content: fs.readFileSync(path.join(ROOT, 'scene/deities.js'), 'utf8') });
       await p.evaluate(() => {
         const THREE = TemplePreview.THREE;
-        for (const [id, name] of [['mazu','天上聖母'],['wenchang','文昌帝君'],['caishen','五路財神'],['yuelao','月下老人'],['guanyin','觀世音菩薩'],['guangong','關聖帝君'],['tudigong','福德正神'],['guaiguai','科技乖乖']]) {
+        for (const [id, name] of [['mazu','天上聖母'],['wenchang','文昌帝君'],['caishen','五路財神'],['yuelao','月下老人'],['guanyin','觀世音菩薩'],['guangong','關聖帝君'],['tudigong','福德正神'],['guaiguai','綠燈星君']]) {
           const card = document.createElement('article'); card.style.cssText='background:#302522;border:1px solid #745942;border-radius:12px;text-align:center;overflow:hidden';
           const title = document.createElement('h2'); title.style.cssText='font-size:19px;margin:12px 0 0'; title.textContent=name; card.append(title);
           const scene = new THREE.Scene(), model = createTempleDeity(id).group; scene.add(model);

@@ -1,5 +1,5 @@
-# 每次推送與 Pull Request 自動跑完整測試（npm test）
-# 測試會自己啟動 server.js，並用 Chrome 以軟體繪圖跑 3D，不需要顯示卡
+# 每次推送與 Pull Request 自動跑輕量檢查（npm test，約 10 秒，不開 3D 瀏覽器）
+# 完整測試（npm run test:full）在本機跑：GitHub 的機器跑 3D 軟體繪圖太慢，常逾時或假紅（2026-11-11 決定）
 name: 測試
 
 on:
@@ -10,17 +10,13 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-
-      # 測試用的 Playwright 與 Chrome（GitHub 的 Ubuntu 環境已內建 Google Chrome）
-      - name: 安裝 Playwright
-        run: npm install -g playwright
 
       # 確認 libs/three.bundle.min.js 與 tools/three-entry.js 一致（忘了重新打包會在這裡失敗）
       - name: 檢查 Three.js 打包檔是最新的
@@ -29,5 +25,5 @@ jobs:
           npm run build:three
           git diff --exit-code libs/three.bundle.min.js
 
-      - name: 執行測試
-        run: npm run test:full
+      - name: 執行輕量檢查
+        run: npm test

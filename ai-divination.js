@@ -25,7 +25,8 @@ class AIDivinationEngine {
   async divine({ deity, chiam, userQuestion, userName, userAddress }) {
     if (this.hasApiKey()) {
       try {
-        return await this._callGeminiAPI({ deity, chiam, userQuestion, userName, userAddress });
+        // 送到 Google 的內容不含分身稱呼與地區（可能是真名），只有神尊、籤詩與玩家自己寫的問題
+        return await this._callGeminiAPI({ deity, chiam, userQuestion });
       } catch (err) {
         console.warn("Gemini API 調用失敗，自動切換至神明推演心法模式：", err);
         return this._localSmartDivine({ deity, chiam, userQuestion, userName, userAddress, errorNote: err.message });
@@ -37,12 +38,12 @@ class AIDivinationEngine {
   }
 
   // Google Gemini API 調用
-  async _callGeminiAPI({ deity, chiam, userQuestion, userName, userAddress }) {
+  async _callGeminiAPI({ deity, chiam, userQuestion }) {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
 
     const prompt = `
 你現在是台灣民間信仰中尊貴宏大的神明【${deity.name}】（尊稱：${deity.title}）的神靈化身。
-信眾【${userName || "信徒"}】（來自：${userAddress || "塵世"}）今日心懷誠敬，前來神殿向你求示。
+一位信眾今日心懷誠敬，前來神殿向你求示。
 
 信眾陳述的具體煩惱與問題如下：
 「${userQuestion || "祈求人生指引、事業與心靈安泰"}」

@@ -15,20 +15,35 @@ window.templeServer = {
         .catch(() => false)
     : Promise.resolve(false))
 };
-window.templeServer.ready.then(ok => { window.templeServer.available = ok; });
+window.templeServer.ready.then(ok => {
+  window.templeServer.available = ok;
+  if (!ok) enterSoloMode();
+});
+
+// 單機模式：收起在線人數、房間分流、同行對話等多人介面（style.css 的 .solo-hide），
+// 並把描述換成單機版文字（data-solo-text／data-solo-title）。大殿的同行供席由 scene/peer-tables.js 收起。
+function enterSoloMode() {
+  const apply = () => {
+    document.documentElement.classList.add("solo-mode");
+    document.querySelectorAll("[data-solo-text]").forEach(el => { el.textContent = el.dataset.soloText; });
+    document.querySelectorAll("[data-solo-title]").forEach(el => { el.title = el.dataset.soloTitle; });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply, { once: true });
+  else apply();
+}
 const WALL_TEXT_MAX = 200;
 
 // 示範祈願：只用於飛天彈幕點綴，一律標示「示範」，不冒充真人
 const DEMO_PRAYERS = [
   "祈求家人手術順利、早日康復安泰 🙏",
-  "祈求綠色乖乖保佑！週五伺服器千萬別崩潰 🟢",
+  "祈求綠燈星君保佑！週五伺服器千萬別崩潰 🟢",
   "文昌帝君在上，保佑國考一戰成名金榜題名 📜",
   "五路財神保佑新店開張大吉、財源滾滾 💰",
   "祈求月老賜正緣，揮別爛桃花，遇良善之人 ❤️",
   "願天地無 Bug，代碼行行暢通，順利下班 ☕",
   "人在海外遙拜媽祖，祈求父母身心健康 🌸",
   "祈求全家出入平安、工作順心、闔家和睦 🏮",
-  "求乖乖神顯靈，線上系統運行絲滑無延遲！",
+  "求綠燈星君顯靈，線上系統運行絲滑無延遲！",
   "感謝媽祖慈悲保佑，今年果園大豐收！"
 ];
 
@@ -154,7 +169,7 @@ class LiveTempleWall {
 
   showNoServerNote() {
     const note = document.getElementById("wallConnectionNote");
-    if (note) note.textContent = "目前沒有連線伺服器，只會同步同一個瀏覽器的分頁。要和其他裝置同行，請用「啟動神殿.bat」開啟，或部署到有執行 server.js 的主機。";
+    if (note) note.textContent = "本站為單機版：目前沒有連線伺服器，香火與祈願只記在這個瀏覽器。多人同行需在自己電腦用「啟動神殿.bat」開啟（同一個 WiFi 的裝置可一起連線）。";
   }
 
   send(type, payload) {
@@ -293,7 +308,7 @@ class LiveTempleWall {
     if (this.prayerFeed.length === 0) {
       const empty = document.createElement("div");
       empty.className = "wall-feed-empty";
-      empty.textContent = "本次連線尚無祈願。從底部 💬 祈願發出第一則，同行善信都看得到。";
+      empty.textContent = window.templeServer.available ? "本次連線尚無祈願。從底部 💬 祈願發出第一則，同行善信都看得到。" : "今天還沒有祈願。從底部 💬 祈願寫下第一則。";
       listEl.appendChild(empty);
       return;
     }

@@ -44,7 +44,7 @@ const LUNAR_FESTIVALS = [
   { m: 12, d: 16, name: "尾牙 • 土地公作牙", deity: "tudigong", desc: "一年最後一次作牙，感謝土地公一年來的庇佑。" }
 ];
 
-const DEITY_NAMES = { mazu: "媽祖", wenchang: "文昌帝君", caishen: "五路財神", yuelao: "月下老人", guanyin: "觀世音菩薩", guangong: "關聖帝君", tudigong: "土地公", guaiguai: "乖乖神" };
+const DEITY_NAMES = { mazu: "媽祖", wenchang: "文昌帝君", caishen: "五路財神", yuelao: "月下老人", guanyin: "觀世音菩薩", guangong: "關聖帝君", tudigong: "土地公", guaiguai: "綠燈星君" };
 const LUNAR_MONTHS = { "正月": 1, "二月": 2, "三月": 3, "四月": 4, "五月": 5, "六月": 6, "七月": 7, "八月": 8, "九月": 9, "十月": 10, "冬月": 11, "臘月": 12 };
 const LUNAR_MONTH_LABELS = ["", "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "冬月", "臘月"];
 const LUNAR_DAY_NAMES = ["", "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",

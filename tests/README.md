@@ -13,7 +13,7 @@ node tests/run-all.js pilgrimage-extension pilgrimage-ui # 八步參拜、組合
 TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 ```
 
-2026-11-04 曾在本機測試期間發生整機凍結並強制重開；原因尚未確定。自此本機預設採輕量檢查，完整測試留給明確指定的執行或 CI。測試執行器使用鎖檔禁止兩套同時跑，正常中斷會關閉自己的測試瀏覽器與伺服器。不要同時開兩個終端跑不同組的 3D 測試。
+2026-11-04 曾在本機測試期間發生整機凍結並強制重開；原因尚未確定。自此本機預設採輕量檢查，完整測試留給明確指定的本機執行（11/11 起 CI 不跑完整測試）。測試執行器使用鎖檔禁止兩套同時跑，正常中斷會關閉自己的測試瀏覽器與伺服器。不要同時開兩個終端跑不同組的 3D 測試。
 
 **需要：** Node.js、電腦上的 Google Chrome（沒有可設 `TEST_BROWSER_CHANNEL=msedge` 改用 Edge）、Playwright（`npm i -g playwright`）。測試會自己啟動 `server.js`（隨機埠號），跑完自動關閉。
 
@@ -62,7 +62,7 @@ TEST_VERBOSE=1 npm test       # 連通過的項目也列出
 
 ## 持續整合
 
-`.github/workflows/test.yml`：專案放上 GitHub 後，每次推送與 Pull Request 都會自動跑 `npm run test:full`（完整 3D 測試），並檢查 `libs/three.bundle.min.js` 是否由目前的 `tools/three-entry.js` 打包（改了打包設定卻忘了執行 `npm run build:three` 會失敗）。
+`.github/workflows/test.yml`：每次推送與 Pull Request 自動跑輕量的 `npm test`（2026-11-11 起；GitHub 機器跑完整 3D 測試會超過 30 分鐘或在慢機器上假紅，完整測試改在本機跑，發布前與大改動後各跑一次），並檢查 `libs/three.bundle.min.js` 是否由目前的 `tools/three-entry.js` 打包（改了打包設定卻忘了執行 `npm run build:three` 會失敗）。
 
 ## 真機驗收
 

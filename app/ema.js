@@ -64,7 +64,7 @@ function renderEmaPlaquesList() {
 
   const defaultPlaques = [
     { name: "考生小明", type: "exam", icon: "🎓", wish: "文昌帝君保佑考研順利上岸！", date: "近期" },
-    { name: "科技碼農", type: "tech", icon: "🟢", wish: "乖乖神保佑專案零Bug、伺服器常綠！", date: "近期" },
+    { name: "科技碼農", type: "tech", icon: "🟢", wish: "綠燈星君保佑專案零Bug、伺服器常綠！", date: "近期" },
     { name: "虔誠信女", type: "romance", icon: "❤️", wish: "月老爺爺賜良緣，覓得相知相守之人。", date: "近期" },
     { name: "創業阿榮", type: "wealth", icon: "💰", wish: "武財神賜福正偏財亨通，生意興隆！", date: "近期" }
   ];

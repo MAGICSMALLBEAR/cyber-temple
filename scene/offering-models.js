@@ -131,10 +131,11 @@ function buildOfferingDish(type, { plate = true } = {}) {
     add(new THREE.SphereGeometry(0.075, 12, 10), turtleMat, 0, 0.04, 0).scale.set(1.1, 0.45, 1.3);
     add(new THREE.PlaneGeometry(0.18, 0.22), greenMat, 0, 0.024, 0).rotation.x = -Math.PI / 2;
   } else if (type === "guaiguai") {
-    // 🟢 金牌科技乖乖
-    const bagMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.4, metalness: 0.1 });
-    add(new THREE.BoxGeometry(0.16, 0.20, 0.07), bagMat, 0, 0.11, 0).rotation.y = 0.15;
-    add(new THREE.BoxGeometry(0.162, 0.04, 0.072), goldPlateMat, 0, 0.11, 0).rotation.y = 0.15;   // 金牌彩帶
+    // 🟢 綠豆糕（id 沿用 guaiguai 以相容舊存檔）：紅漆小盤上疊四方糕
+    const cakeGreen = new THREE.MeshStandardMaterial({ color: 0x9ccf6a, roughness: 0.8 });
+    add(new THREE.CylinderGeometry(0.09, 0.08, 0.02, 16), redPlateMat, 0, 0.02, 0);
+    [[-0.035, -0.035], [0.035, -0.035], [-0.035, 0.035], [0.035, 0.035]].forEach(([x, z]) => add(new THREE.BoxGeometry(0.06, 0.035, 0.06), cakeGreen, x, 0.048, z));
+    add(new THREE.BoxGeometry(0.06, 0.035, 0.06), cakeGreen, 0, 0.083, 0).rotation.y = Math.PI / 4;
   } else if (type === "milktea") {
     // 🧋 全糖特大珍珠奶茶
     const teaMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.4 });

@@ -15,10 +15,15 @@ function bindLoreEvents() {
     if (detailEl) detailEl.style.display = "none";
     if (containerEl) containerEl.style.display = "grid";
   });
+  // 研讀功德每篇只給一次（籤詩、神尊、科儀各自計），避免重複點按灌功德
   document.getElementById("btnLoreStudy")?.addEventListener("click", () => {
+    if (!currentLoreEntry || loreStudied().has(currentLoreEntry)) return;
+    const studied = loreStudied(); studied.add(currentLoreEntry);
+    localStorage.setItem(LORE_STUDIED_KEY, JSON.stringify([...studied]));
     addMerit(20);
     if (window.templeAudio) window.templeAudio.playBell(528);
-    alert("📖 虔心研讀領悟經義！功德 +20，智慧增長！");
+    updateLoreStudyButton();
+    window.templeNotify?.("📖 虔心研讀領悟經義！功德 +20，智慧增長！");
   });
 
 }
@@ -27,6 +32,28 @@ function bindLoreEvents() {
 // 2. 宮廟藏經閣 • 靈籤寶典與仙真史料館 (Lore Pavilion Logic)
 // ==========================================================================
 let currentLoreTab = "chiam";
+const LORE_STUDIED_KEY = "temple_lore_studied";
+let currentLoreEntry = null;   // 目前打開的條目，例如 "chiam:12"、"deity:mazu"
+
+function loreStudied() {
+  try {
+    const list = JSON.parse(localStorage.getItem(LORE_STUDIED_KEY) || "[]");
+    return new Set(Array.isArray(list) ? list.filter(x => typeof x === "string") : []);
+  } catch (e) { return new Set(); }
+}
+
+function setLoreEntry(key) {
+  currentLoreEntry = key;
+  updateLoreStudyButton();
+}
+
+function updateLoreStudyButton() {
+  const btn = document.getElementById("btnLoreStudy");
+  if (!btn) return;
+  const done = !!currentLoreEntry && loreStudied().has(currentLoreEntry);
+  btn.disabled = done;
+  btn.textContent = done ? "✅ 本篇已研讀" : "📖 虔心研讀領悟 (+20 功德)";
+}
 
 const LORE_DEITIES = [
   {
@@ -87,10 +114,10 @@ const LORE_DEITIES = [
   },
   {
     id: "guaiguai",
-    title: "科技綠乖乖神 • 伺服器護法天神",
+    title: "綠燈星君 • 機房護法星官",
     badge: "機房長綠 • 永不宕機",
-    desc: "台灣科技工程師獨特民俗崇拜神物。供奉於伺服器機櫃與電腦主機之上，唯認「椰子綠色包裝」，象徵機房運轉燈號常保綠燈，驅散 Bug 陰霾，護佑軟硬體百萬行程式碼安然無恙。",
-    advice: "切莫偷吃祭壇乖乖！按時備份資料，保持代碼簡潔，乖乖自會守護神機。"
+    desc: "本殿原創的神尊，非傳統信仰。取材自工程師以綠色象徵「系統正常」的習慣：傳說北斗一顆小星下凡，化作機房裡常明不滅的綠色指示燈，驅散 Bug 陰霾，護佑百萬行程式碼安然無恙。頭戴七星冠、手持常明綠燈，胸懸護心鏡照見隱藏的錯誤。",
+    advice: "上線前先備份，改動後先測試；保持程式簡潔，星君自會守護神機。"
   }
 ];
 
@@ -199,6 +226,7 @@ function showChiamLoreDetail(id) {
   const p = (window.CHIAM_DATA || []).find(item => item.id === id);
   if (!p) return;
 
+  setLoreEntry(`chiam:${p.id}`);
   const container = document.getElementById("loreContentContainer");
   const detail = document.getElementById("loreDetailView");
   if (container) container.style.display = "none";
@@ -216,6 +244,7 @@ function showDeityLoreDetail(id) {
   const d = LORE_DEITIES.find(item => item.id === id);
   if (!d) return;
 
+  setLoreEntry(`deity:${d.id}`);
   const container = document.getElementById("loreContentContainer");
   const detail = document.getElementById("loreDetailView");
   if (container) container.style.display = "none";
@@ -233,6 +262,7 @@ function showTraditionLoreDetail(id) {
   const t = LORE_TRADITIONS.find(item => item.id === id);
   if (!t) return;
 
+  setLoreEntry(`tradition:${t.id}`);
   const container = document.getElementById("loreContentContainer");
   const detail = document.getElementById("loreDetailView");
   if (container) container.style.display = "none";
