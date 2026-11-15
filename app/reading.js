@@ -129,7 +129,7 @@ const templeReading = {
     }, true);
   },
   setupDropdowns() {
-    for (const [buttonId, menuId] of [["deityDropdownBtn", "deityDropdownMenu"], ["cameraNavBtn", "cameraNavDropdown"], ["btnSoundMenu", "soundMenuPanel"]]) {
+    for (const [buttonId, menuId] of [["deityDropdownBtn", "deityDropdownMenu"], ["cameraNavBtn", "cameraNavDropdown"], ["btnSoundMenu", "soundMenuPanel"], ["btnMoreMenu", "moreMenuPanel"]]) {
       const button = document.getElementById(buttonId), menu = document.getElementById(menuId); if (!button || !menu) continue;
       button.setAttribute("aria-controls", menuId); button.setAttribute("aria-expanded", String(menu.classList.contains("open")));
       if (menu.getAttribute("role") === "dialog") button.setAttribute("aria-haspopup", "dialog");

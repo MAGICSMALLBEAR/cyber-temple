@@ -75,7 +75,10 @@ class AvatarCompanionsMixin {
       npcGroup.add(sprite);
 
       this.scene.add(npcGroup);
-      this.npcs.push({ group: npcGroup, action: p.action, offset: Math.random() * 5 });
+      // 身形可點選聊天（app/npc-talk.js）；scene/core.js 建好分身後把它加入可互動物件
+      const npcIndex = this.npcs.length;
+      body.userData = { type: "npc", npcIndex, tooltip: `💬 ${p.name}：點我聊聊` };
+      this.npcs.push({ group: npcGroup, action: p.action, offset: Math.random() * 5, name: p.name, hit: body });
     });
   }
 

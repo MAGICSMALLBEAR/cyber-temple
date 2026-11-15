@@ -90,7 +90,11 @@ const templeInventory = {
     return !!a && Math.hypot(a.position.x - SERVICE_DESK_POS[0], a.position.z - SERVICE_DESK_POS[1]) < 2.2;
   },
   buy(id, quantity = 1) {
-    if (typeof id !== "string" || !this.nearService() || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) return false;
+    return this.nearService() && this.purchase(id, quantity);
+  },
+  // 實際扣平安幣、入背包；地點由呼叫端檢查（服務處 buy()、攤販 app/npc-talk.js）
+  purchase(id, quantity = 1) {
+    if (typeof id !== "string" || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) return false;
     const d = this.load(), charm = id.startsWith("amulet:") ? id.slice(7) : null;
     const definition = charm ? (Object.hasOwn(AMULET_TYPES, charm) ? { price: 25 } : null) : Object.hasOwn(BAG_ITEMS, id) ? BAG_ITEMS[id] : null;
     if (!definition || (charm && (quantity !== 1 || d.amulets.includes(charm)))) return false;
@@ -101,7 +105,15 @@ const templeInventory = {
     if (!charm && this.isOffering(id)) d.carryMode = "basket";
     this.save(d); return true;
   },
-  buyBasket(basket, expectedTotal) {
+  // 攤販現吃的小點心：只扣平安幣，不進背包
+  spendCoins(amount) {
+    if (!Number.isInteger(amount) || amount < 1) return false;
+    const d = this.load();
+    if (d.coins < amount) return false;
+    d.coins -= amount;
+    this.save(d); return true;
+  },
+    buyBasket(basket, expectedTotal) {
     if (!this.nearService()) return { ok: false, reason: "location" };
     if (!basket || typeof basket !== "object" || Array.isArray(basket)) return { ok: false, reason: "invalid" };
     const entries = Object.entries(basket), d = this.load(); let total = 0;

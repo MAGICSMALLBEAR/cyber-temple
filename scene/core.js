@@ -179,6 +179,8 @@ class Temple3DScene {
     // 6. 載入 3D 角色系統
     if (window.TempleAvatarSystem) {
       this.avatar = new TempleAvatarSystem(this.scene, this.camera, this.controls);
+      // 廟內 NPC 可點選聊天
+      (this.avatar.npcs || []).forEach(n => { if (n.hit) this.interactiveObjects.push(n.hit); });
     }
 
     // 6.5 畫質分級（場景與燈光都建好之後才套用）
@@ -595,6 +597,8 @@ class Temple3DScene {
       const type = intersects[0].object.userData?.type;
       if (type === "plazaSpot") {
         window.templePlaza?.use(intersects[0].object.userData.spotId);
+      } else if (type === "npc") {
+        window.templeNpc?.talk(intersects[0].object.userData.npcIndex);
       } else if (type === "ringStall" || type === "puppetStage") {
         window.nightMarket?.open(type === "ringStall" ? "ring" : "puppet");
       } else if (["prayerMat", "donationBox", "chiamCabinet"].includes(type)) {

@@ -153,29 +153,36 @@
 
     <!-- 右側：系統功能快捷條 -->
     <div class="header-status">
-      <div class="shichen-select-container">
-        <select id="selectShichen" class="temple-select" title="切換時辰光影晝夜氛圍">
-          <option value="auto">🕒 時辰：真實時間</option>
-          <option value="dawn">🌅 卯時 • 晨霧金曦</option>
-          <option value="noon">☀️ 午時 • 烈日金光</option>
-          <option value="dusk">🌇 酉時 • 晚霞暮光</option>
-          <option value="midnight">🌌 子時 • 深夜星空</option>
-        </select>
-      </div>
-      <button class="btn-header" id="btnToggleWeather" title="天氣：跟隨設定中的天氣來源，按一下可固定某種天氣">☀️ 晴（依時辰）</button>
-      <button class="btn-header" id="btnSoundMenu" title="聲音與音量：禪音、靜音、三軌音量" aria-haspopup="true" aria-expanded="false">🔊 聲音</button>
-      <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
-      <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶" aria-label="每日修行">🗓️<span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
-      <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態" data-solo-title="香火牆：今日香火、點燈與祈願動態" aria-label="即時香火牆">🏮<span class="hud-online-pill solo-hide" id="hudOnlineCount">1</span></button>
-      <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
-      <button class="btn-header" id="btnOpenBag" title="平安幣、背包與收藏" aria-label="平安幣與背包">🎒</button>
+      <button class="btn-header" id="btnOpenDaily" title="每日修行：簽到、今日功課與農曆節慶" aria-label="每日修行">🗓️ 每日<span class="hud-pending-dot" id="dailyPendingDot" hidden>3</span></button>
+      <button class="btn-header" id="btnOpenBag" title="平安幣、背包與收藏" aria-label="平安幣與背包">🎒 背包</button>
       <button class="btn-header" id="btnOpenSettings" title="AI 神諭與系統設定">⚙️ 設定</button>
       <button class="btn-header" id="btnEnterVR" title="戴上 VR 頭盔，站在大殿正中參拜" hidden>🥽 VR</button>
       <button class="btn-header" id="btnInstallApp" title="把神殿安裝到桌面或主畫面，離線也能開" hidden>📲 安裝</button>
-      <button class="btn-header" id="btnOpenHelp" title="操作與快捷鍵導引 (?)">❓</button>
-      <button class="btn-header btn-hud-toggle" id="btnToggleHUD" title="沉浸模式 (隱藏所有介面，快捷鍵 H)">👁️ 沉浸</button>
+      <button class="btn-header" id="btnMoreMenu" title="更多：時辰、天氣、聲音、分身、香火牆、護照、說明、沉浸" aria-haspopup="true" aria-expanded="false">☰ 更多</button>
     </div>
   </header>
+
+  <!-- 頂部列「更多」選單（頂部只留神尊、功德、每日、背包、設定、更多；其餘收在這裡） -->
+  <div class="more-menu-panel" id="moreMenuPanel" role="dialog" aria-label="更多功能">
+    <div class="shichen-select-container">
+      <select id="selectShichen" class="temple-select" title="切換時辰光影晝夜氛圍">
+        <option value="auto">🕒 時辰：真實時間</option>
+        <option value="dawn">🌅 卯時 • 晨霧金曦</option>
+        <option value="noon">☀️ 午時 • 烈日金光</option>
+        <option value="dusk">🌇 酉時 • 晚霞暮光</option>
+        <option value="midnight">🌌 子時 • 深夜星空</option>
+      </select>
+    </div>
+    <div class="more-menu-grid">
+      <button class="btn-header" id="btnToggleWeather" title="天氣：跟隨設定中的天氣來源，按一下可固定某種天氣">☀️ 晴（依時辰）</button>
+      <button class="btn-header" id="btnSoundMenu" title="聲音與音量：禪音、靜音、三軌音量" aria-haspopup="true" aria-expanded="false">🔊 聲音</button>
+      <button class="btn-header" id="btnOpenAvatar" title="角色分身自訂換裝">👤 分身</button>
+      <button class="btn-header" id="btnOpenLiveWall" title="即時香火牆：同行善信、今日香火與祈願動態" data-solo-title="香火牆：今日香火、點燈與祈願動態" aria-label="即時香火牆">🏮 香火牆<span class="hud-online-pill solo-hide" id="hudOnlineCount">1</span></button>
+      <button class="btn-header" id="btnOpenPassport" title="善信功德護照">📜 護照</button>
+      <button class="btn-header" id="btnOpenHelp" title="操作與快捷鍵導引 (?)">❓ 說明</button>
+      <button class="btn-header btn-hud-toggle" id="btnToggleHUD" title="沉浸模式 (隱藏所有介面，快捷鍵 H)">👁️ 沉浸</button>
+    </div>
+  </div>
 
   <!-- 右上方：3D 鏡頭視角導覽艙 (收納 20 種視角，告別右側滿版按鈕) -->
   <div class="camera-nav-container" id="cameraNavContainer">
@@ -335,6 +342,25 @@
     </div>
   </div>
 
+  <!-- 跪拜稟告卡（在大殿神案前跪拜時出現；app/petition.js） -->
+  <div class="chiam-ritual-card petition-card" id="petitionCard" hidden role="dialog" aria-labelledby="petitionTitle">
+    <div class="onboarding-head">
+      <span id="petitionTitle">🙏 向神明稟告</span>
+      <button class="onboarding-skip" id="btnPetitionClose" title="結束稟告" aria-label="結束稟告">✕</button>
+    </div>
+    <div class="onboarding-hint" id="petitionMessage" aria-live="polite"></div>
+    <div class="petition-form" id="petitionForm">
+      <label class="petition-row"><span>稱呼</span><input type="text" class="temple-input" id="petitionName" maxlength="20" placeholder="例如：弟子小明、信女阿華"></label>
+      <div class="petition-row"><span>所求</span><div class="petition-topics" id="petitionTopics" role="group" aria-label="所求類別"></div></div>
+      <label class="petition-row"><span>請示</span><input type="text" class="temple-input" id="petitionQuestion" maxlength="80" placeholder="是非題，例如：這次轉職是否順利？（可不填）"></label>
+      <p class="petition-note">稟告內容只記在這台裝置，不會送出。</p>
+    </div>
+    <div class="ritual-actions">
+      <div class="onboarding-dots" id="petitionDots" aria-label="聖筊數"></div>
+      <button class="btn-dock-action" id="btnPetitionToss">🙏 稟告並擲筊</button>
+    </div>
+  </div>
+
   <!-- 新手引導任務卡（第一次來的玩家才會出現） -->
   <div class="onboarding-card" id="onboardingCard" hidden role="status" aria-live="polite">
     <div class="onboarding-head">
@@ -344,6 +370,21 @@
     <div class="onboarding-title" id="onboardingTitle"></div>
     <div class="onboarding-hint" id="onboardingHint"></div>
     <div class="onboarding-dots" id="onboardingDots"></div>
+  </div>
+
+  <!-- 今日香火卡（新手引導結束後出現在同一位置；app/today-route.js） -->
+  <div class="onboarding-card today-card" id="todayCard" hidden role="status" aria-live="polite">
+    <div class="onboarding-head">
+      <span id="todayCardDate">📅 今日香火</span>
+      <button class="onboarding-skip" id="btnTodayClose" title="今天不再顯示（明天會再出現；可從 🗓️ 每日修行重新出發）" aria-label="今天不再顯示今日卡">✕</button>
+    </div>
+    <div class="onboarding-title" id="todayCardTitle"></div>
+    <div class="onboarding-hint" id="todayCardHint"></div>
+    <div class="today-card-actions">
+      <div class="onboarding-dots" id="todayCardDots"></div>
+      <button class="btn-dock-action" id="btnTodayList">📋 全部</button>
+      <button class="btn-dock-action today-go" id="btnTodayGo">🚶 出發</button>
+    </div>
   </div>
 
   <!-- 聲音面板（放在最外層，避免被可橫向捲動的頂部列裁切；打開時對齊到「🔊 聲音」按鈕下方） -->
@@ -786,7 +827,7 @@
         <div class="passport-stat-box"><div class="stat-label">累計參拜</div><div class="stat-val" id="dailyTotalDays">0</div></div>
       </div>
 
-      <div class="daily-section-title">📿 今日功課</div>
+      <div class="daily-section-title daily-route-head">📿 今日功課 <button class="btn-dock-action" id="btnDailyRoute">🚶 依路線出發</button></div>
       <div class="daily-task-list" id="dailyTaskList"></div>
       <div class="wall-footnote" id="dailyBonusNote" style="margin-top: 8px;"></div>
       <div class="wall-footnote" id="dailyNextFestival"></div>
@@ -2292,6 +2333,18 @@
     </div>
   </div>
 
+  <!-- 攤販 NPC 買東西（app/npc-talk.js） -->
+  <div class="modal-overlay" id="npcShopModal">
+    <div class="settings-modal npc-shop-modal" role="dialog" aria-modal="true" aria-labelledby="npcShopTitle">
+      <button class="modal-close" id="npcShopClose" aria-label="關閉攤位視窗">&times;</button>
+      <h3 id="npcShopTitle">🛒 攤位</h3>
+      <p class="npc-shop-line" id="npcShopLine"></p>
+      <div class="npc-shop-coins" id="npcShopCoins"></div>
+      <div class="npc-shop-items" id="npcShopItems"></div>
+      <p class="wall-footnote" id="npcShopMessage" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- 殿堂房間分流彈窗 -->
   <div class="modal-overlay" id="roomModal">
     <div class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
@@ -2389,6 +2442,9 @@
   <script src="app/chiam-ritual.js"></script>
   <script src="app/pilgrimage.js"></script>
   <script src="app/visit.js"></script>
+  <script src="app/today-route.js"></script>
+  <script src="app/petition.js"></script>
+  <script src="app/npc-talk.js"></script>
   <script src="app/hall.js"></script>
   <script src="app/bag.js"></script>
   <script src="app/market.js"></script>

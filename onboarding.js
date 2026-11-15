@@ -65,9 +65,10 @@ const templeOnboarding = {
       this.save();
       this.render();
       if (window.addMerit) window.addMerit(ONBOARDING_REWARD);
-      const msg = `🎉 新手參拜圓滿！你已經學會點香、擲筊、求籤，功德 +${ONBOARDING_REWARD}。萬寶閣裡還有更多科儀等你探索。`;
+      const msg = `🎉 新手參拜圓滿！你已經學會點香、擲筊、求籤，功德 +${ONBOARDING_REWARD}。接下來畫面下方的「今日香火」卡會帶你走今天的功課。`;
       if (window.liveTempleWall) window.liveTempleWall.showBroadcastNotice(msg);
       if (window.setDockStatus) window.setDockStatus(msg);
+      window.dispatchEvent(new CustomEvent("temple:onboardingdone"));
       return;
     }
     this.save();
@@ -79,6 +80,7 @@ const templeOnboarding = {
     this.state.skipped = true;
     this.save();
     this.render();
+    window.dispatchEvent(new CustomEvent("temple:onboardingdone"));
   },
 
   render() {

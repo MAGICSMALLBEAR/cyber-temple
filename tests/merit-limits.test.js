@@ -65,6 +65,13 @@ module.exports = {
     sit(5 * 60);
     check("滿額後再坐不加功德並說明", merit() === before + 300 && c.lastNotice.includes("已滿"));
 
+    // ---- 念珠圓滿 +108：之前寫 window.state（不存在）所以功德沒加上去 ----
+    c.templeAudio = { playBell() {} };
+    env.load("beads.js");
+    before = merit();
+    c.beadsSystem.completeLoop();
+    check("念珠圓滿一輪功德 +108", merit() === before + 108, `${before} → ${merit()}`);
+
     check("以上流程沒有跳出 alert", alerts === 0);
     const sources = ["app/lore.js", "app/zen.js", "app/sutra.js", "beads.js", "save-data.js", "app/feast.js"].map(f => fs.readFileSync(path.join(ROOT, f), "utf8"));
     check("完成訊息的程式不再呼叫 alert()", sources.every(s => !/\balert\(/.test(s)));

@@ -74,7 +74,10 @@ const SUITES = [
   "pwa.test.js",
   "static-hosting.test.js",
   "weather.test.js",
-  "merit-limits.test.js"
+  "merit-limits.test.js",
+  "today-route.test.js",
+  "petition.test.js",
+  "npc-talk.test.js"
 ];
 
 (async () => {

@@ -24,20 +24,39 @@ module.exports = {
     });
     check("1280 寬時頂部列維持一排", row.height < 45, `高 ${row.height}px`);
     check("禪音、靜音按鈕已收進聲音面板", !row.bgmInHeader);
+    // 頂部只留神尊、功德、每日、背包、設定、更多（VR、安裝只在可用時出現）
+    const visibleHeader = await p.evaluate(() => [...document.querySelectorAll("#templeHeader .header-status button")].filter(b => b.getBoundingClientRect().width > 0).map(b => b.id));
+    check("頂部按鈕只剩每日、背包、設定、更多", visibleHeader.join() === "btnOpenDaily,btnOpenBag,btnOpenSettings,btnMoreMenu", visibleHeader.join());
+    check("神尊與功德仍在頂部", await p.evaluate(() => !!document.querySelector("#templeHeader #deityDropdownBtn") && !!document.querySelector("#templeHeader #meritCounter")));
+    await p.click("#btnMoreMenu");
+    const more = await p.evaluate(() => {
+      const el = document.getElementById("moreMenuPanel"), r = el.getBoundingClientRect();
+      return { open: el.classList.contains("open"), inView: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight,
+        items: ["selectShichen", "btnToggleWeather", "btnSoundMenu", "btnOpenAvatar", "btnOpenLiveWall", "btnOpenPassport", "btnOpenHelp", "btnToggleHUD"].every(id => el.contains(document.getElementById(id)) && document.getElementById(id).getBoundingClientRect().width > 0),
+        expanded: document.getElementById("btnMoreMenu").getAttribute("aria-expanded") };
+    });
+    check("「更多」選單打開、在畫面內，時辰、天氣、聲音等八項都在裡面", more.open && more.inView && more.items && more.expanded === "true", JSON.stringify(more));
+    await p.click("#btnToggleWeather");
+    check("切換天氣後選單仍開著（看得到結果）", await p.evaluate(() => document.getElementById("moreMenuPanel").classList.contains("open")));
+    await p.click("#btnOpenPassport");
+    check("點護照後選單收起、護照打開", await p.evaluate(() => !document.getElementById("moreMenuPanel").classList.contains("open") && document.getElementById("passportModal").classList.contains("open")));
+    await p.evaluate(() => document.getElementById("passportModal").classList.remove("open"));
+    await p.evaluate(() => window.templeWeather?.setMode?.("auto"));
 
     // --- 聲音面板開關 ---
-    await p.click("#btnSoundMenu");
+    await p.click("#btnMoreMenu"); await p.click("#btnSoundMenu");
     const panel = await p.evaluate(() => {
       const el = document.getElementById("soundMenuPanel"), r = el.getBoundingClientRect();
       return { open: el.classList.contains("open"), inView: r.left >= 0 && r.right <= innerWidth && r.top >= 0, expanded: document.getElementById("btnSoundMenu").getAttribute("aria-expanded") };
     });
     check("點「🔊 聲音」打開面板且不超出螢幕", panel.open && panel.inView && panel.expanded === "true");
+    check("聲音面板打開時「更多」選單收起", !(await p.evaluate(() => document.getElementById("moreMenuPanel").classList.contains("open"))));
     await p.keyboard.press("Escape");
     check("Esc 關閉聲音面板", !(await p.evaluate(() => document.getElementById("soundMenuPanel").classList.contains("open"))));
 
     // --- 三軌音量 ---
     // 瀏覽器要求先有使用者操作才允許出聲：用真實點擊開面板，再恢復音效引擎
-    await p.click("#btnSoundMenu");
+    await p.click("#btnMoreMenu"); await p.click("#btnSoundMenu");
     const audioState = await p.evaluate(async () => { window.templeAudio.init(); await window.templeAudio.ctx.resume(); return window.templeAudio.ctx.state; });
     check("音效引擎在使用者點擊後可運作", audioState === "running", audioState);
     // 等淡入淡出（0.15 秒）跑完再讀實際音量
@@ -66,6 +85,7 @@ module.exports = {
     const muted = { ...(await settled()), label: await p.$eval("#btnSoundMenu", e => e.textContent) };
     check("靜音時兩軌都歸零（背景音也停）", muted.sfx < 0.001 && muted.music < 0.001, `${muted.sfx} / ${muted.music}`);
     check("頂部按鈕顯示靜音中", muted.label.includes("靜音中"), muted.label);
+    check("頂部「更多」也標示靜音", (await p.$eval("#btnMoreMenu", e => e.textContent)).includes("🔇"));
     await p.click("#btnToggleMute");
     const unmuted = (await settled()).sfx;
     check("取消靜音恢復原音量", Math.abs(unmuted - 0.4) < 0.001, String(unmuted));

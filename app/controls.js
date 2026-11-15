@@ -253,6 +253,9 @@ function bindSoundToggles() {
     e.currentTarget.classList.toggle("muted", window.templeAudio.isMuted);
     const menuBtn = document.getElementById("btnSoundMenu");
     if (menuBtn) menuBtn.textContent = window.templeAudio.isMuted ? "🔇 靜音中" : "🔊 聲音";
+    // 聲音按鈕收在「更多」選單裡，頂部的「更多」也標示靜音，免得忘了關
+    const moreBtn = document.getElementById("btnMoreMenu");
+    if (moreBtn) moreBtn.textContent = window.templeAudio.isMuted ? "☰ 更多 🔇" : "☰ 更多";
   });
 
   // 三軌音量滑桿
@@ -311,11 +314,41 @@ function bindModernUIShell() {
   if (header && "ResizeObserver" in window) new ResizeObserver(() => layoutBelowHeader()).observe(header);
   const $ = (id) => document.getElementById(id);
   const closeAllDropdowns = (except) => {
-    ["deityDropdownMenu", "cameraNavDropdown", "soundMenuPanel"].forEach(id => {
+    ["deityDropdownMenu", "cameraNavDropdown", "soundMenuPanel", "moreMenuPanel"].forEach(id => {
       if (id !== except) $(id)?.classList.remove("open");
     });
     if (except !== "soundMenuPanel") $("btnSoundMenu")?.setAttribute("aria-expanded", "false");
+    if (except !== "moreMenuPanel") $("btnMoreMenu")?.setAttribute("aria-expanded", "false");
   };
+
+  // 固定定位的面板：對齊到按鈕下方靠右，不超出螢幕
+  const placeBelow = (panel, anchor) => {
+    const r = anchor.getBoundingClientRect();
+    const w = panel.offsetWidth;
+    panel.style.top = `${Math.round(r.bottom + 6)}px`;
+    panel.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)))}px`;
+  };
+
+  // --- 「更多」選單：時辰、天氣、聲音、分身、香火牆、護照、說明、沉浸 ---
+  // 開視窗的按鈕按下後收起選單；時辰、天氣（連按切換）留著讓玩家看到結果；聲音改開聲音面板
+  const moreBtn = $("btnMoreMenu");
+  const morePanel = $("moreMenuPanel");
+  if (moreBtn && morePanel) {
+    moreBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      closeAllDropdowns("moreMenuPanel");
+      const open = morePanel.classList.toggle("open");
+      moreBtn.setAttribute("aria-expanded", String(open));
+      if (open) placeBelow(morePanel, moreBtn);
+    });
+    morePanel.querySelectorAll("button").forEach(btn => {
+      if (["btnToggleWeather", "btnSoundMenu"].includes(btn.id)) return;
+      btn.addEventListener("click", () => {
+        morePanel.classList.remove("open");
+        moreBtn.setAttribute("aria-expanded", "false");
+      });
+    });
+  }
 
   // --- 聲音面板：固定定位，打開時對齊到按鈕下方並避免超出螢幕 ---
   const soundBtn = $("btnSoundMenu");
@@ -326,12 +359,8 @@ function bindModernUIShell() {
       closeAllDropdowns("soundMenuPanel");
       const open = soundPanel.classList.toggle("open");
       soundBtn.setAttribute("aria-expanded", String(open));
-      if (open) {
-        const r = soundBtn.getBoundingClientRect();
-        const w = soundPanel.offsetWidth;
-        soundPanel.style.top = `${Math.round(r.bottom + 6)}px`;
-        soundPanel.style.left = `${Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)))}px`;
-      }
+      // 聲音按鈕收在「更多」選單裡：選單已收起，改對齊「更多」按鈕
+      if (open) placeBelow(soundPanel, morePanel?.contains(soundBtn) && moreBtn ? moreBtn : soundBtn);
     });
   }
 
@@ -379,7 +408,7 @@ function bindModernUIShell() {
   }
 
   document.addEventListener("click", (e) => {
-    if (!e.target.closest(".deity-dropdown-container") && !e.target.closest(".camera-nav-container") && !e.target.closest("#soundMenuPanel")) {
+    if (!e.target.closest(".deity-dropdown-container") && !e.target.closest(".camera-nav-container") && !e.target.closest("#soundMenuPanel") && !e.target.closest("#moreMenuPanel")) {
       closeAllDropdowns();
     }
   });

@@ -20,7 +20,7 @@ module.exports = {
 
     check("今日香火從 0 起算（不是假數字）", (await text(A, "statTodayIncense")) === "0", await text(A, "statTodayIncense"));
     check("在線 2 人（自己＋另一台）", await online(A, 2), await text(A, "hudOnlineCount"));
-    await A.click("#btnOpenLiveWall");
+    await A.click("#btnMoreMenu"); await A.click("#btnOpenLiveWall");
     check("香火牆面板可開啟", await A.$eval("#liveWallModal", m => m.classList.contains("open")));
     check("沒有祈願時顯示空狀態", (await A.$$("#liveWallFeed .wall-feed-empty")).length === 1);
 

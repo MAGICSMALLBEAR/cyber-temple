@@ -89,6 +89,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
   // 3.44 正統求籤儀式卡與完整參拜指引
   if (window.chiamRitual) window.chiamRitual.init();
+  if (window.templePetition) window.templePetition.init();
+  if (window.templeNpc) window.templeNpc.init();
   if (window.pilgrimage) window.pilgrimage.init();
   if (window.hallActivities) window.hallActivities.init();
   if (window.templeInventory) window.templeInventory.init();
@@ -107,6 +109,8 @@ window.addEventListener("DOMContentLoaded", () => {
     window.dailyPractice.init({ getDeity: () => state.currentDeity });
   }
   if (window.templeAchievements) window.templeAchievements.init();
+  // 3.6 今日香火路線（要在每日修行換日、簽到之後）
+  if (window.todayRoute) window.todayRoute.init();
 
   // 4. 更新功德池與 AI 標籤
   updateMeritDisplay();

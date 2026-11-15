@@ -2185,6 +2185,14 @@ body.hud-hidden .hud-exit-btn { display: block; }
   .onboarding-card {
     bottom: 245px;
   }
+  /* 今日卡比引導卡高，放在左側動作列（約 100px 寬）的右邊，避免和動作列上下相疊 */
+  .today-card {
+    left: 108px;
+    right: 8px;
+    width: auto;
+    max-width: 360px;
+    transform: none;
+  }
 }
 
 /* 聲音面板 */
@@ -2205,6 +2213,26 @@ body.hud-hidden .hud-exit-btn { display: block; }
 .sound-menu-panel.open {
   display: block;
 }
+
+/* 頂部列「更多」選單（app/controls.js 對齊到按鈕下方） */
+.more-menu-panel {
+  position: fixed;
+  top: 70px;
+  right: 8px;
+  width: min(300px, calc(100vw - 16px));
+  display: none;
+  padding: 10px 12px 12px;
+  background: rgba(22, 7, 7, 0.96);
+  border: 1px solid rgba(245, 197, 66, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+  z-index: 130;
+}
+.more-menu-panel.open { display: block; }
+.more-menu-panel .temple-select { width: 100%; max-width: none; margin-bottom: 8px; }
+.more-menu-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.more-menu-grid .btn-header { width: 100%; justify-content: center; white-space: nowrap; }
+body.hud-hidden .more-menu-panel { display: none; }
 
 .sound-toggle-row {
   display: flex;
@@ -2295,6 +2323,7 @@ body.reduce-motion *::after {
   display: none;
 }
 
+body.petition-active .onboarding-card,
 body.chiam-ritual-active .onboarding-card {
   display: none;
 }
@@ -2361,6 +2390,10 @@ body.hud-hidden .chiam-ritual-card {
   flex: 0 0 auto;
   background: #33150d;
 }
+
+/* 走過正統求籤後：快速求籤排第一、改用主按鈕配色（app/chiam-ritual.js 的 quickFirst） */
+.chiam-ritual-card.quick-first .ritual-quick { order: -1; flex: 1; background: #7a1f12; border-color: var(--gold-bright); }
+.chiam-ritual-card.quick-first #btnChiamRitualPrimary { flex: 0 0 auto; background: #33150d; }
 
 @media (max-width: 860px) {
   /* 窄螢幕：在搖桿上方，並從左側動作列（約 100px 寬）的右邊開始排，避免蓋到動作按鈕 */
@@ -2842,3 +2875,36 @@ button:disabled { opacity: 0.45; cursor: default; }
 .about-disclaimer { margin: 10px 0 14px; font-size: 0.8rem; color: #dfc18b; line-height: 1.6; }
 .about-disclaimer summary { cursor: pointer; color: var(--gold-bright); font-weight: 600; }
 .about-disclaimer p { margin: 6px 0 0; }
+
+/* 今日香火卡（app/today-route.js）：沿用新手引導卡的位置與外框 */
+.today-card-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.today-card-actions .onboarding-dots { flex: 1; margin: 0; }
+.today-card-actions .btn-dock-action { width: auto; min-height: 34px; padding: 4px 12px; font-size: 0.85rem; }
+.today-card-actions .today-go { background: #7a1f12; border-color: var(--gold-bright); }
+.daily-route-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.daily-route-head .btn-dock-action { width: auto; min-height: 30px; padding: 2px 12px; font-size: 0.8rem; }
+.daily-task-go { margin-left: 6px; padding: 2px 10px; border-radius: 8px; border: 1px solid #9cf4d4; background: #143e32; color: #c9ffe6; font-size: 0.78rem; cursor: pointer; }
+.map-marker.today circle:first-child { animation: todayMarkerPulse 1.6s ease-in-out infinite; }
+@keyframes todayMarkerPulse { 50% { opacity: 0.35; } }
+body.reduce-motion .map-marker.today circle:first-child { animation: none; }
+
+/* 跪拜稟告卡（app/petition.js）：沿用求籤卡的位置與外框 */
+.petition-form { display: grid; gap: 6px; margin-top: 8px; }
+.petition-form[hidden] { display: none; }
+.petition-row { display: grid; grid-template-columns: 2.6em 1fr; align-items: center; gap: 8px; font-size: 0.85rem; color: #e8cf9a; }
+.petition-row .temple-input { width: 100%; padding: 6px 8px; font-size: 0.85rem; }
+.petition-topics { display: flex; flex-wrap: wrap; gap: 4px; }
+.petition-topics .btn-custom-pill { padding: 3px 9px; font-size: 0.78rem; }
+.petition-topics .btn-custom-pill.active { background: #7a1f12; border-color: var(--gold-bright); color: #fff3d6; }
+.petition-note { margin: 0; font-size: 0.72rem; color: #b99a6a; }
+.petition-card .ritual-actions { align-items: center; }
+.petition-card .ritual-actions .onboarding-dots { flex: 0 0 auto; margin: 0; }
+
+/* 攤販 NPC 買東西（app/npc-talk.js） */
+.npc-shop-modal { width: min(420px, 94vw); }
+.npc-shop-line { color: #f3e3c0; font-size: 0.95rem; line-height: 1.6; margin: 6px 0 10px; }
+.npc-shop-coins { color: var(--gold-bright); font-weight: 700; margin-bottom: 8px; }
+.npc-shop-items { display: grid; gap: 8px; }
+.npc-shop-item { display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto auto; text-align: left; gap: 0 10px; padding: 8px 12px; }
+.npc-shop-item small { grid-column: 1; color: #c9a76e; font-size: 0.75rem; }
+.npc-shop-item strong { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--gold-bright); }

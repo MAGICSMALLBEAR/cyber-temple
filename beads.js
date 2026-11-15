@@ -71,14 +71,8 @@ class BeadsMeditationSystem {
     // 鳴響長鳴大鐘
     window.templeAudio.playBell(330);
 
-    // 增加功德池 +108
-    if (window.state) {
-      window.state.meritCount += 108;
-      localStorage.setItem("temple_merit", window.state.meritCount);
-      if (typeof window.updateMeritDisplay === "function") {
-        window.updateMeritDisplay();
-      }
-    }
+    // 增加功德池 +108（state 是 app/core.js 的 const，不在 window 上；之前寫 window.state 永遠不成立，功德沒加上去）
+    window.addMerit?.(108);
 
     // 3D 空間飄出金光
     if (window.temple3d) {

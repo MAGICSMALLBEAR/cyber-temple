@@ -1,6 +1,6 @@
 // sw.js - 離線快取：安裝時預存整座神殿，之後同源檔案「網路優先、離線用快取」，字型「快取優先」
 // 修改 APP_SHELL 清單或想強制所有人更新時，把 CACHE_VERSION 加一
-const CACHE_VERSION = "v30";
+const CACHE_VERSION = "v31";
 const CACHE_NAME = `temple-${CACHE_VERSION}`;
 const FONT_CACHE = "temple-fonts";
 const NETWORK_TIMEOUT_MS = 3000;
@@ -60,6 +60,9 @@ const APP_SHELL = [
   "app/chiam-ritual.js",
   "app/pilgrimage.js",
   "app/visit.js",
+  "app/today-route.js",
+  "app/petition.js",
+  "app/npc-talk.js",
   "app/hall.js",
   "app/bag.js",
   "app/market.js",
@@ -136,7 +139,7 @@ async function networkFirst(req) {
     if (cached) return cached;
     // 離線時開任何頁面都回到神殿首頁
     if (req.mode === "navigate") {
-      const shell = await cache.match("index.html");
+      const shell = (await cache.match("index.html")) || (await cache.match("./"));
       if (shell) return shell;
     }
     throw e;

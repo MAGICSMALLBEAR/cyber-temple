@@ -2,6 +2,7 @@
 // 以畫面下方的小卡引導（不擋住 3D 的擲筊與搖籤動畫）；卡片上可改用「快速求籤」直接抽籤
 
 const RITUAL_STEPS = ["請示", "抽籤", "確認"];
+const CHIAM_ORTHODOX_KEY = "temple_chiam_orthodox";   // 走完幾次正統三步求籤（聖筊確認）
 const BWA_NAMES = { holy: "聖筊", laugh: "笑筊", yin: "陰筊" };
 
 const chiamRitual = {
@@ -18,6 +19,7 @@ const chiamRitual = {
 
   start() {
     if (this.active) return;
+    window.templePetition?.close();   // 稟告卡與求籤卡在同一位置，開始求籤就收起稟告
     this.active = true;
     this.phase = "ask";
     this.busy = false;
@@ -28,7 +30,20 @@ const chiamRitual = {
     const q = this.el("chiamRitualQuestion");
     if (q) q.value = "";
     document.body.classList.add("chiam-ritual-active");
-    this.render("請先在心中向神明稟告姓名、住址與想問的事，再擲筊請示能否求籤。");
+    // 走過一次正統求籤後，平常預設快速求籤；節慶當天與完整參拜的求籤步驟仍以正統流程為主
+    this.quickFirst = this.experienced() && !this.orthodoxRequired();
+    this.render(this.quickFirst
+      ? "你已走過正統求籤。想快一點可按「⚡ 快速求籤」；想慎重請示，按「🌓 正統求籤」擲筊。"
+      : "請先在心中向神明稟告姓名、住址與想問的事，再擲筊請示能否求籤。");
+  },
+
+  experienced() {
+    return (parseInt(localStorage.getItem(CHIAM_ORTHODOX_KEY) || "0", 10) || 0) >= 1;
+  },
+
+  orthodoxRequired() {
+    const festival = window.dailyPractice?.festival;
+    return !!(festival && !festival.minor) || window.pilgrimage?.step?.id === "chiam";
   },
 
   close() {
@@ -42,12 +57,18 @@ const chiamRitual = {
   // 快速求籤：不擲筊，直接抽籤並展開籤詩
   quick() {
     if (this.busy) return;
+    const q = (this.el("chiamRitualQuestion")?.value || "").trim();
     this.close();
     performChiamShake(chosen => {
-      recordChiamToHistory(chosen);
+      recordChiamToHistory(chosen, q || undefined);
       setDockStatus(`🎋 抽得第 ${chosen.id} 籤【${chosen.ganZhi}】${chosen.fortune}！正在展開靈籤捲軸...`);
       window.emitRitual?.("chiamReceived");
-      setTimeout(() => openChiamModal(chosen), 700);
+      setTimeout(() => {
+        openChiamModal(chosen);
+        // 快速求籤時寫下的問題，同樣帶進 AI 深度解籤
+        const ai = this.el("aiQuestionInput");
+        if (ai && q) ai.value = q;
+      }, 700);
     });
   },
 
@@ -96,6 +117,7 @@ const chiamRitual = {
       if (result === "holy") {
         this.render(`聖筊！確認是第 ${chiam.id} 籤，正在展開籤詩……`);
         recordChiamToHistory(chiam, this.question || "祈求安泰前程");
+        localStorage.setItem(CHIAM_ORTHODOX_KEY, String((parseInt(localStorage.getItem(CHIAM_ORTHODOX_KEY) || "0", 10) || 0) + 1));
         setDockStatus(`🎋 第 ${chiam.id} 籤【${chiam.ganZhi}】${chiam.fortune}，經聖筊確認，正在展開靈籤捲軸...`);
         const q = this.question;
         window.emitRitual?.("chiamReceived", { confirmed: true });
@@ -145,7 +167,10 @@ const chiamRitual = {
     }));
     const label = { ask: "🌓 擲筊請示", shake: "🎋 搖籤筒", confirm: "🌓 擲筊確認" }[this.phase];
     const primary = this.el("btnChiamRitualPrimary");
-    primary.textContent = this.phase === "ask" && this.tries.ask > 0 ? "🌓 再擲一次" : label;
+    // 快速優先：快速求籤排第一當主按鈕，正統流程退為第二個選項（擲過一次筊後恢復正統排法）
+    const quickFirst = !!this.quickFirst && this.phase === "ask" && this.tries.ask === 0;
+    card.classList.toggle("quick-first", quickFirst);
+    primary.textContent = quickFirst ? "🌓 正統求籤" : this.phase === "ask" && this.tries.ask > 0 ? "🌓 再擲一次" : label;
     primary.disabled = this.busy;
     this.el("btnChiamRitualQuick").disabled = this.busy;
     // 問題欄位只在請示階段可填

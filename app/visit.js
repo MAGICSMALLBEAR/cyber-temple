@@ -49,7 +49,14 @@ const templeVisit = {
         isMat ? scene.avatar?.currentAction === "kneelSit" ? "起身" : "跪坐稟告" : type === "donationBox" ? "隨喜奉獻" : "重閱籤詩", () => scene.interactWithHallObject(obj), false));
     });
     (scene.plazaSpots || []).forEach(s => list.push(place(s.id, s.title, s.icon, s.center, s.spot, s.radius, s.label, () => window.templePlaza?.use(s.id), s.map)));
-    if (scene.palanquinGroup) {
+    // 廟內 NPC：走近可聊聊（攤販可買東西）。和地點重疊時讓地點優先，見 nearby()
+    (scene.avatar?.npcs || []).forEach((n, i) => {
+      if (!n.group || !n.name) return;
+      const p = n.group.position;
+      list.push({ ...place(`npc${i}`, n.name, window.templeNpc?.isVendor(i) ? "🛒" : "💬", [p.x, p.z], [p.x, p.z + 1.1], 1.5,
+        window.templeNpc?.isVendor(i) ? "聊聊・買東西" : "聊聊", () => window.templeNpc?.talk(i), false), npc: true });
+    });
+        if (scene.palanquinGroup) {
       const p = scene.palanquinGroup.position;
       list.push(place("palanquin", "神轎", "🏮", [p.x, p.z], [p.x, p.z + 2], 2.8, "鑽轎腳祈福", () => scene.kneelUnderPalanquin(), false));
     }
@@ -59,7 +66,7 @@ const templeVisit = {
     const p = position; if (!p) return null;
     // 原有近身拜墊／櫃台優先，其他地方選最近的目標。
     return this.targets(scene).map(t => ({ ...t, distance: Math.hypot(p.x - t.center[0], p.z - t.center[1]) }))
-      .filter(t => t.distance < t.radius).sort((a, b) => Number(b.id.startsWith("hall")) - Number(a.id.startsWith("hall")) || a.distance - b.distance)[0] || null;
+      .filter(t => t.distance < t.radius).sort((a, b) => Number(b.id.startsWith("hall")) - Number(a.id.startsWith("hall")) || Number(!!a.npc) - Number(!!b.npc) || a.distance - b.distance)[0] || null;
   },
   interact() {
     if (this.modalOpen()) return false;
@@ -100,8 +107,12 @@ const templeVisit = {
     map.append(this.svg("path", { d: "M180 98V435", stroke: "#806341", "stroke-width": 18 }));
     map.append(this.svg("text", { x: 180, y: 18, "text-anchor": "middle", fill: "#ffe29a", "font-size": 11 }, "北 · 大殿"));
     map.append(this.svg("polyline", { id: "visitMapRoute", fill: "none", stroke: "#f5c542", "stroke-width": 3, "stroke-dasharray": "5 4" }));
-    this.targets().filter(t => t.map).forEach(t => {
-      const [x, y] = this.point(...t.center), g = this.svg("g", { role: "button", tabindex: 0, "aria-label": `前往${t.title}`, class: "map-marker" });
+    // 今日功課要去的地點加一圈綠色虛線（app/today-route.js）
+    const todayPlaces = new Set((window.todayRoute?.pending() || []).map(task => window.todayRoute.stopOf(task).place).filter(Boolean));
+    this.targets().filter(t => t.map || todayPlaces.has(t.id)).forEach(t => {
+      const today = todayPlaces.has(t.id);
+      const [x, y] = this.point(...t.center), g = this.svg("g", { role: "button", tabindex: 0, "aria-label": `前往${t.title}${today ? "（今日功課）" : ""}`, class: `map-marker${today ? " today" : ""}` });
+      if (today) g.append(this.svg("circle", { cx: x, cy: y, r: 15, fill: "none", stroke: "#9cf4d4", "stroke-width": 2, "stroke-dasharray": "3 3" }));
       g.append(this.svg("circle", { cx: x, cy: y, r: 10, fill: "#8c3022", stroke: "#f0c66d" }));
       g.append(this.svg("text", { x, y: y + 4, "text-anchor": "middle", "font-size": 12 }, t.icon));
       g.append(this.svg("text", { x, y: y + 23, "text-anchor": "middle", "font-size": 10, fill: "#f3e3c0" }, t.title));

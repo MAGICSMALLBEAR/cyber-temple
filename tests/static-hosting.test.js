@@ -66,7 +66,7 @@ module.exports = {
     check("單機模式標記在頁面上", solo.mode);
     check("單機模式不顯示在線人數、房間分流、同行對話", !solo.pill && !solo.room && !solo.speech && !solo.online, JSON.stringify(solo));
     check("單機模式收起同行供席（看不到、點不到、不擋路）", !solo.tables && !solo.clickable && !solo.blocked, JSON.stringify(solo));
-    await p.click("#btnOpenLiveWall");
+    await p.click("#btnMoreMenu"); await p.click("#btnOpenLiveWall");
     check("香火牆說明目前沒有連線伺服器", (await p.$eval("#wallConnectionNote", e => e.textContent)).includes("目前沒有連線伺服器"));
     check("祈願仍出現在本機香火牆", (await p.$$eval("#liveWallFeed .wall-feed-item", els => els.map(e => e.textContent))).some(t => t.includes("靜態空間測試")));
     const sw = await p.evaluate(async () => { const r = await navigator.serviceWorker.ready; return r.scope; });

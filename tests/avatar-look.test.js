@@ -23,7 +23,7 @@ module.exports = {
     check("五官貼在頭部表面之外（不會被頭包住）", faces.faceOnHead && faces.faceRadius > faces.headRadius, `${faces.faceRadius} > ${faces.headRadius}`);
 
     // --- 換造型面板 ---
-    await p.click("#btnOpenAvatar");
+    await p.click("#btnMoreMenu"); await p.click("#btnOpenAvatar");
     const studio = await p.evaluate(() => {
       const m = document.getElementById("avatarModal");
       return { open: m.classList.contains("open"), passThrough: getComputedStyle(m).pointerEvents === "none", panelRight: document.querySelector("#avatarModal .settings-modal").getBoundingClientRect().right > innerWidth - 30 };
@@ -47,7 +47,7 @@ module.exports = {
     check("沒按儲存就關閉會恢復原本造型", reverted !== "heart", reverted);
     check("關閉後鏡頭距離限制恢復", (await p.evaluate(() => window.temple3d.controls.minDistance)) === 1.4);
 
-    await p.click("#btnOpenAvatar");
+    await p.click("#btnMoreMenu"); await p.click("#btnOpenAvatar");
     await p.click('[data-look-key="eyes"][data-look-value="star"]');
     await p.click('[data-look-key="skin"][data-look-value="deep"]');
     await p.click('[data-studio-tab="name"]');

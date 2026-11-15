@@ -379,6 +379,19 @@ class DailyPractice {
         fill.style.width = `${(cur / t.goal) * 100}%`;
         bar.appendChild(fill);
         row.append(label, meta, bar);
+        // 今日香火路線：未完成的功課可以直接前往（app/today-route.js）
+        if (!done && window.todayRoute) {
+          const go = document.createElement("button");
+          go.type = "button";
+          go.className = "daily-task-go";
+          go.textContent = "前往";
+          go.setAttribute("aria-label", `前往完成：${t.text}`);
+          go.addEventListener("click", () => {
+            document.getElementById("dailyModal")?.classList.remove("open");
+            window.todayRoute.go(t);
+          });
+          meta.append(" ", go);
+        }
         list.appendChild(row);
       }
     }

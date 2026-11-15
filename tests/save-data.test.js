@@ -26,7 +26,7 @@ module.exports = {
     });
     const meritBefore = await p.evaluate(() => localStorage.getItem("temple_merit"));
 
-    await p.click("#btnOpenPassport");
+    await p.click("#btnMoreMenu"); await p.click("#btnOpenPassport");
     check("護照顯示尚未備份提示", (await p.$eval("#saveDataStatus", e => e.textContent)).includes("建議定期匯出"));
     const [dl] = await Promise.all([p.waitForEvent("download"), p.click("#btnSaveExport")]);
     const file = path.join(dir, dl.suggestedFilename());
@@ -74,7 +74,7 @@ module.exports = {
     check("匯入後念珠輪數還原", st.loops === "7");
     check("匯入後分身稱號還原", st.title === "存檔測試善信");
     check("本機 API Key 保留未被覆蓋", st.key === "AIzaSy-SECRET-KEY-123456");
-    await p.click("#btnOpenPassport");
+    await p.click("#btnMoreMenu"); await p.click("#btnOpenPassport");
     check("護照念珠輪數顯示 7", (await p.$eval("#statBeadLoops", e => e.textContent)) === "7");
 
     const bad = [
