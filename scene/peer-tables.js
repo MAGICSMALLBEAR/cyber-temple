@@ -83,7 +83,7 @@ class TemplePeerTablesMixin {
       this.peerTablesGroup.add(g);
     });
 
-    this.scene.add(this.peerTablesGroup);
+    this.addToZone(this.peerTablesGroup);
   }
 
   // 繪製水牌文字

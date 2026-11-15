@@ -144,7 +144,7 @@ class TempleAtmosphereMixin {
     });
 
     this.dustPoints = new THREE.Points(geo, mat);
-    this.scene.add(this.dustPoints);
+    this.addToZone(this.dustPoints, "temple");
   }
 
   // ---------- 畫質分級 ----------

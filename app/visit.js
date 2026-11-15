@@ -1,10 +1,10 @@
 // 互動提示與地圖共用地點表；只在 250ms 節拍更新，不增加 3D 物件。
 const templeVisit = {
   currentId: null,
-  targets(scene = window.temple3d) {
+  targets(scene = window.temple3d, zone = scene?.currentZone || "temple") {
     if (!scene) return [];
     const click = id => () => document.getElementById(id)?.click();
-    const place = (id, title, icon, center, spot, radius, label, action, map = true) => ({ id, title, icon, center, spot, face: center, radius, label, action, map });
+    const place = (id, title, icon, center, spot, radius, label, action, map = true, zone = "temple") => ({ id, title, icon, center, spot, face: center, radius, label, action, map, zone });
     const greet = (text, at) => () => {
       scene.avatar?.triggerAction("bow"); window.templeAudio?.playBell(580);
       scene.spawn3DFloatingText(text, new THREE.Vector3(at[0], 2.5, at[1])); window.setDockStatus?.(text);
@@ -49,6 +49,11 @@ const templeVisit = {
         isMat ? scene.avatar?.currentAction === "kneelSit" ? "起身" : "跪坐稟告" : type === "donationBox" ? "隨喜奉獻" : "重閱籤詩", () => scene.interactWithHallObject(obj), false));
     });
     (scene.plazaSpots || []).forEach(s => list.push(place(s.id, s.title, s.icon, s.center, s.spot, s.radius, s.label, () => window.templePlaza?.use(s.id), s.map)));
+    if (scene.hostelEntranceSpot) {
+      const h = scene.hostelEntranceSpot;
+      list.push(place(h.id, h.title, h.icon, h.center, h.spot, h.radius, h.label, () => scene.enterHostelZone?.(), h.map, "temple"));
+    }
+    (scene.hostelSpots || []).forEach(s => list.push(place(s.id, s.title, s.icon, s.center, s.spot, s.radius, s.label, () => scene.interactWithHostelSpot?.(s.id), s.map, s.zone || "hostel")));
     // 廟內 NPC：走近可聊聊（攤販可買東西）。和地點重疊時讓地點優先，見 nearby()
     (scene.avatar?.npcs || []).forEach((n, i) => {
       if (!n.group || !n.name) return;
@@ -60,12 +65,14 @@ const templeVisit = {
       const p = scene.palanquinGroup.position;
       list.push(place("palanquin", "神轎", "🏮", [p.x, p.z], [p.x, p.z + 2], 2.8, "鑽轎腳祈福", () => scene.kneelUnderPalanquin(), false));
     }
-    return list;
+    return zone === "all" ? list : list.filter(t => (t.zone || "temple") === zone);
   },
   nearby(scene = window.temple3d, position = scene?.avatar?.position) {
     const p = position; if (!p) return null;
-    // 原有近身拜墊／櫃台優先，其他地方選最近的目標。
-    return this.targets(scene).map(t => ({ ...t, distance: Math.hypot(p.x - t.center[0], p.z - t.center[1]) }))
+    const activeZone = scene?.currentZone || "temple";
+    // 原有近身拜墊／櫃台優先，其他地方選最近的目標，並只考慮目前所在分區。
+    return this.targets(scene).filter(t => (t.zone || "temple") === activeZone)
+      .map(t => ({ ...t, distance: Math.hypot(p.x - t.center[0], p.z - t.center[1]) }))
       .filter(t => t.distance < t.radius).sort((a, b) => Number(b.id.startsWith("hall")) - Number(a.id.startsWith("hall")) || Number(!!a.npc) - Number(!!b.npc) || a.distance - b.distance)[0] || null;
   },
   interact() {
@@ -99,19 +106,30 @@ const templeVisit = {
     Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
     if (text) el.textContent = text; return el;
   },
-  point(x, z) { return [Math.round((x + 18) * 10), Math.round((z + 4) * 10)]; },
+  point(x, z, zoneId = window.temple3d?.currentZone || "temple") {
+    if (zoneId === "hostel") return [Math.round((x + 12) * 15), Math.round(40 + (z + 10) * 17)];
+    return [Math.round((x + 18) * 10), Math.round((z + 4) * 10)];
+  },
   renderMap() {
     const map = document.getElementById("visitMapSvg"), list = document.getElementById("visitMapPlaces");
+    const activeZone = window.temple3d?.currentZone || "temple";
     map.replaceChildren(); list.replaceChildren();
-    map.append(this.svg("path", { d: "M140 5H220V98H355V455H5V98H140Z", fill: "#40281f", stroke: "#bd934c", "stroke-width": 2 }));
-    map.append(this.svg("path", { d: "M180 98V435", stroke: "#806341", "stroke-width": 18 }));
-    map.append(this.svg("text", { x: 180, y: 18, "text-anchor": "middle", fill: "#ffe29a", "font-size": 11 }, "北 · 大殿"));
+    if (activeZone === "hostel") {
+      map.append(this.svg("rect", { x: 24, y: 64, width: 312, height: 326, rx: 10, fill: "#2f241c", stroke: "#bd934c", "stroke-width": 2 }));
+      map.append(this.svg("line", { x1: 24, y1: 244, x2: 336, y2: 244, stroke: "#8a6d43", "stroke-width": 2, "stroke-dasharray": "4 4" }));
+      map.append(this.svg("path", { d: "M180 244V390", stroke: "#806341", "stroke-width": 16 }));
+      map.append(this.svg("text", { x: 180, y: 36, "text-anchor": "middle", fill: "#ffe29a", "font-size": 12 }, "北 · 清心香客居"));
+    } else {
+      map.append(this.svg("path", { d: "M140 5H220V98H355V455H5V98H140Z", fill: "#40281f", stroke: "#bd934c", "stroke-width": 2 }));
+      map.append(this.svg("path", { d: "M180 98V435", stroke: "#806341", "stroke-width": 18 }));
+      map.append(this.svg("text", { x: 180, y: 18, "text-anchor": "middle", fill: "#ffe29a", "font-size": 11 }, "北 · 大殿"));
+    }
     map.append(this.svg("polyline", { id: "visitMapRoute", fill: "none", stroke: "#f5c542", "stroke-width": 3, "stroke-dasharray": "5 4" }));
     // 今日功課要去的地點加一圈綠色虛線（app/today-route.js）
     const todayPlaces = new Set((window.todayRoute?.pending() || []).map(task => window.todayRoute.stopOf(task).place).filter(Boolean));
-    this.targets().filter(t => t.map || todayPlaces.has(t.id)).forEach(t => {
+    this.targets().filter(t => (t.zone || "temple") === activeZone && (t.map || todayPlaces.has(t.id))).forEach(t => {
       const today = todayPlaces.has(t.id);
-      const [x, y] = this.point(...t.center), g = this.svg("g", { role: "button", tabindex: 0, "aria-label": `前往${t.title}${today ? "（今日功課）" : ""}`, class: `map-marker${today ? " today" : ""}` });
+      const [x, y] = this.point(...t.center, activeZone), g = this.svg("g", { role: "button", tabindex: 0, "aria-label": `前往${t.title}${today ? "（今日功課）" : ""}`, class: `map-marker${today ? " today" : ""}` });
       if (today) g.append(this.svg("circle", { cx: x, cy: y, r: 15, fill: "none", stroke: "#9cf4d4", "stroke-width": 2, "stroke-dasharray": "3 3" }));
       g.append(this.svg("circle", { cx: x, cy: y, r: 10, fill: "#8c3022", stroke: "#f0c66d" }));
       g.append(this.svg("text", { x, y: y + 4, "text-anchor": "middle", "font-size": 12 }, t.icon));
@@ -122,30 +140,44 @@ const templeVisit = {
       const button = document.createElement("button"); button.className = "btn-custom-pill"; button.textContent = `${t.icon} ${t.title}`;
       button.addEventListener("click", () => this.go(t.id)); list.append(button);
     });
+    if (typeof window.temple3d?.switchZone === "function") {
+      const teleportBtn = document.createElement("button");
+      teleportBtn.className = "btn-custom-pill";
+      teleportBtn.textContent = activeZone === "hostel" ? "🏛️ 傳送：返回本殿" : "🛏️ 傳送：香客大樓";
+      teleportBtn.addEventListener("click", () => {
+        if (activeZone === "hostel") window.temple3d.exitHostelZone?.();
+        else window.temple3d.enterHostelZone?.();
+        document.getElementById("visitMapModal").classList.remove("open");
+      });
+      list.append(teleportBtn);
+    }
     map.append(this.svg("path", { id: "visitMapPlayer", d: "M0 -9L6 7L0 4L-6 7Z", fill: "#9cf4d4", stroke: "#143e32", "stroke-width": 1.5 }));
   },
   updateMap() {
     const a = window.temple3d?.avatar; if (!a) return;
-    const [x, y] = this.point(a.position.x, a.position.z);
+    const activeZone = window.temple3d?.currentZone || "temple";
+    const [x, y] = this.point(a.position.x, a.position.z, activeZone);
     document.getElementById("visitMapPlayer")?.setAttribute("transform", `translate(${x} ${y}) rotate(${180 - a.playerGroup.rotation.y * 180 / Math.PI})`);
     const route = window.pilgrimage?.route;
     const points = route ? [[a.position.x, a.position.z], ...route.points.slice(route.index)] : [];
-    document.getElementById("visitMapRoute")?.setAttribute("points", points.map(p => this.point(...p).join(",")).join(" "));
+    document.getElementById("visitMapRoute")?.setAttribute("points", points.map(p => this.point(...p, activeZone).join(",")).join(" "));
     document.getElementById("visitMapStatus").textContent = route ? `🚶 前往：${route.step.title}` : "綠色箭頭是你；點地標或下方名稱即可前往。";
     document.getElementById("btnMapStop").disabled = !route;
   },
   go(id) {
-    const target = this.targets().find(t => t.id === id), scene = window.temple3d;
+    const scene = window.temple3d, activeZone = scene?.currentZone || "temple";
+    const target = this.targets(scene).find(t => t.id === id && (t.zone || "temple") === activeZone);
     if (!target || !scene?.avatar) return false;
     // 預定站位若被模型擋住，選擇物件附近可走的候選點。
     const candidates = [target.spot];
     for (const r of [target.radius - 0.1, target.radius - 0.35, target.radius * 0.65]) for (let i = 0; i < 12; i++) {
       candidates.push([target.center[0] + Math.sin(i * Math.PI / 6) * r, target.center[1] + Math.cos(i * Math.PI / 6) * r]);
     }
+    const inBounds = (x, z) => (scene.inZoneBounds ? scene.inZoneBounds(x, z, activeZone) : z >= -2.8 && z <= 41.5 && Math.abs(x) <= (z > 5.8 ? 17.5 : 3.8));
     let step, planned, attempts = 0;
     for (const spot of candidates) {
       const [x, z] = spot;
-      if (Math.hypot(x - target.center[0], z - target.center[1]) >= target.radius || z < -2.8 || z > 41.5 || Math.abs(x) > (z > 5.8 ? 17.5 : 3.8) || scene.isBlockedAt(x, z, 0.36)) continue;
+      if (Math.hypot(x - target.center[0], z - target.center[1]) >= target.radius || !inBounds(x, z) || scene.isBlockedAt(x, z, 0.36)) continue;
       if (this.nearby(scene, { x, z })?.id !== target.id) continue;
       if (attempts++ >= 3) break;
       const points = scene.findWalkRoute([scene.avatar.position.x, scene.avatar.position.z], spot);

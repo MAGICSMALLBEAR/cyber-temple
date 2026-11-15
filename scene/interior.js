@@ -43,7 +43,7 @@ class TempleInteriorMixin {
     };
     this.hallInterior = new THREE.Group();
     this.hallInterior.name = "hallInterior";
-    this.scene.add(this.hallInterior);
+    this.addToZone(this.hallInterior);
 
     const plaque = this.makeHallSign("神恩浩蕩", 4.5, 1.0);
     plaque.name = "mainHallPlaque";

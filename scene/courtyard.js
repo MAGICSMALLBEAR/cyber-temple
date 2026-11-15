@@ -47,7 +47,7 @@ class TempleCourtyardMixin {
     this.interactiveObjects.push(bowl);
     bowl.userData = { type: "heavenCenser", tooltip: "🔥 點擊天公爐 或 走近按 [E]：敬拜天公 (行禮)" };
 
-    this.scene.add(this.heavenCenser);
+    this.addToZone(this.heavenCenser);
   }
 
   // 8. 東進院落：蓮花池與九曲石拱橋 (X: 12.5, Z: 13.5)
@@ -130,7 +130,7 @@ class TempleCourtyardMixin {
     this.interactiveObjects.push(pondBase);
     pondBase.userData = { type: "wishingPond", tooltip: "🪙 點擊許願池 或 走近按 [E]：投擲金幣許願" };
 
-    this.scene.add(this.wishingPond);
+    this.addToZone(this.wishingPond);
   }
 
   // 構建蓮花池 3D 錦鯉生態群
@@ -250,7 +250,7 @@ class TempleCourtyardMixin {
     this.interactiveObjects.push(furnaceBase);
     furnaceBase.userData = { type: "jossFurnace", tooltip: "🔥 點擊金爐 或 走近按 [E]：焚燒金紙化寶" };
 
-    this.scene.add(this.jossFurnace);
+    this.addToZone(this.jossFurnace);
   }
 
   // 投擲金幣許願 (Wishing Coin Toss)
@@ -272,7 +272,7 @@ class TempleCourtyardMixin {
     const targetPos = new THREE.Vector3(12.5 + (Math.random() - 0.5) * 1.5, 0.36, 13.5 + (Math.random() - 0.5) * 2.0);
 
     coin.position.copy(startPos);
-    this.scene.add(coin);
+    this.addToZone(coin);
 
     const startTime = performance.now();
     const duration = 1100;
@@ -291,7 +291,7 @@ class TempleCourtyardMixin {
         requestAnimationFrame(animateCoin);
       } else {
         // 落水
-        this.scene.remove(coin);
+        (coin.parent || this.scene).remove(coin);
         window.templeAudio.playCoinWaterSplash();
 
         // 水花漣漪
@@ -454,7 +454,7 @@ class TempleCourtyardMixin {
       startPos = this.avatar.position.clone().add(forward.multiplyScalar(0.95)).add(new THREE.Vector3(0, 1.1, 0));
     }
     lanternGroup.position.copy(startPos);
-    this.scene.add(lanternGroup);
+    this.addToZone(lanternGroup);
 
     if (window.templeAudio) {
       window.templeAudio.playSkyLanternLaunch();
@@ -495,7 +495,7 @@ class TempleCourtyardMixin {
       }
 
       if (sl.life >= sl.maxLife || sl.group.position.y > 65.0) {
-        this.scene.remove(sl.group);
+        (sl.group.parent || this.scene).remove(sl.group);
         this.skyLanterns.splice(i, 1);
       }
     }
@@ -532,7 +532,7 @@ class TempleCourtyardMixin {
     lanternGroup.add(candleLight);
 
     lanternGroup.position.set(12.5 + (Math.random() - 0.5) * 1.5, 0.36, 13.5 + 2.0);
-    this.scene.add(lanternGroup);
+    this.addToZone(lanternGroup);
 
     if (window.templeAudio) {
       window.templeAudio.playWaterLanternRelease();
@@ -566,7 +566,7 @@ class TempleCourtyardMixin {
           wl.candleLight.intensity = 0.8 + Math.sin(time * 8 + i) * 0.25;
         }
       } else {
-        this.scene.remove(wl.group);
+        (wl.group.parent || this.scene).remove(wl.group);
         this.waterLanterns.splice(i, 1);
       }
     }
@@ -579,7 +579,7 @@ class TempleCourtyardMixin {
     ring.rotation.x = -Math.PI / 2;
     ring.position.copy(pos);
     ring.position.y = 0.37;
-    this.scene.add(ring);
+    this.addToZone(ring);
 
     this.pondRipples.push({ mesh: ring, birth: performance.now(), duration: 900 });
   }
@@ -606,7 +606,7 @@ class TempleCourtyardMixin {
       setTimeout(() => {
         const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.12), paperMat);
         paper.position.set(-11.5 + (Math.random() - 0.5) * 0.3, 1.2, 14.5 + (Math.random() - 0.5) * 0.3);
-        this.scene.add(paper);
+        this.addToZone(paper);
 
         const pStart = performance.now();
         const fly = (now) => {
@@ -617,7 +617,7 @@ class TempleCourtyardMixin {
             paper.rotation.z += 0.1;
             requestAnimationFrame(fly);
           } else {
-            this.scene.remove(paper);
+            (paper.parent || this.scene).remove(paper);
             // 產生金燼火花
             this.spawnFlameEmber(new THREE.Vector3(-12.5, 1.8, 14.5));
           }
@@ -635,7 +635,7 @@ class TempleCourtyardMixin {
   spawnFlameEmber(pos) {
     const ember = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffaa00 }));
     ember.position.copy(pos);
-    this.scene.add(ember);
+    this.addToZone(ember);
     this.flameParticles.push({ mesh: ember, birth: performance.now(), duration: 800 });
   }
 }

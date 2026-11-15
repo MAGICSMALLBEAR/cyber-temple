@@ -352,7 +352,7 @@ class TempleVisualsMixin {
     const group = new THREE.Group();
     group.name = "mainHallShell";
     group.position.set(0, 0, HALL_CENTER_Z);
-    this.scene.add(group);
+    this.addToZone(group, "temple");
 
     const brickMat = new THREE.MeshStandardMaterial({ map: this.repeatedTexture(t.brick, 5, 4), roughness: 0.82 });
     const brickInner = new THREE.MeshStandardMaterial({ map: this.repeatedTexture(t.brick, 5, 4), roughness: 0.85, color: 0x6a4a44 });
@@ -544,7 +544,7 @@ class TempleVisualsMixin {
     const group = new THREE.Group();
     group.name = "hallCeiling";
     group.position.set(0, 0, HALL_CENTER_Z);
-    this.scene.add(group);
+    this.addToZone(group, "temple");
 
     const panel = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, D * 2), new THREE.MeshStandardMaterial({ map: this.repeatedTexture(t.coffer, 4, 3), roughness: 0.65 }));
     panel.rotation.x = Math.PI / 2;   // 只朝下，鏡頭在屋內高處時不會被擋住

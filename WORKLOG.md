@@ -2,11 +2,22 @@
 
 > **專案定位**：融合台灣傳統民間信仰儀式、現代賽博解壓文化，以及熱門 3D 虛擬寺廟（如《山寺 Sansatemple》）體驗的 3D WebGL 線上神殿平台。
 
-> 最近整理：2026-11-12（台灣時間）。目前程式版本 **v12.0.0**（推進中）、離線快取 **v31**；已發布 GitHub Pages 單機版 https://magicsmallbear.github.io/cyber-temple/ 。後續工作統一見 [TODO.md](TODO.md)。
+> 最近整理：2026-11-15（台灣時間）。目前程式版本 **v12.0.0**（推進中）、離線快取 **v32**；已發布 GitHub Pages 單機版 https://magicsmallbear.github.io/cyber-temple/ 。後續工作統一見 [TODO.md](TODO.md)。
 
 ---
 
 ## 📅 版本迭代工作記錄
+
+### 2026-11-15：場景分區傳送架構與「清心香客大樓」新分區
+
+1. **分區邊界與群組抽離（`scene/core.js`、`scene/collision.js`、`avatar/core.js`、`app/visit.js`）**：
+   - 抽出 `TEMPLE_ZONES` 統一管理各分區活動邊界、出生點與預設視角，消弭原本分散的硬編碼邊界判定。
+   - 建立 `getZoneGroup` / `addToZone` / `switchZone(zoneId, spawn)`，將本殿建築、設施、粒子與 NPC 歸入 `"temple"` 分區群組，保留全域天色、太陽月亮、天氣與玩家分身於根場景。
+   - 點擊射線與 `buildCollisionMap`（含蓮花池水面禁區與拜墊／橋面高度）依當前分區顯隱過濾；`avatar/companions.js` 同步廣播與篩選同分區同行分身。
+2. **寺廟旅宿／清心香客大樓（`scene/hostel.js`、`app/visit.js`、`index.html`、`sw.js`）**：
+   - 於廟埕東側 `[15.8, 19.2]` 增設「香客大樓・禪房」入口牌坊，點擊或按 `E` 傳送進入獨立 `"hostel"` 旅宿分區（並支援從廟區導覽地圖切換與一鍵傳送）。
+   - 建造開放式木構禪房大廳與庭院，配置「知客櫃台」、「清心禪房床榻」、「品茗禪茶席」、「靜思抄經桌」與「山門回廊（返回本殿）」，互動可觸發動作、每日首次功德與抄經介面。
+   - `sw.js` 納入 `scene/hostel.js` 並將 `CACHE_VERSION` 升版為 `"v32"`；`tests/visit-routes.test.js` 補齊跨分區傳送、碰撞隔離、射線過濾與全旅宿地點自動尋路驗證。
 
 ### 2026-11-12：玩法主線化（今日香火路線）、神前跪拜稟告、NPC 互動與介面整理
 

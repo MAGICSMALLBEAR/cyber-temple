@@ -73,7 +73,7 @@ class TemplePlazaMixin {
 
     this.addStallGoods(g, stall.goods);
     this.plazaHit(g, [2.6, 2.6, 1.4], 1.3, stall.id, `🍢 ${stall.name} • 點擊或走近按 E 嚐一口`);
-    this.scene.add(g);
+    this.addToZone(g);
   }
 
   addStallGoods(g, kind) {
@@ -177,7 +177,7 @@ class TemplePlazaMixin {
     sign.position.set(0, 0.7, 1.68);
     g.add(sign);
     this.plazaHit(g, [3.4, 4, 3.4], 2, "wishTree", "🌳 祈願樹 • 點擊或走近按 E 繫上心願");
-    this.scene.add(g);
+    this.addToZone(g);
   }
 
   // 金色絲帶數量＝玩家實際掛過的祈願木牌數
@@ -255,7 +255,7 @@ class TemplePlazaMixin {
     sign.position.set(0, 0.34, 1.82);
     g.add(sign);
     this.plazaHit(g, [3.6, 2.2, 3.6], 1.1, "lotusSpring", "⛲ 蓮心淨泉 • 點擊或走近按 E 淨手靜心");
-    this.scene.add(g);
+    this.addToZone(g);
   }
 
   // 神位小龕：以牌位供奉，不做神像
@@ -294,7 +294,7 @@ class TemplePlazaMixin {
     bowl.position.set(0, 1.08, 0.15); bowl.userData.noCollision = true;
     g.add(bowl);
     this.plazaHit(g, [1.8, 3, 1.4], 1.5, shrine.id, `🪔 ${shrine.title} • 點擊或走近按 E 合掌致意`);
-    this.scene.add(g);
+    this.addToZone(g);
   }
 
   // 光明燈牆：亮著的燈數＝玩家實際點過的燈，其餘是未點亮的燈座
@@ -351,7 +351,7 @@ class TemplePlazaMixin {
       g.add(lamps, halos);
       this.lampWalls.push(lamps);
       this.hallHit(g, [7.2, 4.5, 0.5], 3.1, "plazaSpot", "🏮 光明燈牆 • 點擊為家人點一盞燈", { spotId: "lampWall" });
-      this.scene.add(g);
+      this.addToZone(g);
     });
     this.refreshLampWall();
   }

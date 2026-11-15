@@ -33,13 +33,20 @@ class TempleCollisionMixin {
       if (box.max.y < COLLISION_BODY_MIN_Y || box.min.y > COLLISION_BODY_MAX_Y) return;
       boxes.push({ minX: box.min.x, maxX: box.max.x, minZ: box.min.z, maxZ: box.max.z, name: obj.name || obj.geometry.type });
     });
-    // 蓮花池：池子比膝蓋矮不會被當成障礙，另外把水面列為禁區，只留橋面那一條走道
+    // 蓮花池與拜墊只在所屬分區可見時列入高度表與水面禁區，避免切換分區後殘留
+    const isVisibleHierarchy = obj => {
+      for (let a = obj; a; a = a.parent) if (a.visible === false) return false;
+      return true;
+    };
     this.walkSurfaces = [];
-    (this.prayerMats || []).forEach(mat => this.walkSurfaces.push({
-      minX: mat.position.x - 0.44, maxX: mat.position.x + 0.44,
-      minZ: mat.position.z - 0.525, maxZ: mat.position.z + 0.525, y: 0.15
-    }));
-    if (this.pondWater && this.pondBridgeDeck) {
+    (this.prayerMats || []).forEach(mat => {
+      if (!isVisibleHierarchy(mat)) return;
+      this.walkSurfaces.push({
+        minX: mat.position.x - 0.44, maxX: mat.position.x + 0.44,
+        minZ: mat.position.z - 0.525, maxZ: mat.position.z + 0.525, y: 0.15
+      });
+    });
+    if (this.pondWater && this.pondBridgeDeck && isVisibleHierarchy(this.pondWater)) {
       const water = new THREE.Box3().setFromObject(this.pondWater);
       const deck = new THREE.Box3().setFromObject(this.pondBridgeDeck);
       const name = "pondWater";
@@ -71,7 +78,9 @@ class TempleCollisionMixin {
   // 導引專用路徑：四向格網避開實體，再合併能直走的路段。
   findWalkRoute(from, dest) {
     const spacing = 0.25;
-    const inBounds = (x, z) => z >= -2.8 && z <= 41.5 && Math.abs(x) <= (z > 5.8 ? 17.5 : 3.8);
+    const inBounds = (x, z) => (typeof this.inZoneBounds === "function"
+      ? this.inZoneBounds(x, z)
+      : z >= -2.8 && z <= 41.5 && Math.abs(x) <= (z > 5.8 ? 17.5 : 3.8));
     if (![...from, ...dest].every(Number.isFinite) || !inBounds(...dest) || this.isBlockedAt(...dest, AVATAR_RADIUS + 0.08)) return [];
     const clearLine = (a, b) => {
       const count = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 0.08));

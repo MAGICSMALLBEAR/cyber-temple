@@ -73,7 +73,7 @@ class TempleHallsMixin {
       tooltip: "⛩️ 祈願木牌閣 • 點擊掛上/查看木牌 (按 [E] 亦可)"
     };
 
-    this.scene.add(this.emaRackGroup);
+    this.addToZone(this.emaRackGroup);
 
     // 載入掛牌
     this.loadEmaPlaques();
@@ -292,7 +292,7 @@ class TempleHallsMixin {
       tooltip: "🎓 文昌閣智慧殿 • 點智慧筆、求功名利祿 (按 [E] 亦可)"
     };
 
-    this.scene.add(group);
+    this.addToZone(group);
   }
 
   // 12. 東進院落：月老天賜良緣閣 (X: 13.5, Z: 23.5)
@@ -376,7 +376,7 @@ class TempleHallsMixin {
       tooltip: "❤️ 月老天賜良緣閣 • 牽紅線、扣同心鎖、問良緣 (按 [E] 亦可)"
     };
 
-    this.scene.add(group);
+    this.addToZone(group);
   }
 
   // 13. 西進院落：五路財神金庫洞窟 (X: -13.5, Z: 23.5)
@@ -465,7 +465,7 @@ class TempleHallsMixin {
       tooltip: "💰 五路財神金庫 • 摸金元寶、請發財水、金虎爺咬錢 (按 [E] 亦可)"
     };
 
-    this.scene.add(group);
+    this.addToZone(group);
   }
 
   // 13.5 西進院落：太歲本命元辰殿 (X: -13.5, Z: 5.5)
@@ -594,7 +594,7 @@ class TempleHallsMixin {
       tooltip: "🏮 太歲殿 • 安奉太歲星君與元辰斗燈 (點擊或按 [E] 進入)"
     };
 
-    this.scene.add(group);
+    this.addToZone(group);
   }
 
   // 點亮元辰斗燈與安奉太歲星君科儀特效
@@ -650,7 +650,7 @@ class TempleHallsMixin {
       const pMesh = new THREE.Mesh(pGeo, pMat);
       const angle = (i / purgeCount) * Math.PI * 2;
       pMesh.position.set(pos.x + Math.cos(angle) * 0.7, pos.y + 0.3 + (i % 5) * 0.25, pos.z + Math.sin(angle) * 0.7);
-      this.scene.add(pMesh);
+      this.addToZone(pMesh);
       this.shoujingPurgeParticles.push({
         mesh: pMesh,
         mat: pMat,
@@ -672,7 +672,7 @@ class TempleHallsMixin {
       });
       const beam = new THREE.Mesh(beamGeo, beamMat);
       beam.position.set(pos.x, 8.0, pos.z);
-      this.scene.add(beam);
+      this.addToZone(beam);
       this.shoujingLightBeam = { mesh: beam, mat: beamMat, life: 1.0 };
 
       this.spawn3DFloatingText("✨ 金光覆照 • 魂魄歸位", pos.clone().add(new THREE.Vector3(0, 3.2, 0)));

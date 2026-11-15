@@ -275,6 +275,7 @@ class AvatarCompanionsMixin {
       type: "PEER_AVATAR_UPDATE",
       id: this.myPeerId,
       room: this.currentRoom,
+      zone: this.currentZone || window.temple3d?.currentZone || "temple",
       config: this.config,
       pos: [
         parseFloat(this.position.x.toFixed(3)),
@@ -343,6 +344,8 @@ class AvatarCompanionsMixin {
     peer.targetPos.set(data.pos[0], data.pos[1], data.pos[2]);
     peer.targetRot = data.rot;
     peer.action = data.action || "idle";
+    peer.zone = data.zone || "temple";
+    peer.group.visible = peer.zone === (this.currentZone || window.temple3d?.currentZone || "temple");
     if (typeof normalizeRitualState === "function") {
       const ritual = normalizeRitualState(data.ritual); peer.ritualCarry = ritual.carry; peer.ritualItems = ritual.items; peer.ritualMotion = ritual.motion;
     }
@@ -513,6 +516,13 @@ class AvatarCompanionsMixin {
     }
     this.pendingPeerTables?.delete(id);
     window.temple3d?.removePeerOfferingTable?.(id);
+  }
+
+  syncPeerZoneVisibility() {
+    const activeZone = this.currentZone || window.temple3d?.currentZone || "temple";
+    this.peers?.forEach?.(peer => {
+      if (peer?.group) peer.group.visible = (peer.zone || "temple") === activeZone;
+    });
   }
 
   // 更新所有同行分身位移與動作動畫

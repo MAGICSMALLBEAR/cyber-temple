@@ -6,6 +6,7 @@ class TempleAvatarSystem {
     this.scene = scene;
     this.camera = camera;
     this.controls = controls;
+    this.currentZone = "temple";
 
     // 角色設定狀態
     this.config = {
@@ -539,6 +540,14 @@ class TempleAvatarSystem {
     });
   }
 
+  clampToActiveZone(x, z) {
+    const zoneId = this.currentZone || window.temple3d?.currentZone || "temple";
+    if (window.temple3d?.clampToZone) return window.temple3d.clampToZone(x, z, zoneId);
+    if (window.clampToTempleZone) return window.clampToTempleZone(x, z, zoneId);
+    const maxSide = z > 5.8 ? 17.5 : 3.8;
+    return [Math.max(-maxSide, Math.min(maxSide, x)), Math.max(-2.8, Math.min(41.5, z))];
+  }
+
   handleClickToMove(e) {
     this.mouseVec.x = (e.clientX / window.innerWidth) * 2 - 1;
     this.mouseVec.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -547,10 +556,10 @@ class TempleAvatarSystem {
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const target = new THREE.Vector3();
     if (this.sceneRaycaster.ray.intersectPlane(plane, target)) {
-      // 限制在大殿與宏偉三進廟埕範圍內 (Z: -2.8 ~ 41.5, X: ±17.5)
-      const maxSide = target.z > 5.8 ? 17.5 : 3.8;
-      target.x = Math.max(-maxSide, Math.min(maxSide, target.x));
-      target.z = Math.max(-2.8, Math.min(41.5, target.z));
+      // 依目前所在分區限制活動邊界
+      const [clampedX, clampedZ] = this.clampToActiveZone(target.x, target.z);
+      target.x = clampedX;
+      target.z = clampedZ;
       target.y = 0;
 
       this.targetPos = target;
@@ -642,13 +651,8 @@ class TempleAvatarSystem {
       // 低幀率或疾行時不能跨過目的地，否則會在終點前後來回走。
       const step = moveDir.clone().multiplyScalar(Math.min(curSpeed * dt, remainingDistance));
 
-      // 限制大殿與宏偉三進廟埕活動範圍
-      // 大殿內 (Z <= 5.8): 寬度限制 X: ±3.8, 深度 Z: -2.8 ~ 5.8
-      // 戶外宏偉廟埕 (Z > 5.8): 寬度大幅擴展至 X: ±17.5, 深度貫通至山門階梯 Z: 41.5
-      const clampTo = (x, z) => {
-        const maxSide = z > 5.8 ? 17.5 : 3.8;
-        return [Math.max(-maxSide, Math.min(maxSide, x)), Math.max(-2.8, Math.min(41.5, z))];
-      };
+      // 依目前所在分區限制活動範圍
+      const clampTo = (x, z) => this.clampToActiveZone(x, z);
       // 碰撞：先試整步；撞到就沿牆滑（只走 X 或只走 Z）；都走不了就停下。已經卡在障礙裡時允許走出來
       const blocked = this.isBlockedAt || (() => false);
       const free = (x, z) => !blocked(x, z);

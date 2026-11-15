@@ -18,7 +18,7 @@ class TempleMarketMixin {
     });
     const sign = this.makeHallSign("平安套圈圈", 2.25, 0.42); sign.position.set(0, 2.18, 0.78); stall.add(sign);
     this.hallHit(stall, [2.6, 2.5, 1.5], 1.25, "ringStall", "🎯 平安套圈圈 • 五圈挑戰，點擊或走近按 E");
-    this.scene.add(stall); this.ringStall = stall;
+    this.addToZone(stall); this.ringStall = stall;
 
     const stage = new THREE.Group(); stage.name = "puppetStage"; stage.position.set(6.5, 0, 25.5);
     box(stage, [4.3, 0.65, 1.65], [0, 0.325, 0], wood);
@@ -45,7 +45,7 @@ class TempleMarketMixin {
     });
     const caption = this.makeHallSign("借一把傘 · 還一份善意", 3.4, 0.38); caption.position.set(0, 0.92, 0.85); stage.add(caption);
     this.hallHit(stage, [4.3, 3.6, 1.8], 1.8, "puppetStage", "🎭 平安掌中戲 • 借傘記，點擊或走近按 E 觀賞");
-    this.scene.add(stage); this.puppetStage = stage;
+    this.addToZone(stage); this.puppetStage = stage;
   }
 
   tryMarketInteraction() {

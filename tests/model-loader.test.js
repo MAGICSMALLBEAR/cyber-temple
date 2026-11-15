@@ -84,7 +84,7 @@ module.exports = {
         censerHidden: t.heavenCenser.getObjectByName("heavenCenserBowl")?.visible === false || (() => { let shown = 0; t.heavenCenser.traverse(o => { if (o.isMesh && o.visible && !/heavenCenser(Stick|Ember)/.test(o.name)) shown++; }); return shown === 0; })(),
         censerEffectsKept: ["heavenCenserStick", "heavenCenserEmber"].every(n => { const o = t.heavenCenser.getObjectByName(n); if (!o) return false; for (let p = o; p; p = p.parent) if (!p.visible) return false; return true; }),
         muyu: box(ok[3].object), muyuTableY: (() => { const v = new THREE.Vector3(); t.scene.getObjectByName("muyu").getWorldPosition(v); return v.y; })(),
-        mats: t.scene.children.filter(o => o.name.startsWith("model-box.glb") && o !== ok[0].object && o !== ok[2].object && o !== ok[3].object).length,
+        mats: (t.getZoneGroup?.("temple") || t.scene).children.filter(o => o.name.startsWith("model-box.glb") && o !== ok[0].object && o !== ok[2].object && o !== ok[3].object).length,
         matsHidden: (() => { const list = []; t.scene.traverse(o => { if (o.name === "prayerMat") list.push(o); }); return list.length === 2 && list.every(g => { let shown = 0; g.traverse(o => { if (o.isMesh && o.visible) shown++; }); return shown === 0; }); })(),
         censerStillClickable: t.interactiveObjects.some(o => o.userData?.type === "heavenCenser"),
         censerCollision: t.collisionBoxes.some(b => b.minX < 0 && b.maxX > 0 && b.minZ < 11.5 && b.maxZ > 11.5),

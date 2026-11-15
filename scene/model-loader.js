@@ -106,6 +106,7 @@ class TempleModelMixin {
       return holder;
     }
 
+    const zoneId = entry.zone || "temple";
     if (target) {
       this.placeOverTarget(holder, target, entry);
       // replaceAll：同名物件（例如一對石獅）全部換掉，每一件都複製一份模型
@@ -117,14 +118,14 @@ class TempleModelMixin {
           copy.name = `model-${entry.file}-${i + 2}`;
           this.placeOverTarget(copy, other, entry);
           if (entry.collision === false) copy.traverse(o => { o.userData.noCollision = true; });
-          this.scene.add(copy);
+          this.addToZone(copy, zoneId);
         });
       }
     } else {
       holder.position.set(...entry.position);
     }
     if (entry.collision === false) holder.traverse(o => { o.userData.noCollision = true; });
-    this.scene.add(holder);
+    this.addToZone(holder, zoneId);
     return holder;
   }
 

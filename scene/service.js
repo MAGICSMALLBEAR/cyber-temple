@@ -84,7 +84,7 @@ class TempleServiceMixin {
     lantern.position.set(1.0, 1.7, 0.1);
     g.add(lantern);
 
-    this.scene.add(g);
+    this.addToZone(g);
     this.serviceDesk = g;
     this.serviceDeskPos = new THREE.Vector3(SERVICE_DESK_POS[0], 0, SERVICE_DESK_POS[1]);
     const hit = new THREE.Mesh(new THREE.BoxGeometry(2.35, 2.5, 0.92), new THREE.MeshBasicMaterial({ visible: false }));

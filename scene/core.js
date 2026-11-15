@@ -5,6 +5,40 @@
 const PALANQUIN_REST_X = 3.8;
 const PALANQUIN_REST_Z = 9;
 
+// 場景分區設定：統一管理各分區活動邊界、出生點與預設視角
+const TEMPLE_ZONES = {
+  temple: {
+    id: "temple",
+    label: "神殿本殿與廟埕",
+    spawn: [0, 4.0],
+    look: [0, 1.1, 4.0],
+    clamp(x, z) {
+      // 大殿內 (Z <= 5.8) 寬度限制 ±3.8；戶外廟埕 (Z > 5.8) 擴展至 ±17.5，深度貫通至山門 Z: 41.5
+      const maxSide = z > 5.8 ? 17.5 : 3.8;
+      return [Math.max(-maxSide, Math.min(maxSide, x)), Math.max(-2.8, Math.min(41.5, z))];
+    },
+    inBounds(x, z) {
+      return Number.isFinite(x) && Number.isFinite(z) && z >= -2.8 && z <= 41.5 && Math.abs(x) <= (z > 5.8 ? 17.5 : 3.8);
+    }
+  },
+  hostel: {
+    id: "hostel",
+    label: "清心香客大樓",
+    spawn: [0, 6.8],
+    look: [0, 1.3, 0],
+    clamp(x, z) {
+      return [Math.max(-9.6, Math.min(9.6, x)), Math.max(-7.6, Math.min(9.6, z))];
+    },
+    inBounds(x, z) {
+      return Number.isFinite(x) && Number.isFinite(z) && x >= -9.6 && x <= 9.6 && z >= -7.6 && z <= 9.6;
+    }
+  }
+};
+window.TEMPLE_ZONES = TEMPLE_ZONES;
+window.getTempleZoneConfig = (zoneId = "temple") => TEMPLE_ZONES[zoneId] || TEMPLE_ZONES.temple;
+window.clampToTempleZone = (x, z, zoneId = "temple") => window.getTempleZoneConfig(zoneId).clamp(x, z);
+window.inTempleZoneBounds = (x, z, zoneId = "temple") => window.getTempleZoneConfig(zoneId).inBounds(x, z);
+
 class Temple3DScene {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
@@ -108,6 +142,9 @@ class Temple3DScene {
 
     // 3D 浮動文字粒子
     this.floatingTexts = [];
+    this.currentZone = "temple";
+    this.worldGroups = {};
+    this.templeWorldGroup = null;
     this.lastTime = performance.now();
 
     this.init();
@@ -155,6 +192,7 @@ class Temple3DScene {
     this.controls.target.set(0, 1.1, 4.0); // 初始對準角色上身
 
     // 5. 構建環境與光影
+    this.templeWorldGroup = this.getZoneGroup("temple");
     this.setupLighting();
     this.buildTempleArchitecture();
     this.buildCourtyard(); // 戶外廟埕
@@ -172,6 +210,7 @@ class Temple3DScene {
     this.buildNightMarket();
     this.buildTempleVisuals?.();   // 材質、天空、大殿殿身與天花
     this.buildTemplePlaza?.();     // 美食街、祈願樹、淨泉、神位、光明燈牆
+    this.buildHostelZone?.();      // 香客大樓入口牌樓與獨立旅宿分區
     this.setupSeasonalScene();
     this.setupDustParticles();
     this.scene.add(this.weatherGroup);
@@ -179,8 +218,12 @@ class Temple3DScene {
     // 6. 載入 3D 角色系統
     if (window.TempleAvatarSystem) {
       this.avatar = new TempleAvatarSystem(this.scene, this.camera, this.controls);
-      // 廟內 NPC 可點選聊天
-      (this.avatar.npcs || []).forEach(n => { if (n.hit) this.interactiveObjects.push(n.hit); });
+      this.avatar.currentZone = this.currentZone || "temple";
+      // 廟內 NPC 歸入本殿分區群組並加入可互動物件
+      (this.avatar.npcs || []).forEach(n => {
+        if (n.group) this.addToZone(n.group, "temple");
+        if (n.hit) this.interactiveObjects.push(n.hit);
+      });
     }
 
     // 6.5 畫質分級（場景與燈光都建好之後才套用）
@@ -210,6 +253,96 @@ class Temple3DScene {
     this.renderer.setAnimationLoop(() => this.animate());
   }
 
+  getZoneConfig(zoneId = this.currentZone || "temple") {
+    return TEMPLE_ZONES[zoneId] || TEMPLE_ZONES.temple;
+  }
+
+  getZoneGroup(zoneId = "temple") {
+    if (!this.worldGroups) this.worldGroups = {};
+    if (!this.worldGroups[zoneId]) {
+      const group = new THREE.Group();
+      group.name = `${zoneId}WorldGroup`;
+      group.userData.zone = zoneId;
+      group.visible = zoneId === (this.currentZone || "temple");
+      this.worldGroups[zoneId] = group;
+      if (zoneId === "temple") this.templeWorldGroup = group;
+      this.scene?.add?.(group);
+    }
+    return this.worldGroups[zoneId];
+  }
+
+  addToZone(object, zoneId = "temple") {
+    if (!object) return object;
+    const group = this.getZoneGroup(zoneId);
+    if (group?.add) group.add(object);
+    else this.scene?.add?.(object);
+    return object;
+  }
+
+  inZoneBounds(x, z, zoneId = this.currentZone || "temple") {
+    return this.getZoneConfig(zoneId).inBounds(x, z);
+  }
+
+  clampToZone(x, z, zoneId = this.currentZone || "temple") {
+    return this.getZoneConfig(zoneId).clamp(x, z);
+  }
+
+  isObjectInActiveZone(obj) {
+    if (!obj) return false;
+    const activeZone = this.currentZone || "temple";
+    if (obj.userData?.zone && obj.userData.zone !== activeZone) return false;
+    const groups = this.worldGroups ? Object.values(this.worldGroups) : [];
+    for (let p = obj; p; p = p.parent) {
+      if (groups.includes(p) && p.visible === false) return false;
+    }
+    return true;
+  }
+
+  getInteractiveTargets() {
+    return (this.interactiveObjects || []).filter(obj => this.isObjectInActiveZone(obj));
+  }
+
+  // 切換場景分區（傳送骨架：隱藏非當前分區、重置導航與碰撞、重新定位角色與鏡頭）
+  switchZone(zoneId = "temple", spawn = null) {
+    const config = this.getZoneConfig(zoneId);
+    const targetZone = config.id;
+    this.currentZone = targetZone;
+
+    window.pilgrimage?.cancelRoute?.();
+    this.getZoneGroup(targetZone);
+    if (this.worldGroups) {
+      Object.entries(this.worldGroups).forEach(([id, group]) => {
+        if (group) group.visible = id === targetZone;
+      });
+    }
+
+    if (this.avatar) {
+      this.avatar.currentZone = targetZone;
+      this.avatar.targetPos = null;
+      this.avatar.isMoving = false;
+      const [sx, sz] = Array.isArray(spawn) ? spawn : config.spawn;
+      const [cx, cz] = this.clampToZone(sx, sz, targetZone);
+      const groundY = typeof this.walkHeightAt === "function" ? this.walkHeightAt(cx, cz) : 0;
+      this.avatar.position?.set?.(cx, groundY, cz);
+      this.avatar.playerGroup?.position?.set?.(cx, groundY, cz);
+      this.avatar.syncPeerZoneVisibility?.();
+      this.avatar.broadcastMyState?.(true);
+    }
+
+    if (typeof this.buildCollisionMap === "function") this.buildCollisionMap();
+    if (this.controls?.target && Array.isArray(config.look)) {
+      this.controls.target.set(config.look[0], config.look[1], config.look[2]);
+    }
+    if (typeof this.resetCameraBehindAvatar === "function") this.resetCameraBehindAvatar(false);
+    window.templeVisit?.update?.();
+    if (document.getElementById("visitMapModal")?.classList?.contains("open")) {
+      window.templeVisit?.renderMap?.();
+      window.templeVisit?.updateMap?.();
+    }
+    window.dispatchEvent?.(new CustomEvent("temple:zonechange", { detail: { zone: targetZone } }));
+    return targetZone;
+  }
+
   setupLighting() {
     this.ambientLight = new THREE.AmbientLight(0x7a3d2e, 1.3);
     this.scene.add(this.ambientLight);
@@ -223,12 +356,12 @@ class Temple3DScene {
     this.mainSpot.shadow.mapSize.width = 1024;
     this.mainSpot.shadow.mapSize.height = 1024;
     this.mainSpot.shadow.bias = -0.001;
-    this.scene.add(this.mainSpot);
+    this.addToZone(this.mainSpot, "temple");
 
     // 神龕後方金光
     this.shrineBacklight = new THREE.PointLight(0xffaa22, 2.4, 9);
     this.shrineBacklight.position.set(0, 2.8, -2.5);
-    this.scene.add(this.shrineBacklight);
+    this.addToZone(this.shrineBacklight, "temple");
 
     // 戶外廟埕天光 (大幅擴展陰影相機範圍以覆蓋宏偉三進廟埕與山門)
     this.sunMoonLight = new THREE.DirectionalLight(0xddeeff, 0.95);
@@ -263,7 +396,7 @@ class Temple3DScene {
     ].forEach(pos => {
       const pLight = new THREE.PointLight(0xff7722, 1.4, 5);
       pLight.position.set(...pos);
-      this.scene.add(pLight);
+      this.addToZone(pLight, "temple");
       this.candleLights.push(pLight);
     });
   }
@@ -458,14 +591,14 @@ class Temple3DScene {
       this.targetCameraPos = targetPos;
       this.targetLookAt = targetLook;
     } else {
-      this.camera.position.copy(targetPos);
-      this.controls.target.copy(targetLook);
+      this.camera?.position?.copy?.(targetPos);
+      this.controls?.target?.copy?.(targetLook);
       this.targetCameraPos = null;
       this.targetLookAt = null;
     }
 
     // 更新視角塢按鈕啟用狀態
-    document.querySelectorAll(".btn-cam-view").forEach(b => {
+    document.querySelectorAll?.(".btn-cam-view").forEach(b => {
       b.classList.toggle("active", b.dataset.view === "follow");
     });
   }
@@ -567,7 +700,7 @@ class Temple3DScene {
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.interactiveObjects);
+    const intersects = this.raycaster.intersectObjects(this.getInteractiveTargets());
 
     const tooltipEl = document.getElementById("canvas3dTooltip");
     if (intersects.length > 0) {
@@ -591,12 +724,16 @@ class Temple3DScene {
     this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.interactiveObjects);
+    const intersects = this.raycaster.intersectObjects(this.getInteractiveTargets());
 
     if (intersects.length > 0) {
       const type = intersects[0].object.userData?.type;
       if (type === "plazaSpot") {
         window.templePlaza?.use(intersects[0].object.userData.spotId);
+      } else if (type === "hostelGate") {
+        this.enterHostelZone?.();
+      } else if (type === "hostelSpot") {
+        this.interactWithHostelSpot?.(intersects[0].object.userData.spotId);
       } else if (type === "npc") {
         window.templeNpc?.talk(intersects[0].object.userData.npcIndex);
       } else if (type === "ringStall" || type === "puppetStage") {
@@ -789,7 +926,7 @@ class Temple3DScene {
         const stickIdx = Math.floor(Math.random() * 3);
         const startX = (stickIdx - 1) * 0.07;
         particle.position.set(startX, 2.0, -0.3);
-        this.scene.add(particle);
+        this.addToZone(particle, "temple");
         this.smokeParticles.push({
           mesh: particle,
           vx: (Math.random() - 0.5) * 0.008,
@@ -808,7 +945,7 @@ class Temple3DScene {
         sp.mesh.material.opacity = 0.6 * (1 - sp.life / sp.maxLife);
 
         if (sp.life >= sp.maxLife) {
-          this.scene.remove(sp.mesh);
+          (sp.mesh.parent || this.scene).remove(sp.mesh);
           this.smokeParticles.splice(i, 1);
         }
       }
@@ -822,7 +959,7 @@ class Temple3DScene {
         rp.mesh.scale.setScalar(1 + prog * 4.5);
         rp.mesh.material.opacity = 0.9 * (1 - prog);
       } else {
-        this.scene.remove(rp.mesh);
+        (rp.mesh.parent || this.scene).remove(rp.mesh);
         this.pondRipples.splice(i, 1);
       }
     }
@@ -835,7 +972,7 @@ class Temple3DScene {
         fl.mesh.position.y += 0.015;
         fl.mesh.position.x += (Math.random() - 0.5) * 0.006;
       } else {
-        this.scene.remove(fl.mesh);
+        (fl.mesh.parent || this.scene).remove(fl.mesh);
         this.flameParticles.splice(i, 1);
       }
     }
@@ -889,7 +1026,7 @@ class Temple3DScene {
       fp.mesh.position.z += fp.vz;
       fp.mesh.scale.multiplyScalar(0.96);
       if (fp.life >= fp.maxLife) {
-        this.scene.remove(fp.mesh);
+        (fp.mesh.parent || this.scene).remove(fp.mesh);
         this.firecrackerParticles.splice(i, 1);
       }
     }
@@ -945,7 +1082,7 @@ class Temple3DScene {
         ft.sprite.position.y += 0.01;
         ft.sprite.material.opacity = 1 - Math.pow(progress, 2);
       } else {
-        this.scene.remove(ft.sprite);
+        (ft.sprite.parent || this.scene).remove(ft.sprite);
         this.floatingTexts.splice(i, 1);
       }
     }

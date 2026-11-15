@@ -29,7 +29,7 @@ class TempleSeasonalMixin {
     if (this.seasonalGroup) disposeTempleObject(this.seasonalGroup);
     this.seasonalTheme = theme; this.seasonalTitle = title;
     const group = new THREE.Group(); group.name = `festival-${theme}`; group.userData.noCollision = true;
-    this.seasonalGroup = group; this.scene.add(group);
+    this.seasonalGroup = group; this.addToZone(group);
     if (theme === "none") return;
     const gold = new THREE.MeshStandardMaterial({ color: 0xe8ba52, roughness: 0.5, metalness: 0.4 });
     const red = new THREE.MeshStandardMaterial({ color: 0xb52d35, emissive: 0x361015, roughness: 0.6 });

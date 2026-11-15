@@ -105,7 +105,7 @@ class TempleFestivalMixin {
       tooltip: "🔔 東天鐘樓 • 叩撞金鐘祈福 (按 [E] 亦可)"
     };
 
-    this.scene.add(towerGroup);
+    this.addToZone(towerGroup);
   }
 
   // 15. 西側前埕：暮鼓雷音樓 (X: -9.5, Z: 30.0)
@@ -219,7 +219,7 @@ class TempleFestivalMixin {
       tooltip: "🥁 西暮鼓樓 • 擊響雷鼓祈福 (按 [E] 亦可)"
     };
 
-    this.scene.add(towerGroup);
+    this.addToZone(towerGroup);
   }
 
   // 16. 迎神遶境八抬神轎與儀仗隊伍 (中央神道起點)
@@ -314,7 +314,7 @@ class TempleFestivalMixin {
       tooltip: "🏮 神明聖駕 • 恭敬鑽轎腳 / 隨香護駕 (按 [E] 亦可)"
     };
 
-    this.scene.add(this.palanquinGroup);
+    this.addToZone(this.palanquinGroup);
   }
 
   // 叩撞金鐘動作與特效
@@ -347,7 +347,7 @@ class TempleFestivalMixin {
     const wave = new THREE.Mesh(waveGeo, waveMat);
     wave.rotation.x = Math.PI / 2;
     wave.position.set(9.5, 2.0, 30.0);
-    this.scene.add(wave);
+    this.addToZone(wave);
     this.pondRipples.push({ mesh: wave, birth: performance.now(), duration: 2500 });
 
     this.spawn3DFloatingText("🔔 晨鐘震響 • 萬籟俱寂，梵音廣被！", new THREE.Vector3(9.5, 3.8, 30.0));
@@ -387,7 +387,7 @@ class TempleFestivalMixin {
     const wave = new THREE.Mesh(waveGeo, waveMat);
     wave.rotation.x = Math.PI / 2;
     wave.position.set(-9.5, 2.0, 30.0);
-    this.scene.add(wave);
+    this.addToZone(wave);
     this.pondRipples.push({ mesh: wave, birth: performance.now(), duration: 2200 });
 
     this.spawn3DFloatingText("🥁 暮鼓雷音 • 警世破迷，慧光通明！", new THREE.Vector3(-9.5, 3.8, 30.0));
@@ -430,7 +430,7 @@ class TempleFestivalMixin {
     });
     const spark = new THREE.Mesh(sparkGeo, sparkMat);
     spark.position.set(x, 0.15 + Math.random() * 0.4, z);
-    this.scene.add(spark);
+    this.addToZone(spark);
 
     this.firecrackerParticles.push({
       mesh: spark,

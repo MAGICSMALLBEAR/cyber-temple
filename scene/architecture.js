@@ -9,11 +9,11 @@ class TempleArchitectureMixin {
     floor.rotation.x = -Math.PI / 2;
     floor.position.set(0, 0, 1.15);
     floor.receiveShadow = true;
-    this.scene.add(floor);
+    this.addToZone(floor);
 
     const gridHelper = new THREE.GridHelper(14, 14, 0x5a2d18, 0x38190c);
     gridHelper.position.set(0, 0.005, 1.15);
-    this.scene.add(gridHelper);
+    this.addToZone(gridHelper);
 
     // 2. 後殿神龕木雕背牆
     const wallGeo = new THREE.BoxGeometry(14, 8, 0.4);
@@ -21,13 +21,13 @@ class TempleArchitectureMixin {
     const wall = new THREE.Mesh(wallGeo, wallMat);
     wall.position.set(0, 4, -3.2);
     wall.receiveShadow = true;
-    this.scene.add(wall);
+    this.addToZone(wall);
 
     const corniceGeo = new THREE.BoxGeometry(14.4, 0.35, 0.8);
     const corniceMat = new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.6, roughness: 0.3 });
     const cornice = new THREE.Mesh(corniceGeo, corniceMat);
     cornice.position.set(0, 6.8, -2.8);
-    this.scene.add(cornice);
+    this.addToZone(cornice);
 
     // 3. 朱紅大柱
     const pillarGeo = new THREE.CylinderGeometry(0.28, 0.3, 7.5, 24);
@@ -39,11 +39,11 @@ class TempleArchitectureMixin {
       pillar.position.set(x, 3.75, z);
       pillar.castShadow = true;
       pillar.receiveShadow = true;
-      this.scene.add(pillar);
+      this.addToZone(pillar);
 
       const base = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.44, 0.35, 24), pillarBaseMat);
       base.position.set(x, 0.175, z);
-      this.scene.add(base);
+      this.addToZone(base);
     });
 
     // 4. 大殿與廟埕交界：朱紅大門門檻與牌匾山門
@@ -51,17 +51,17 @@ class TempleArchitectureMixin {
     const thresholdMat = new THREE.MeshStandardMaterial({ color: 0x6e1b1b, roughness: 0.5 });
     const threshold = new THREE.Mesh(thresholdGeo, thresholdMat);
     threshold.position.set(0, 0.125, 5.8);
-    this.scene.add(threshold);
+    this.addToZone(threshold);
 
     // 左右照壁
     const screenWallGeo = new THREE.BoxGeometry(3.5, 5.5, 0.3);
     const screenL = new THREE.Mesh(screenWallGeo, wallMat);
     screenL.position.set(-5.2, 2.75, 5.8);
-    this.scene.add(screenL);
+    this.addToZone(screenL);
 
     const screenR = new THREE.Mesh(screenWallGeo, wallMat);
     screenR.position.set(5.2, 2.75, 5.8);
-    this.scene.add(screenR);
+    this.addToZone(screenR);
 
     this.templeSurfaces = { hallFloor: floorMat, hallGrid: gridHelper, backWall: wall, screens: [screenL, screenR] };
 
@@ -133,7 +133,7 @@ class TempleArchitectureMixin {
     court1.rotation.x = -Math.PI / 2;
     court1.position.set(0, -0.01, 14.5);
     court1.receiveShadow = true;
-    this.scene.add(court1);
+    this.addToZone(court1);
 
     // 外進廟埕與山門前廣場 (Z: 23.5 ~ 43.5, 寬度 38m)
     const courtGeo2 = new THREE.PlaneGeometry(38, 20);
@@ -141,7 +141,7 @@ class TempleArchitectureMixin {
     court2.rotation.x = -Math.PI / 2;
     court2.position.set(0, -0.01, 33.5);
     court2.receiveShadow = true;
-    this.scene.add(court2);
+    this.addToZone(court2);
     Object.assign(this.templeSurfaces, { plazaInner: stoneMat1, plazaOuter: stoneMat2 });
   }
 
@@ -155,14 +155,14 @@ class TempleArchitectureMixin {
     path.rotation.x = -Math.PI / 2;
     path.position.set(0, 0.005, 21.5);
     path.receiveShadow = true;
-    this.scene.add(path);
+    this.addToZone(path);
     this.templeSurfaces.path = pathMat;
 
     // 御道兩側金黃銅邊條
     [-2.42, 2.42].forEach(x => {
       const border = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 31.5), borderMat);
       border.position.set(x, 0.015, 21.5);
-      this.scene.add(border);
+      this.addToZone(border);
     });
   }
 
@@ -251,7 +251,7 @@ class TempleArchitectureMixin {
     this.interactiveObjects.push(gateHit);
     gateHit.userData = { type: "mountainGate", tooltip: "⛩️ 巍峨山門牌樓 • 步入聖境，滌淨塵心 (點擊祈福)" };
 
-    this.scene.add(gateGroup);
+    this.addToZone(gateGroup);
   }
 
   // 4. 青石守護神獅 (雄獅踩繡球、雌獅撫幼獅)
@@ -304,7 +304,7 @@ class TempleArchitectureMixin {
         tooltip: `🦁 青石神獅（${idx === 0 ? "雄獅踏繡球" : "雌獅撫幼獅"}）• 威鎮山門辟邪迎祥 (按 [E] 亦可)`
       };
 
-      this.scene.add(lionGroup);
+      this.addToZone(lionGroup);
     });
   }
 
@@ -356,7 +356,7 @@ class TempleArchitectureMixin {
         flag.position.set(x > 0 ? 0.9 : -0.9, 3.2, 0);
         lanternGroup.add(flag);
 
-        this.scene.add(lanternGroup);
+        this.addToZone(lanternGroup);
       });
     });
   }
@@ -371,17 +371,17 @@ class TempleArchitectureMixin {
     [-18.2, 18.2].forEach(x => {
       const rail = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.85, 36.5), railMat);
       rail.position.set(x, 0.42, 24.0);
-      this.scene.add(rail);
+      this.addToZone(rail);
 
       // 望柱荷花蓮瓣
       for (let z = 6.0; z <= 42.0; z += 3.0) {
         const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.15, 8), railMat);
         post.position.set(x, 0.58, z);
-        this.scene.add(post);
+        this.addToZone(post);
 
         const bud = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), railMat);
         bud.position.set(x, 1.22, z);
-        this.scene.add(bud);
+        this.addToZone(bud);
       }
     });
 
@@ -403,7 +403,7 @@ class TempleArchitectureMixin {
           tree.add(foliage);
         });
 
-        this.scene.add(tree);
+        this.addToZone(tree);
       }
     });
   }
@@ -446,7 +446,7 @@ class TempleArchitectureMixin {
       topJewel.position.y = 3.8;
       pagodaGroup.add(topJewel);
 
-      this.scene.add(pagodaGroup);
+      this.addToZone(pagodaGroup);
     });
   }
 
@@ -501,7 +501,7 @@ class TempleArchitectureMixin {
       tassel.position.y = -0.62;
       group.add(tassel);
 
-      this.scene.add(group);
+      this.addToZone(group);
       this.lanterns.push({ group, offset: idx * 0.8 });
     });
   }
@@ -547,7 +547,7 @@ class TempleArchitectureMixin {
     this.offeringTableCloth.position.set(0, 0.79, 0.756); this.offeringTableCloth.userData.noCollision = true; altarGroup.add(this.offeringTableCloth);
     this.offeringTable = altarGroup;
     this.updateOfferingTableStyle(window.templeInventory?.data.offering.style || "wood");
-    this.scene.add(altarGroup);
+    this.addToZone(altarGroup);
     this.buildDeityThrone();
   }
 

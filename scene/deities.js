@@ -157,7 +157,7 @@ class TempleDeitiesMixin {
     this.throneGroup = new THREE.Group(); this.throneGroup.position.set(0, 1.8, -2.4);
     this.deityHalo = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.035, 8, 48), new THREE.MeshBasicMaterial({ color: 0xffdf83 }));
     this.deityHalo.position.set(0, 1.96, -0.38); this.throneGroup.add(this.deityHalo);
-    this.scene.add(this.throneGroup); this.switchDeityStatue("mazu");
+    this.addToZone(this.throneGroup, "temple"); this.switchDeityStatue("mazu");
   }
   switchDeityStatue(id) {
     if (!this.throneGroup) return;

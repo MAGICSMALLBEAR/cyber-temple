@@ -61,7 +61,7 @@ class TempleAltarMixin {
     this.interactiveObjects.push(pot);
     pot.userData = { type: "censer", tooltip: "🔥 點擊香爐 或 走近按 [E]：插香祈願" };
 
-    this.scene.add(this.censerGroup);
+    this.addToZone(this.censerGroup);
   }
 
   buildBwaBwei() {
@@ -90,7 +90,7 @@ class TempleAltarMixin {
       bwaGroup.position.set(initialX, 0.08, 1.8);
       bwaGroup.rotation.y = (i === 0 ? 0.3 : -0.3);
 
-      this.scene.add(bwaGroup);
+      this.addToZone(bwaGroup);
       this.bwaBlocks.push(bwaGroup);
 
       this.interactiveObjects.push(bwaMesh);
@@ -146,7 +146,7 @@ class TempleAltarMixin {
     this.interactiveObjects.push(bucketMesh);
     bucketMesh.userData = { type: "chiam", tooltip: "🎋 點擊籤筒 或 走近按 [E]：虔心搖筒求籤" };
 
-    this.scene.add(this.chiamBucket);
+    this.addToZone(this.chiamBucket);
   }
 
   buildMuyu() {
@@ -184,13 +184,13 @@ class TempleAltarMixin {
     this.interactiveObjects.push(muyuMesh);
     muyuMesh.userData = { type: "muyu", tooltip: "🪵 點擊木魚 或 走近按 [E]：功德+1 (按空白鍵亦可)" };
 
-    this.scene.add(this.muyuGroup);
+    this.addToZone(this.muyuGroup);
   }
 
   buildOfferings() {
     this.offeringsGroup = new THREE.Group();
     this.offeringsGroup.position.set(0, 1.35, 0.1);
-    this.scene.add(this.offeringsGroup);
+    this.addToZone(this.offeringsGroup);
 
     // 讀取本地儲存或預設五大經典御賜供品
     this.offeringsGroup.userData.noCollision = true;
@@ -257,7 +257,7 @@ class TempleAltarMixin {
     if (!this.emberLight) {
       this.emberLight = new THREE.PointLight(0xff5500, 1.5, 2.5);
       this.emberLight.position.set(0, 2.0, -0.3);
-      this.scene.add(this.emberLight);
+      this.addToZone(this.emberLight);
     }
 
     this.spawn3DFloatingText("三炷清香 • 誠心達天", new THREE.Vector3(0, 2.2, -0.3));
