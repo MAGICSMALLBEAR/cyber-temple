@@ -241,6 +241,59 @@ class AvatarPetMixin {
       tail.position.set(0, 0.18, -0.22);
       this.petGroup.add(tail);
     }
+    this._batchPetStaticMeshes();
+  }
+
+  // 合併萌寵靜態網格（略過會旋轉擺動的尾巴與靈龜光環）以壓低 Draw Calls
+  _batchPetStaticMeshes() {
+    if (!this.petGroup || this.petType === "none") return;
+    this.petGroup.updateMatrixWorld(true);
+    const invGroup = this.petGroup.matrixWorld.clone().invert();
+    const skipSet = new Set([this.petLimbs.tail, this.petLimbs.aura].filter(Boolean));
+    const buckets = new Map();
+    const toRemove = [];
+    this.petGroup.traverse(m => {
+      if (m === this.petGroup || !m.isMesh || skipSet.has(m) || !m.geometry || !m.material || Array.isArray(m.material)) return;
+      if (!buckets.has(m.material)) buckets.set(m.material, []);
+      buckets.get(m.material).push(m);
+    });
+    const localMat = new THREE.Matrix4();
+    buckets.forEach((meshes, material) => {
+      if (meshes.length < 2) return;
+      const baked = [];
+      let hasUv = true;
+      for (const m of meshes) {
+        localMat.multiplyMatrices(invGroup, m.matrixWorld);
+        if (localMat.determinant() <= 0) continue;
+        const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+        if (!g.attributes.position) { g.dispose(); continue; }
+        if (!g.attributes.normal) g.computeVertexNormals();
+        if (!g.attributes.uv) hasUv = false;
+        g.applyMatrix4(localMat);
+        baked.push(g);
+      }
+      if (!baked.length) return;
+      const total = baked.reduce((s, g) => s + g.attributes.position.count, 0);
+      const pos = new Float32Array(total * 3);
+      const norm = new Float32Array(total * 3);
+      const uv = hasUv ? new Float32Array(total * 2) : null;
+      let o3 = 0, o2 = 0;
+      for (const g of baked) {
+        const p = g.attributes.position, n = g.attributes.normal;
+        pos.set(p.array, o3); norm.set(n.array, o3);
+        o3 += p.count * 3;
+        if (uv) { uv.set(g.attributes.uv.array, o2); o2 += p.count * 2; }
+        g.dispose();
+      }
+      const mergedGeo = new THREE.BufferGeometry();
+      mergedGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      mergedGeo.setAttribute("normal", new THREE.BufferAttribute(norm, 3));
+      if (uv) mergedGeo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+      mergedGeo.computeBoundingSphere();
+      this.petGroup.add(new THREE.Mesh(mergedGeo, material));
+      for (const m of meshes) { m.geometry?.dispose?.(); toRemove.push(m); }
+    });
+    for (const m of toRemove) m.parent?.remove(m);
   }
 
   // 切換萌寵護法

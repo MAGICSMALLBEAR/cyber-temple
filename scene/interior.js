@@ -58,17 +58,20 @@ class TempleInteriorMixin {
 
     // 留出正中御道與筊杯前方空間，拜墊在兩側。
     this.prayerMats = [];
-    [-1.35, 1.35].forEach(x => {
+    const prayerSignProto = this.makeHallSign("跪坐 · E", 0.6, 0.16);
+    [-1.35, 1.35].forEach((x, idx) => {
       const g = new THREE.Group();
       g.name = "prayerMat";
       g.position.set(x, 0, 2.65);
       addBox(g, [0.88, 0.08, 1.05], [0, 0.04, 0], gold);
       addBox(g, [0.80, 0.10, 0.97], [0, 0.10, 0], red);
-      const sign = this.makeHallSign("跪坐 · E", 0.6, 0.16);
+      const sign = idx === 0 ? prayerSignProto : new THREE.Mesh(prayerSignProto.geometry, prayerSignProto.material);
+      sign.userData.noCollision = true;
       sign.rotation.x = -Math.PI / 2;
       sign.position.set(0, 0.155, 0.32);
       g.add(sign);
       this.hallHit(g, [0.88, 0.22, 1.05], 0.11, "prayerMat", "🧎 拜墊 • 跪坐稟告，再按 E 起身；移動也可起身");
+      this.batchStaticGroup?.(g);
       this.hallInterior.add(g);
       this.prayerMats.push(g);
     });
@@ -110,6 +113,7 @@ class TempleInteriorMixin {
       const sign = this.makeHallSign(name, 0.66, 0.22);
       sign.position.set(0, 0.17, 0.38);
       g.add(sign);
+      this.batchStaticGroup?.(g, { useVertexColors: true });
       this.hallInterior.add(g);
       this.hallGuardians.push(g);
     });
@@ -131,16 +135,30 @@ class TempleInteriorMixin {
     cabinet.name = "chiamCabinet";
     cabinet.position.set(2.8, 0, 3.0);
     addBox(cabinet, [0.8, 1.65, 0.5], [0, 0.825, 0], wood);
+    const drawers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.22, 0.04), red, 15);
+    const knobs = new THREE.InstancedMesh(new THREE.BoxGeometry(0.07, 0.025, 0.03), gold, 15);
+    drawers.userData.noCollision = true;
+    knobs.userData.noCollision = true;
+    const cm = new THREE.Matrix4();
+    let ci = 0;
     for (let row = 0; row < 5; row++) for (let col = 0; col < 3; col++) {
-      addBox(cabinet, [0.22, 0.22, 0.04], [(col - 1) * 0.25, 0.23 + row * 0.25, 0.27], red);
-      addBox(cabinet, [0.07, 0.025, 0.03], [(col - 1) * 0.25, 0.23 + row * 0.25, 0.3], gold);
+      cm.makeTranslation((col - 1) * 0.25, 0.23 + row * 0.25, 0.27); drawers.setMatrixAt(ci, cm);
+      cm.makeTranslation((col - 1) * 0.25, 0.23 + row * 0.25, 0.3); knobs.setMatrixAt(ci, cm);
+      ci++;
     }
+    cabinet.add(drawers, knobs);
     const csign = this.makeHallSign("籤詩櫃", 0.73, 0.23);
     csign.position.set(0, 1.47, 0.26);
     cabinet.add(csign);
     this.hallHit(cabinet, [0.85, 1.7, 0.6], 0.85, "chiamCabinet", "📜 籤詩櫃 • 重閱已求得的籤詩");
+    this.batchStaticGroup?.(cabinet, { skip: [drawers, knobs] });
     this.hallInterior.add(cabinet);
     this.chiamCabinet = cabinet;
+    // 在大殿內部群組層級也跑一次靜態合批，把拜墊、香油箱與護法之間的相同金木紅材質一併合併
+    this.batchStaticGroup?.(this.hallInterior, {
+      skip: [drawers, knobs],
+      useVertexColors: true
+    });
   }
 
   interactWithHallObject(obj) {

@@ -61,6 +61,7 @@ class TempleAltarMixin {
     this.interactiveObjects.push(pot);
     pot.userData = { type: "censer", tooltip: "🔥 點擊香爐 或 走近按 [E]：插香祈願" };
 
+    this.batchStaticGroup?.(this.censerGroup, { skip: this.incenseSticks.map(s => s.group) });
     this.addToZone(this.censerGroup);
   }
 
@@ -121,27 +122,35 @@ class TempleAltarMixin {
     this.chiamBucket.add(hoop2);
 
     this.chiamSticks = [];
-    const stickMat = new THREE.MeshStandardMaterial({ color: 0xdeb887, roughness: 0.5 });
-    const stickRedMat = new THREE.MeshStandardMaterial({ color: 0xaa2020 });
+    this._chiamStickTransforms = [];
+    const stickMat = this.getSharedMaterial?.("standard", { color: 0xdeb887, roughness: 0.5 }) || new THREE.MeshStandardMaterial({ color: 0xdeb887, roughness: 0.5 });
+    const stickRedMat = this.getSharedMaterial?.("standard", { color: 0xaa2020 }) || new THREE.MeshStandardMaterial({ color: 0xaa2020 });
+    const stickCount = 28;
+    const stickBodies = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.007, 0.007, 0.5, 6), stickMat, stickCount);
+    const stickTips = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0075, 0.0075, 0.08, 6), stickRedMat, stickCount);
+    stickBodies.userData.noCollision = true;
+    stickTips.userData.noCollision = true;
 
-    for (let i = 0; i < 28; i++) {
-      const sGroup = new THREE.Group();
-      const angle = (i / 28) * Math.PI * 2;
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < stickCount; i++) {
+      const angle = (i / stickCount) * Math.PI * 2;
       const radius = 0.04 + Math.random() * 0.08;
-      sGroup.position.set(Math.cos(angle) * radius, 0.28, Math.sin(angle) * radius);
-      sGroup.rotation.z = (Math.random() - 0.5) * 0.12;
-
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.5, 6), stickMat);
-      body.position.y = 0.25;
-      sGroup.add(body);
-
-      const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.0075, 0.0075, 0.08, 6), stickRedMat);
-      tip.position.y = 0.48;
-      sGroup.add(tip);
-
-      this.chiamBucket.add(sGroup);
-      this.chiamSticks.push(sGroup);
+      const sx = Math.cos(angle) * radius;
+      const sz = Math.sin(angle) * radius;
+      const rz = (Math.random() - 0.5) * 0.12;
+      this._chiamStickTransforms.push({ sx, sy: 0.28, sz, rz });
+      dummy.position.set(sx, 0.28, sz);
+      dummy.rotation.set(0, 0, rz);
+      dummy.updateMatrix();
+      const bodyOffset = new THREE.Matrix4().makeTranslation(0, 0.25, 0);
+      const tipOffset = new THREE.Matrix4().makeTranslation(0, 0.48, 0);
+      stickBodies.setMatrixAt(i, dummy.matrix.clone().multiply(bodyOffset));
+      stickTips.setMatrixAt(i, dummy.matrix.clone().multiply(tipOffset));
+      this.chiamSticks.push(i);
     }
+    this.chiamStickBodies = stickBodies;
+    this.chiamStickTips = stickTips;
+    this.chiamBucket.add(stickBodies, stickTips);
 
     this.interactiveObjects.push(bucketMesh);
     bucketMesh.userData = { type: "chiam", tooltip: "🎋 點擊籤筒 或 走近按 [E]：虔心搖筒求籤" };
@@ -219,6 +228,7 @@ class TempleAltarMixin {
       dishGroup.position.set(slotXs[idx] !== undefined ? slotXs[idx] : (idx - 2) * 0.5, 0, 0);
       this.offeringsGroup.add(dishGroup);
     });
+    this.markShadowsDirty?.();
   }
 
   // 呈獻大典金光神威慶典
@@ -328,7 +338,11 @@ class TempleAltarMixin {
     const startTime = performance.now();
     const duration = 1400;
     const bucket = this.chiamBucket;
-    const targetStick = this.chiamSticks[Math.floor(Math.random() * this.chiamSticks.length)];
+    const targetIdx = Math.floor(Math.random() * this.chiamSticks.length);
+    const stickCfg = this._chiamStickTransforms?.[targetIdx];
+    const dummy = new THREE.Object3D();
+    const bodyOff = new THREE.Matrix4().makeTranslation(0, 0.25, 0);
+    const tipOff = new THREE.Matrix4().makeTranslation(0, 0.48, 0);
 
     const animateShake = (now) => {
       const elapsed = now - startTime;
@@ -340,7 +354,15 @@ class TempleAltarMixin {
         requestAnimationFrame(animateShake);
       } else if (progress < 1) {
         bucket.rotation.set(0, 0, 0);
-        targetStick.position.y = 0.28 + ((progress - 0.7) / 0.3) * 0.35;
+        if (stickCfg && this.chiamStickBodies && this.chiamStickTips) {
+          dummy.position.set(stickCfg.sx, 0.28 + ((progress - 0.7) / 0.3) * 0.35, stickCfg.sz);
+          dummy.rotation.set(0, 0, stickCfg.rz);
+          dummy.updateMatrix();
+          this.chiamStickBodies.setMatrixAt(targetIdx, dummy.matrix.clone().multiply(bodyOff));
+          this.chiamStickTips.setMatrixAt(targetIdx, dummy.matrix.clone().multiply(tipOff));
+          this.chiamStickBodies.instanceMatrix.needsUpdate = true;
+          this.chiamStickTips.instanceMatrix.needsUpdate = true;
+        }
         requestAnimationFrame(animateShake);
       } else {
         this.isChiamShaking = false;

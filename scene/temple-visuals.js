@@ -165,7 +165,7 @@ class TempleVisualsMixin {
     this.scene.traverse(obj => {
       if (!obj.isMesh) return;
       let inGroup = false;
-      for (let a = obj; a; a = a.parent) if (groups.has(a.name)) { inGroup = true; break; }
+      for (let a = obj; a; a = a.parent) if (groups.has(a.name) || a.userData?.liteSwap) { inGroup = true; break; }
       const mats = [].concat(obj.material);
       if ((inGroup && mats.some(m => m.isMeshStandardMaterial)) || mats.some(m => surfaces.has(m))) list.push(obj);
     });
@@ -178,7 +178,8 @@ class TempleVisualsMixin {
     if (!this.liteCache.has(mat)) {
       this.liteCache.set(mat, new THREE.MeshLambertMaterial({
         map: mat.map, color: mat.color, emissive: mat.emissive, emissiveIntensity: mat.emissiveIntensity,
-        side: mat.side, transparent: mat.transparent, opacity: mat.opacity, flatShading: mat.flatShading
+        side: mat.side, transparent: mat.transparent, opacity: mat.opacity, flatShading: mat.flatShading,
+        vertexColors: !!mat.vertexColors
       }));
     }
     return this.liteCache.get(mat);
@@ -313,7 +314,7 @@ class TempleVisualsMixin {
   }
 
   // 簷口彩繪帶與滴水瓦
-  addEaveTrim(group, spec, fasciaMat, dripMat, rotationY) {
+  addEaveTrim(group, spec, fasciaMat, dripMat, rotationY, dripCollector = null) {
     const { halfEave, zEave, yEave, lift } = spec, seg = 40, pos = [], uv = [], idx = [];
     const y0 = u => this.roofHeight(u, 1, spec.yRidge, yEave, lift, spec.ridgeRise || 0);
     for (let i = 0; i <= seg; i++) {
@@ -331,8 +332,17 @@ class TempleVisualsMixin {
     group.add(band);
 
     const count = Math.floor(halfEave * 2 / 0.3);
+    const m = new THREE.Matrix4(), rotM = new THREE.Matrix4().makeRotationY(rotationY);
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)), one = new THREE.Vector3(1, 1, 1);
+    if (dripCollector) {
+      for (let i = 0; i < count; i++) {
+        const u = (i + 0.5) / count * 2 - 1;
+        m.compose(new THREE.Vector3(u * halfEave, y0(u) + 0.02, zEave + 0.03), q, one);
+        dripCollector.push(rotM.clone().multiply(m));
+      }
+      return;
+    }
     const drips = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.1, 0.08, 10), dripMat, count);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)), one = new THREE.Vector3(1, 1, 1);
     for (let i = 0; i < count; i++) {
       const u = (i + 0.5) / count * 2 - 1;
       m.compose(new THREE.Vector3(u * halfEave, y0(u) + 0.02, zEave + 0.03), q, one);
@@ -377,7 +387,7 @@ class TempleVisualsMixin {
       const faces = side < 0 ? [brickInner, brickMat] : [brickMat, brickInner];
       const wall = add(new THREE.BoxGeometry(0.3, H, D * 2 - 0.05), [...faces, brickMat, brickMat, brickMat, brickMat], side * (W + 0.1), H / 2, 0, "hallSideWall");
       wall.castShadow = true; wall.receiveShadow = true;
-      add(new THREE.BoxGeometry(0.42, 0.8, D * 2 + 0.1), stoneMat, side * (W + 0.1), 0.4, 0, "hallPlinth");
+      add(new THREE.BoxGeometry(0.42, 0.8, D * 2 + 0.1), stoneMat, side * (W + 0.1), 0.4, 0);
     });
     const lintel = add(new THREE.BoxGeometry(W * 2 + 0.2, H - 5.5, 0.3), brickMat, 0, (H + 5.5) / 2, D - 0.1, "hallLintel");
     lintel.castShadow = true;
@@ -414,25 +424,37 @@ class TempleVisualsMixin {
         c.beginPath(); c.moveTo(i, s); c.lineTo(i + s, 0); c.stroke();
       }
     });
+    const latticeMat = new THREE.MeshStandardMaterial({ map: lattice, roughness: 0.6 });
     [-5.2, 5.2].forEach(x => {
       const frame = add(new THREE.CylinderGeometry(1.08, 1.08, 0.12, 8), goldMat, x, 3.1, D + 0.72);
       frame.rotation.x = Math.PI / 2; frame.rotation.y = Math.PI / 8;
-      const pane = add(new THREE.CylinderGeometry(0.94, 0.94, 0.14, 8), new THREE.MeshStandardMaterial({ map: lattice, roughness: 0.6 }), x, 3.1, D + 0.73);
+      const pane = add(new THREE.CylinderGeometry(0.94, 0.94, 0.14, 8), latticeMat, x, 3.1, D + 0.73);
       pane.rotation.x = Math.PI / 2; pane.rotation.y = Math.PI / 8;
     });
 
-    // 下層四面腰簷
+    // 下層四面腰簷（合併四片屋面為單一 hallLowerRoof，保留低畫質切換與碰撞）
+    const dripMatrices = [];
     const lower = { yRidge: 9.1, yEave: 7.7, lift: 0.75 };
+    const lowerRoofs = [];
     const skirt = (half, depth, rotationY) => {
       const spec = { ...lower, halfTop: half - 0.3, halfEave: half + 2.0, zRidge: depth - 0.3, zEave: depth + 2.0 };
       const mesh = new THREE.Mesh(this.roofSurfaceGeometry(spec), tileMat);
-      mesh.name = "hallLowerRoof";
       mesh.rotation.y = rotationY;
-      mesh.castShadow = true;
-      group.add(mesh);
-      this.addEaveTrim(group, spec, fasciaMat, goldMat, rotationY);
+      mesh.updateMatrixWorld(true);
+      lowerRoofs.push(mesh);
+      this.addEaveTrim(group, spec, fasciaMat, goldMat, rotationY, dripMatrices);
     };
     skirt(W, D, 0); skirt(W, D, Math.PI); skirt(D, W, Math.PI / 2); skirt(D, W, -Math.PI / 2);
+    const mergedLowerGeo = this._mergeStaticGeometries?.(lowerRoofs, new THREE.Matrix4());
+    if (mergedLowerGeo) {
+      const lowerMesh = new THREE.Mesh(mergedLowerGeo, tileMat);
+      lowerMesh.name = "hallLowerRoof";
+      lowerMesh.castShadow = true;
+      group.add(lowerMesh);
+      lowerRoofs.forEach(m => m.geometry?.dispose?.());
+    } else {
+      lowerRoofs.forEach(m => { m.name = "hallLowerRoof"; m.castShadow = true; group.add(m); });
+    }
     [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
       group.add(this.tube([
         [sx * (W - 0.3), 9.1, sz * (D - 0.3)], [sx * (W + 0.9), 8.05, sz * (D + 0.9)],
@@ -443,16 +465,33 @@ class TempleVisualsMixin {
     // 上下層之間的彩繪牆
     add(new THREE.BoxGeometry((W - 0.4) * 2, 1.7, (D - 0.4) * 2), new THREE.MeshStandardMaterial({ map: this.repeatedTexture(t.painted, 6, 1), roughness: 0.55 }), 0, 9.75, 0);
 
-    // 上層兩坡屋面與山花
+    // 上層兩坡屋面與山花（合併兩坡為單一 hallUpperRoof）
     const upper = { halfTop: W - 0.2, halfEave: W + 0.5, zRidge: 0, zEave: D + 0.3, yRidge: 13.1, yEave: 10.2, lift: 0.7, ridgeRise: 0.32 };
+    const upperRoofs = [];
     [0, Math.PI].forEach(rotationY => {
       const mesh = new THREE.Mesh(this.roofSurfaceGeometry(upper), tileMat);
-      mesh.name = "hallUpperRoof";
       mesh.rotation.y = rotationY;
-      mesh.castShadow = true;
-      group.add(mesh);
-      this.addEaveTrim(group, upper, fasciaMat, goldMat, rotationY);
+      mesh.updateMatrixWorld(true);
+      upperRoofs.push(mesh);
+      this.addEaveTrim(group, upper, fasciaMat, goldMat, rotationY, dripMatrices);
     });
+    if (dripMatrices.length) {
+      const allDrips = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.1, 0.08, 10), goldMat, dripMatrices.length);
+      allDrips.userData.noCollision = true;
+      dripMatrices.forEach((mat4, idx) => allDrips.setMatrixAt(idx, mat4));
+      allDrips.instanceMatrix.needsUpdate = true;
+      group.add(allDrips);
+    }
+    const mergedUpperGeo = this._mergeStaticGeometries?.(upperRoofs, new THREE.Matrix4());
+    if (mergedUpperGeo) {
+      const upperMesh = new THREE.Mesh(mergedUpperGeo, tileMat);
+      upperMesh.name = "hallUpperRoof";
+      upperMesh.castShadow = true;
+      group.add(upperMesh);
+      upperRoofs.forEach(m => m.geometry?.dispose?.());
+    } else {
+      upperRoofs.forEach(m => { m.name = "hallUpperRoof"; m.castShadow = true; group.add(m); });
+    }
     const gable = new THREE.Shape();
     gable.moveTo(-(D + 0.2), 10.1);
     for (let i = 0; i <= 10; i++) gable.lineTo(-(D + 0.2) * (1 - i / 10), 10.1 + 2.95 * Math.pow(i / 10, 1.6));
@@ -493,15 +532,25 @@ class TempleVisualsMixin {
     add(new THREE.TorusGeometry(0.62, 0.05, 8, 28), goldMat, 0, pearl.position.y, 0);
     [-1, 1].forEach(side => this.addRidgeDragon(group, side, ridgeTop));
 
-    // 門前高掛紅燈籠
+    // 門前高掛紅燈籠 (4 盞合為單一 InstancedMesh)
     const lanternMat = new THREE.MeshStandardMaterial({ color: 0xc81e1e, emissive: 0xc01a10, emissiveIntensity: 0.75, roughness: 0.5 });
-    [-5.6, -2.3, 2.3, 5.6].forEach(x => {
-      const lantern = add(new THREE.SphereGeometry(0.42, 16, 12), lanternMat, x, 5.55, D + 1.35, "eaveLantern");
-      lantern.scale.y = 1.15;
+    const eaveLanternXs = [-5.6, -2.3, 2.3, 5.6];
+    const lanternInst = new THREE.InstancedMesh(new THREE.SphereGeometry(0.42, 16, 12), lanternMat, eaveLanternXs.length);
+    lanternInst.name = "eaveLantern";
+    lanternInst.userData.noCollision = true;
+    const ld = new THREE.Object3D();
+    eaveLanternXs.forEach((x, idx) => {
+      ld.position.set(x, 5.55, D + 1.35);
+      ld.scale.set(1, 1.15, 1);
+      ld.updateMatrix();
+      lanternInst.setMatrixAt(idx, ld.matrix);
       add(new THREE.CylinderGeometry(0.2, 0.2, 0.08, 12), goldMat, x, 6.06, D + 1.35);
       add(new THREE.CylinderGeometry(0.2, 0.2, 0.08, 12), goldMat, x, 5.04, D + 1.35);
       add(new THREE.CylinderGeometry(0.015, 0.015, 1.5, 6), goldMat, x, 6.8, D + 1.35);
     });
+    lanternInst.instanceMatrix.needsUpdate = true;
+    group.add(lanternInst);
+    this.batchStaticGroup?.(group);
   }
 
   // 程式生成的龍：蜿蜒的身體加上背鰭、頭與鬚
@@ -572,6 +621,7 @@ class TempleVisualsMixin {
     crown.rotation.x = Math.PI / 2;
     crown.position.y = y - 0.01;
     group.add(crown);
+    this.batchStaticGroup?.(group);
   }
 }
 

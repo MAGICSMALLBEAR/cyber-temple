@@ -15,7 +15,7 @@ function buildIngotModel(silver = false) {
   const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.12, steps: 1, bevelEnabled: true, bevelSize: 0.009, bevelThickness: 0.009, bevelSegments: 2, curveSegments: 8 }); geo.translate(0, 0, -0.06);
   const boat = new THREE.Mesh(geo, mat); group.add(boat);
   const heart = new THREE.Mesh(new THREE.SphereGeometry(0.075, 14, 10), mat); heart.scale.set(1.05, 0.7, 0.76); heart.position.y = 0.075; group.add(heart);
-  group.traverse(o => { if (o.isMesh) o.castShadow = true; }); return group;
+  return group;
 }
 
 function buildTreasureOffering(type) {

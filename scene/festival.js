@@ -105,6 +105,7 @@ class TempleFestivalMixin {
       tooltip: "🔔 東天鐘樓 • 叩撞金鐘祈福 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(towerGroup, { skip: [this.bellStrikerMesh] });
     this.addToZone(towerGroup);
   }
 
@@ -219,6 +220,7 @@ class TempleFestivalMixin {
       tooltip: "🥁 西暮鼓樓 • 擊響雷鼓祈福 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(towerGroup, { skip: [this.drumstickMesh] });
     this.addToZone(towerGroup);
   }
 
@@ -314,6 +316,7 @@ class TempleFestivalMixin {
       tooltip: "🏮 神明聖駕 • 恭敬鑽轎腳 / 隨香護駕 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(this.palanquinGroup, { skip: [this.liangsanMesh], useVertexColors: true });
     this.addToZone(this.palanquinGroup);
   }
 

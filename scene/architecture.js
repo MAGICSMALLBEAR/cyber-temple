@@ -251,6 +251,7 @@ class TempleArchitectureMixin {
     this.interactiveObjects.push(gateHit);
     gateHit.userData = { type: "mountainGate", tooltip: "⛩️ 巍峨山門牌樓 • 步入聖境，滌淨塵心 (點擊祈福)" };
 
+    this.batchStaticGroup?.(gateGroup);
     this.addToZone(gateGroup);
   }
 
@@ -304,150 +305,161 @@ class TempleArchitectureMixin {
         tooltip: `🦁 青石神獅（${idx === 0 ? "雄獅踏繡球" : "雌獅撫幼獅"}）• 威鎮山門辟邪迎祥 (按 [E] 亦可)`
       };
 
+      this.batchStaticGroup?.(lionGroup);
       this.addToZone(lionGroup);
     });
   }
 
   // 5. 神道宮燈與旌旗大道 (Z: 22.0 ~ 36.0)
   buildLanternAvenue() {
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6e665e, roughness: 0.6 });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8a1c1c, roughness: 0.4 });
+    const stoneMat = this.getSharedMaterial?.("standard", { color: 0x6e665e, roughness: 0.6 }) || new THREE.MeshStandardMaterial({ color: 0x6e665e, roughness: 0.6 });
+    const woodMat = this.getSharedMaterial?.("standard", { color: 0x8a1c1c, roughness: 0.4 }) || new THREE.MeshStandardMaterial({ color: 0x8a1c1c, roughness: 0.4 });
+    const chamberMat = new THREE.MeshStandardMaterial({ color: 0xffaa33, emissive: 0xff9922, emissiveIntensity: 0.9, roughness: 0.4 });
+    (this.lanternGlowMats ||= []).push(chamberMat);
+    const flagMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
+    const coords = [];
     [22.0, 26.0, 30.0, 34.0].forEach((z, zIdx) => {
-      [-3.8, 3.8].forEach(x => {
-        const lanternGroup = new THREE.Group();
-        lanternGroup.position.set(x, 0, z);
-
-        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 0.3, 8), stoneMat);
-        base.position.y = 0.15;
-        lanternGroup.add(base);
-
-        const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.4, 8), stoneMat);
-        pillar.position.y = 0.9;
-        lanternGroup.add(pillar);
-
-        // 燈室與金光
-        const chamber = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.35, 0.35, 0.5, 6),
-          new THREE.MeshStandardMaterial({ color: 0xffaa33, emissive: 0x884411 })
-        );
-        chamber.position.y = 1.7;
-        lanternGroup.add(chamber);
-
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.35, 6), stoneMat);
-        roof.position.y = 2.1;
-        lanternGroup.add(roof);
-
-        // 燈幢點光源
-        const pLight = new THREE.PointLight(0xff9922, 0.85, 4.5);
-        pLight.position.set(0, 1.7, 0);
-        lanternGroup.add(pLight);
-        this.lanternLights.push(pLight);
-
-        // 綵旗神幡
-        const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 4.2), woodMat);
-        flagPole.position.set(x > 0 ? 0.6 : -0.6, 2.1, 0);
-        lanternGroup.add(flagPole);
-
-        const flag = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.55, 1.2),
-          new THREE.MeshStandardMaterial({ color: zIdx % 2 === 0 ? 0xd4a034 : 0xcc2222, side: THREE.DoubleSide })
-        );
-        flag.position.set(x > 0 ? 0.9 : -0.9, 3.2, 0);
-        lanternGroup.add(flag);
-
-        this.addToZone(lanternGroup);
-      });
+      [-3.8, 3.8].forEach(x => coords.push({ x, z, zIdx }));
     });
+    const n = coords.length;
+    const bases = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.45, 0.3, 8), stoneMat, n);
+    const chambers = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.35, 0.35, 0.5, 6), chamberMat, n);
+    const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(0.55, 0.35, 6), stoneMat, n);
+    const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.03, 0.03, 4.2), woodMat, n);
+    const flags = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.55, 1.2), flagMat, n);
+    [bases, chambers, roofs, poles, flags].forEach(im => { im.userData.noCollision = true; });
+
+    const pillarGeo = new THREE.CylinderGeometry(0.18, 0.22, 1.4, 8);
+    const m = new THREE.Matrix4(), color = new THREE.Color();
+    coords.forEach(({ x, z, zIdx }, i) => {
+      // 保留柱身單獨網格供精確碰撞判定，其餘重複部件以 InstancedMesh 批次繪製
+      const pillar = new THREE.Mesh(pillarGeo, stoneMat);
+      pillar.position.set(x, 0.9, z);
+      this.addToZone(pillar);
+
+      m.makeTranslation(x, 0.15, z); bases.setMatrixAt(i, m);
+      m.makeTranslation(x, 1.7, z); chambers.setMatrixAt(i, m);
+      m.makeTranslation(x, 2.1, z); roofs.setMatrixAt(i, m);
+      m.makeTranslation(x + (x > 0 ? 0.6 : -0.6), 2.1, z); poles.setMatrixAt(i, m);
+      m.makeTranslation(x + (x > 0 ? 0.9 : -0.9), 3.2, z); flags.setMatrixAt(i, m);
+      flags.setColorAt(i, color.setHex(zIdx % 2 === 0 ? 0xd4a034 : 0xcc2222));
+    });
+    flags.instanceColor.needsUpdate = true;
+    [bases, chambers, roofs, poles, flags].forEach(im => this.addToZone(im));
   }
 
   // 6. 漢白玉圍欄與深山古松林 (四周邊界)
   buildPerimeterTreesAndWalls() {
-    const railMat = new THREE.MeshStandardMaterial({ color: 0xd8d0c8, roughness: 0.5 });
-    const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x3d281a, roughness: 0.8 });
-    const pineNeedleMat = new THREE.MeshStandardMaterial({ color: 0x183818, roughness: 0.6 });
+    const railMat = this.getSharedMaterial?.("lambert", { color: 0xd8d0c8 }) || new THREE.MeshLambertMaterial({ color: 0xd8d0c8 });
+    const treeTrunkMat = this.getSharedMaterial?.("lambert", { color: 0x3d281a }) || new THREE.MeshLambertMaterial({ color: 0x3d281a });
+    const pineNeedleMat = this.getSharedMaterial?.("lambert", { color: 0x183818 }) || new THREE.MeshLambertMaterial({ color: 0x183818 });
 
     // 漢白玉圍欄 (左右兩側 X = ±18.2, 縱貫 Z: 5.8 ~ 42.0)
+    const railGeo = new THREE.BoxGeometry(0.25, 0.85, 36.5);
+    const postPositions = [];
     [-18.2, 18.2].forEach(x => {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.85, 36.5), railMat);
+      const rail = new THREE.Mesh(railGeo, railMat);
       rail.position.set(x, 0.42, 24.0);
       this.addToZone(rail);
 
-      // 望柱荷花蓮瓣
-      for (let z = 6.0; z <= 42.0; z += 3.0) {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.15, 8), railMat);
-        post.position.set(x, 0.58, z);
-        this.addToZone(post);
-
-        const bud = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), railMat);
-        bud.position.set(x, 1.22, z);
-        this.addToZone(bud);
-      }
+      for (let z = 6.0; z <= 42.0; z += 3.0) postPositions.push([x, z]);
     });
+
+    const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.14, 1.15, 8), railMat, postPositions.length);
+    const buds = new THREE.InstancedMesh(new THREE.SphereGeometry(0.1, 8, 8), railMat, postPositions.length);
+    posts.userData.noCollision = true;
+    buds.userData.noCollision = true;
+    const m = new THREE.Matrix4();
+    postPositions.forEach(([x, z], i) => {
+      m.makeTranslation(x, 0.58, z); posts.setMatrixAt(i, m);
+      m.makeTranslation(x, 1.22, z); buds.setMatrixAt(i, m);
+    });
+    this.addToZone(posts);
+    this.addToZone(buds);
 
     // 外圍深山松柏古樹群 (X = ±20.5)
+    const treeCoords = [];
     [-20.5, 20.5].forEach(x => {
       for (let z = 7.0; z <= 41.0; z += 4.5) {
-        const tree = new THREE.Group();
-        tree.position.set(x + (Math.random() - 0.5) * 1.5, 0, z + (Math.random() - 0.5) * 1.5);
-
-        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 3.8, 8), treeTrunkMat);
-        trunk.position.y = 1.9;
-        tree.add(trunk);
-
-        // 三層錐形松樹冠
-        [2.8, 3.8, 4.8].forEach((ty, lvl) => {
-          const foliage = new THREE.Mesh(new THREE.ConeGeometry(1.6 - lvl * 0.35, 1.6, 8), pineNeedleMat);
-          foliage.position.y = ty;
-          foliage.castShadow = true;
-          tree.add(foliage);
-        });
-
-        this.addToZone(tree);
+        treeCoords.push([x + (Math.random() - 0.5) * 1.5, z + (Math.random() - 0.5) * 1.5]);
       }
     });
+    const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.25, 0.35, 3.8, 8), treeTrunkMat, treeCoords.length);
+    const foliage = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1.6, 8), pineNeedleMat, treeCoords.length * 3);
+    trunks.userData.noCollision = true;
+    foliage.userData.noCollision = true;
+    const q = new THREE.Quaternion(), scaleVec = new THREE.Vector3(), posVec = new THREE.Vector3();
+    let fIdx = 0;
+    treeCoords.forEach(([tx, tz], i) => {
+      m.makeTranslation(tx, 1.9, tz);
+      trunks.setMatrixAt(i, m);
+      [2.8, 3.8, 4.8].forEach((ty, lvl) => {
+        const r = 1.6 - lvl * 0.35;
+        posVec.set(tx, ty, tz);
+        scaleVec.set(r, 1, r);
+        m.compose(posVec, q, scaleVec);
+        foliage.setMatrixAt(fIdx++, m);
+      });
+    });
+    this.addToZone(trunks);
+    this.addToZone(foliage);
   }
 
   // 大殿千佛光明燈塔 (Twin 3D Lantern Pagodas)
   buildLanternPagodas() {
     this.lanternPagodaTiers = [];
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.7, roughness: 0.3 });
-    const lampGlowMat = new THREE.MeshBasicMaterial({ color: 0xffb84d });
+    const goldMat = this.getSharedMaterial?.("standard", { color: 0xd4a034, metalness: 0.7, roughness: 0.3 }) || new THREE.MeshStandardMaterial({ color: 0xd4a034, metalness: 0.7, roughness: 0.3 });
+    const lampGlowMat = this.getSharedMaterial?.("basic", { color: 0xffb84d }) || new THREE.MeshBasicMaterial({ color: 0xffb84d });
+    const jewelMat = this.getSharedMaterial?.("basic", { color: 0xffe885 }) || new THREE.MeshBasicMaterial({ color: 0xffe885 });
 
-    const pagodaPositions = [
-      [-3.6, -0.6], [3.6, -0.6]
-    ];
+    const pagodaPositions = [[-3.6, -0.6], [3.6, -0.6]];
+    const eaveCount = pagodaPositions.length * 5;
+    const lampCount = eaveCount * 6;
+    const eaves = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.7, 1.0, 0.08, 6), goldMat, eaveCount);
+    const lamps = new THREE.InstancedMesh(new THREE.SphereGeometry(0.045, 8, 8), lampGlowMat, lampCount);
+    const jewels = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 12, 12), jewelMat, pagodaPositions.length);
+    [eaves, lamps, jewels].forEach(im => { im.userData.noCollision = true; });
 
-    pagodaPositions.forEach(([px, pz]) => {
-      const pagodaGroup = new THREE.Group();
-      pagodaGroup.position.set(px, 0, pz);
+    const coreGeo = new THREE.CylinderGeometry(0.45, 0.65, 1.35, 6);
+    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3();
+    let eIdx = 0, lIdx = 0;
+
+    pagodaPositions.forEach(([px, pz], pIdx) => {
+      // 保留底座碰撞圓柱，其餘層簷與 60 盞蓮花佛燈以 InstancedMesh 一次繪製
+      const core = new THREE.Mesh(coreGeo, goldMat);
+      core.position.set(px, 0.675, pz);
+      this.addToZone(core);
 
       for (let tier = 0; tier < 5; tier++) {
         const y = 0.4 + tier * 0.65;
         const radius = 0.65 - tier * 0.08;
-
-        const eave = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.7, radius, 0.08, 6), goldMat);
-        eave.position.y = y + 0.3;
-        pagodaGroup.add(eave);
+        pos.set(px, y + 0.3, pz);
+        scale.set(radius, 1, radius);
+        m.compose(pos, q, scale);
+        eaves.setMatrixAt(eIdx++, m);
 
         for (let j = 0; j < 6; j++) {
           const angle = (j / 6) * Math.PI * 2;
-          const lx = Math.cos(angle) * (radius * 0.75);
-          const lz = Math.sin(angle) * (radius * 0.75);
-
-          const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), lampGlowMat);
-          lamp.position.set(lx, y + 0.12, lz);
-          pagodaGroup.add(lamp);
-          this.lanternPagodaTiers.push(lamp);
+          const wx = px + Math.cos(angle) * (radius * 0.75);
+          const wy = y + 0.12;
+          const wz = pz + Math.sin(angle) * (radius * 0.75);
+          m.makeTranslation(wx, wy, wz);
+          lamps.setMatrixAt(lIdx++, m);
+          const worldVec = new THREE.Vector3(wx, wy, wz);
+          this.lanternPagodaTiers.push({
+            position: worldVec,
+            getWorldPosition(target) { return (target || new THREE.Vector3()).copy(this.position); }
+          });
         }
       }
 
-      const topJewel = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffe885 }));
-      topJewel.position.y = 3.8;
-      pagodaGroup.add(topJewel);
-
-      this.addToZone(pagodaGroup);
+      m.makeTranslation(px, 3.8, pz);
+      jewels.setMatrixAt(pIdx, m);
     });
+    this.addToZone(eaves);
+    this.addToZone(lamps);
+    this.addToZone(jewels);
   }
 
   igniteLanternOnPagoda(name = "善信") {
@@ -478,14 +490,10 @@ class TempleArchitectureMixin {
 
       const bodyGeo = new THREE.SphereGeometry(0.32, 16, 16);
       bodyGeo.scale(1, 1.3, 1);
-      const body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0xcc2222, emissive: 0x771111, roughness: 0.4 }));
+      const lanternBodyMat = new THREE.MeshStandardMaterial({ color: 0xcc2222, emissive: 0x991812, emissiveIntensity: 0.9, roughness: 0.4 });
+      (this.lanternGlowMats ||= []).push(lanternBodyMat);
+      const body = new THREE.Mesh(bodyGeo, lanternBodyMat);
       group.add(body);
-
-      // 宮燈點光源
-      const lanternLight = new THREE.PointLight(0xff7722, 1.2, 4.5);
-      lanternLight.position.set(0, 0, 0);
-      group.add(lanternLight);
-      this.lanternLights.push(lanternLight);
 
       const capGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 16);
       const capMat = new THREE.MeshStandardMaterial({ color: 0xf5c542, metalness: 0.8 });
@@ -501,6 +509,7 @@ class TempleArchitectureMixin {
       tassel.position.y = -0.62;
       group.add(tassel);
 
+      this.batchStaticGroup?.(group);
       this.addToZone(group);
       this.lanterns.push({ group, offset: idx * 0.8 });
     });
@@ -543,6 +552,7 @@ class TempleArchitectureMixin {
       const motif = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.014, 5, 4), trimMat);
       motif.position.set(i * 0.43, 0.79, 0.77); motif.rotation.z = Math.PI / 4; this.offeringTableDecor.add(motif);
     }
+    this.batchStaticGroup?.(this.offeringTableDecor);
     this.offeringTableCloth = new THREE.Mesh(new THREE.BoxGeometry(4.14, 0.68, 0.025), new THREE.MeshStandardMaterial({ color: 0xb01825, roughness: 0.95 }));
     this.offeringTableCloth.position.set(0, 0.79, 0.756); this.offeringTableCloth.userData.noCollision = true; altarGroup.add(this.offeringTableCloth);
     this.offeringTable = altarGroup;

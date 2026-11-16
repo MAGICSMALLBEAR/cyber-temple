@@ -28,6 +28,7 @@ const TEMPLE_PLAZA_SPOTS = [
 class TemplePlazaMixin {
   buildTemplePlaza() {
     this.plazaSpots = TEMPLE_PLAZA_SPOTS;
+    this.buildFoodStallsShared(TEMPLE_FOOD_STALLS);
     TEMPLE_FOOD_STALLS.forEach(stall => this.buildFoodStall(stall));
     this.buildWishTree();
     this.buildLotusSpring();
@@ -39,19 +40,64 @@ class TemplePlazaMixin {
     this.hallHit(group, size, y, "plazaSpot", tooltip, { spotId });
   }
 
-  // 攤位：櫃台、條紋棚、招牌與小燈串，品項各有陳列
+  // 6 座美食攤位共用結構（櫃台、桌面、立柱、燈串）跨攤位實例化
+  buildFoodStallsShared(stalls) {
+    const shared = new THREE.Group();
+    shared.name = "foodStall";
+    const wood = new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: 0.75 });
+    const topMat = new THREE.MeshStandardMaterial({ color: 0xc9a06a, roughness: 0.6 });
+    const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8, toneMapped: false });
+
+    const counters = new THREE.InstancedMesh(new THREE.BoxGeometry(2.3, 0.9, 1), wood, stalls.length);
+    const tops = new THREE.InstancedMesh(new THREE.BoxGeometry(2.4, 0.08, 1.12), topMat, stalls.length);
+    const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.08, 2.5, 0.08), wood, stalls.length * 4);
+    const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 8, 6), bulbMat, stalls.length * 9);
+    [counters, tops, posts, bulbs].forEach(im => { im.userData.noCollision = true; });
+    counters.castShadow = true;
+
+    const m = new THREE.Matrix4();
+    const colliders = [];
+    const postOffsets = [[-1.1, -0.45], [1.1, -0.45], [-1.1, 0.5], [1.1, 0.5]];
+    let postIdx = 0, bulbIdx = 0;
+
+    stalls.forEach((stall, idx) => {
+      m.makeTranslation(stall.x, 0.45, FOOD_ROW_Z);
+      counters.setMatrixAt(idx, m);
+      m.makeTranslation(stall.x, 0.94, FOOD_ROW_Z);
+      tops.setMatrixAt(idx, m);
+      colliders.push({
+        minX: stall.x - 1.15, maxX: stall.x + 1.15,
+        minY: 0, maxY: 0.98,
+        minZ: FOOD_ROW_Z - 0.56, maxZ: FOOD_ROW_Z + 0.56,
+        name: "BoxGeometry"
+      });
+      for (const [px, pz] of postOffsets) {
+        m.makeTranslation(stall.x + px, 1.25, FOOD_ROW_Z + pz);
+        posts.setMatrixAt(postIdx++, m);
+      }
+      for (let i = 0; i < 9; i++) {
+        m.makeTranslation(stall.x + (i - 4) * 0.3, 2.38 - Math.sin(i / 8 * Math.PI) * 0.12, FOOD_ROW_Z + 0.84);
+        bulbs.setMatrixAt(bulbIdx++, m);
+      }
+    });
+    counters.instanceMatrix.needsUpdate = true;
+    tops.instanceMatrix.needsUpdate = true;
+    posts.instanceMatrix.needsUpdate = true;
+    bulbs.instanceMatrix.needsUpdate = true;
+    shared.userData.batchedColliders = colliders;
+    shared.add(counters, tops, posts, bulbs);
+    this.addToZone(shared);
+  }
+
+  // 攤位：條紋棚、招牌，品項各有陳列（共用骨架已由 buildFoodStallsShared 實例化）
   buildFoodStall(stall) {
     const g = new THREE.Group();
     g.name = "foodStall";
     g.position.set(stall.x, 0, FOOD_ROW_Z);
-    const wood = new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: 0.75 });
-    const box = (size, at, material) => {
+    const box = (size, at, material, shadow = false) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
-      mesh.position.set(...at); mesh.castShadow = true; g.add(mesh); return mesh;
+      mesh.position.set(...at); if (shadow) mesh.castShadow = true; g.add(mesh); return mesh;
     };
-    box([2.3, 0.9, 1], [0, 0.45, 0], wood);
-    box([2.4, 0.08, 1.12], [0, 0.94, 0], new THREE.MeshStandardMaterial({ color: 0xc9a06a, roughness: 0.6 }));
-    [[-1.1, -0.45], [1.1, -0.45], [-1.1, 0.5], [1.1, 0.5]].forEach(([x, z]) => box([0.08, 2.5, 0.08], [x, 1.25, z], wood));
 
     const stripes = this.makeTempleTexture(128, (c, s) => {
       for (let i = 0; i < 8; i++) { c.fillStyle = stall.awning[i % 2]; c.fillRect(i * s / 8, 0, s / 8, s); }
@@ -62,17 +108,9 @@ class TemplePlazaMixin {
     sign.position.set(0, 2.12, 0.56);
     g.add(sign);
 
-    const bulbs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.05, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe9a8, toneMapped: false }), 9);
-    const m = new THREE.Matrix4();
-    for (let i = 0; i < 9; i++) {
-      m.makeTranslation((i - 4) * 0.3, 2.38 - Math.sin(i / 8 * Math.PI) * 0.12, 0.84);
-      bulbs.setMatrixAt(i, m);
-    }
-    bulbs.userData.noCollision = true;
-    g.add(bulbs);
-
     this.addStallGoods(g, stall.goods);
     this.plazaHit(g, [2.6, 2.6, 1.4], 1.3, stall.id, `🍢 ${stall.name} • 點擊或走近按 E 嚐一口`);
+    this.batchStaticGroup?.(g);
     this.addToZone(g);
   }
 
@@ -83,9 +121,9 @@ class TemplePlazaMixin {
       mesh.position.set(x, yy, z); mesh.userData.noCollision = true; g.add(mesh); return mesh;
     };
     // 同款小物件用實例化，一次繪製
-    const many = (geo, material, points) => {
-      const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, ...material }), points.length), at = new THREE.Matrix4(), color = new THREE.Color();
-      points.forEach(([x, yy, z, hex], i) => { at.makeTranslation(x, yy, z); mesh.setMatrixAt(i, at); mesh.setColorAt(i, color.setHex(hex)); });
+    const many = (geo, material, points, rotX = 0) => {
+      const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, ...material }), points.length), at = new THREE.Matrix4(), color = new THREE.Color(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(rotX, 0, 0)), one = new THREE.Vector3(1, 1, 1);
+      points.forEach(([x, yy, z, hex], i) => { at.compose(new THREE.Vector3(x, yy, z), q, one); mesh.setMatrixAt(i, at); mesh.setColorAt(i, color.setHex(hex)); });
       mesh.userData.noCollision = true; g.add(mesh);
     };
     if (kind === "balls") {
@@ -93,7 +131,7 @@ class TemplePlazaMixin {
       many(new THREE.SphereGeometry(0.07, 8, 6), {}, Array.from({ length: 18 }, (_, i) => [-0.3 + Math.cos(i * 2.4) * (0.08 + i * 0.016), y + 0.18 + (i % 3) * 0.04, 0.08 + Math.sin(i * 2.4) * (0.08 + i * 0.016), i % 2 ? 0xe0a23c : 0xd98a26]));
     } else if (kind === "sausage") {
       put(new THREE.BoxGeometry(1.5, 0.08, 0.5), 0x2a2a2c, 0, y + 0.05, 0.1, { metalness: 0.6 });
-      for (let i = 0; i < 9; i++) { const s = put(new THREE.CapsuleGeometry(0.05, 0.3, 4, 8), 0xa83a24, -0.6 + i * 0.15, y + 0.13, 0.1); s.rotation.x = Math.PI / 2; }
+      many(new THREE.CapsuleGeometry(0.05, 0.3, 4, 8), {}, Array.from({ length: 9 }, (_, i) => [-0.6 + i * 0.15, y + 0.13, 0.1, 0xa83a24]), Math.PI / 2);
     } else if (kind === "candy") {
       const rack = put(new THREE.CylinderGeometry(0.14, 0.14, 0.9, 10), 0xc9a06a, 0, y + 0.45, 0.1);
       rack.userData.noCollision = true;
@@ -112,10 +150,10 @@ class TemplePlazaMixin {
       });
     } else if (kind === "tea") {
       put(new THREE.CylinderGeometry(0.22, 0.22, 0.6, 16), 0xb7b7bb, -0.55, y + 0.3, 0.05, { metalness: 0.7, roughness: 0.3 });
-      for (let i = 0; i < 6; i++) put(new THREE.CylinderGeometry(0.075, 0.06, 0.2, 10), 0x8a3d1a, -0.05 + (i % 3) * 0.26, y + 0.1, -0.02 + Math.floor(i / 3) * 0.28, { roughness: 0.2 });
+      many(new THREE.CylinderGeometry(0.075, 0.06, 0.2, 10), { roughness: 0.2 }, Array.from({ length: 6 }, (_, i) => [-0.05 + (i % 3) * 0.26, y + 0.1, -0.02 + Math.floor(i / 3) * 0.28, 0x8a3d1a]));
     } else {
       put(new THREE.BoxGeometry(1.5, 0.08, 0.5), 0x2a2a2c, 0, y + 0.05, 0.1, { metalness: 0.6 });
-      for (let i = 0; i < 6; i++) { const c = put(new THREE.CapsuleGeometry(0.07, 0.26, 4, 10), 0xe0ac34, -0.55 + i * 0.22, y + 0.15, 0.1); c.rotation.x = Math.PI / 2; }
+      many(new THREE.CapsuleGeometry(0.07, 0.26, 4, 10), {}, Array.from({ length: 6 }, (_, i) => [-0.55 + i * 0.22, y + 0.15, 0.1, 0xe0ac34]), Math.PI / 2);
     }
   }
 
@@ -211,19 +249,29 @@ class TemplePlazaMixin {
 
     const petal = new THREE.SphereGeometry(0.2, 10, 8);
     petal.scale(0.62, 1.2, 0.3);
-    [[12, 0.62, 1.34, 1.15, 0xeeb4c6], [10, 0.44, 1.42, 0.8, 0xf4cdd8], [8, 0.26, 1.5, 0.42, 0xfbe4ea]].forEach(([count, radius, y, tilt, color]) => {
-      const petals = new THREE.InstancedMesh(petal, new THREE.MeshStandardMaterial({ color, roughness: 0.5 }), count), p = new THREE.Object3D();
+    const petalRings = [[12, 0.62, 1.34, 1.15, 0xeeb4c6], [10, 0.44, 1.42, 0.8, 0xf4cdd8], [8, 0.26, 1.5, 0.42, 0xfbe4ea]];
+    const totalPetals = petalRings.reduce((sum, r) => sum + r[0], 0);
+    const petals = new THREE.InstancedMesh(petal, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }), totalPetals);
+    petals.userData.noCollision = true;
+    const pObj = new THREE.Object3D();
+    const pCol = new THREE.Color();
+    let pIdx = 0;
+    petalRings.forEach(([count, radius, y, tilt, colorHex]) => {
+      pCol.setHex(colorHex);
       for (let i = 0; i < count; i++) {
         const a = i / count * Math.PI * 2;
-        p.position.set(Math.cos(a) * radius, y, Math.sin(a) * radius);
-        p.rotation.set(0, -a + Math.PI / 2, 0);
-        p.rotateX(tilt);
-        p.updateMatrix();
-        petals.setMatrixAt(i, p.matrix);
+        pObj.position.set(Math.cos(a) * radius, y, Math.sin(a) * radius);
+        pObj.rotation.set(0, -a + Math.PI / 2, 0);
+        pObj.rotateX(tilt);
+        pObj.updateMatrix();
+        petals.setMatrixAt(pIdx, pObj.matrix);
+        petals.setColorAt(pIdx, pCol);
+        pIdx++;
       }
-      petals.userData.noCollision = true;
-      g.add(petals);
     });
+    petals.instanceMatrix.needsUpdate = true;
+    petals.instanceColor.needsUpdate = true;
+    g.add(petals);
     const bud = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffe08a, emissive: 0xa86a10, emissiveIntensity: 0.5, roughness: 0.4 }));
     bud.position.y = 1.62; bud.userData.noCollision = true;
     g.add(bud);
@@ -255,6 +303,7 @@ class TemplePlazaMixin {
     sign.position.set(0, 0.34, 1.82);
     g.add(sign);
     this.plazaHit(g, [3.6, 2.2, 3.6], 1.1, "lotusSpring", "⛲ 蓮心淨泉 • 點擊或走近按 E 淨手靜心");
+    this.batchStaticGroup?.(g, { skip: this.springRings });
     this.addToZone(g);
   }
 
@@ -285,7 +334,8 @@ class TemplePlazaMixin {
     g.add(tablet);
     const flame = new THREE.MeshBasicMaterial({ color: 0xffd070, toneMapped: false });
     [-0.42, 0.42].forEach(x => {
-      box([0.07, 0.3, 0.07], [x, 1.16, 0.15], new THREE.MeshStandardMaterial({ color: 0xc83a2a }));
+      const candle = box([0.07, 0.3, 0.07], [x, 1.16, 0.15], new THREE.MeshStandardMaterial({ color: 0xc83a2a }));
+      candle.userData.noCollision = true;
       const f = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), flame);
       f.scale.y = 1.6; f.position.set(x, 1.36, 0.15); f.userData.noCollision = true;
       g.add(f);
@@ -294,6 +344,7 @@ class TemplePlazaMixin {
     bowl.position.set(0, 1.08, 0.15); bowl.userData.noCollision = true;
     g.add(bowl);
     this.plazaHit(g, [1.8, 3, 1.4], 1.5, shrine.id, `🪔 ${shrine.title} • 點擊或走近按 E 合掌致意`);
+    this.batchStaticGroup?.(g);
     this.addToZone(g);
   }
 
@@ -351,6 +402,7 @@ class TemplePlazaMixin {
       g.add(lamps, halos);
       this.lampWalls.push(lamps);
       this.hallHit(g, [7.2, 4.5, 0.5], 3.1, "plazaSpot", "🏮 光明燈牆 • 點擊為家人點一盞燈", { spotId: "lampWall" });
+      this.batchStaticGroup?.(g, { skip: [lamps, halos] });
       this.addToZone(g);
     });
     this.refreshLampWall();

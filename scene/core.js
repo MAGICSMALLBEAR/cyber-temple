@@ -170,6 +170,8 @@ class Temple3DScene {
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, initialQuality ? initialQuality.maxPixelRatio : 2));
     this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.autoUpdate = false;
+    this.renderer.shadowMap.needsUpdate = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     // 維持 r128 時代的外觀：不做 sRGB 輸出轉換（色彩管理已在 three.bundle 關閉）
     this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
@@ -214,6 +216,8 @@ class Temple3DScene {
     this.setupSeasonalScene();
     this.setupDustParticles();
     this.scene.add(this.weatherGroup);
+    this.batchZoneStatics?.("temple");
+    this.batchZoneStatics?.("hostel");
 
     // 6. 載入 3D 角色系統
     if (window.TempleAvatarSystem) {
@@ -224,6 +228,7 @@ class Temple3DScene {
         if (n.group) this.addToZone(n.group, "temple");
         if (n.hit) this.interactiveObjects.push(n.hit);
       });
+      if (this.avatar.npcFloorInst) this.addToZone(this.avatar.npcFloorInst, "temple");
     }
 
     // 6.5 畫質分級（場景與燈光都建好之後才套用）
@@ -250,7 +255,417 @@ class Temple3DScene {
     this.setupXR();
     // 角色碰撞：所有建築、分身與 NPC 都建好後才整理碰撞方塊
     this.buildCollisionMap();
+    // 預先編譯現有材質著色器，避免首次旋轉鏡頭看到新建築時瞬間卡頓
+    try { this.renderer.compile(this.scene, this.camera); } catch (e) {}
     this.renderer.setAnimationLoop(() => this.animate());
+  }
+
+  getSharedMaterial(kind = "standard", props = {}) {
+    this._sharedMaterials ||= new Map();
+    const colorHex = props.color !== undefined ? new THREE.Color(props.color).getHexString() : "ffffff";
+    const emissiveHex = props.emissive !== undefined ? new THREE.Color(props.emissive).getHexString() : "000000";
+    const key = [
+      kind,
+      colorHex,
+      props.roughness ?? (kind === "standard" ? 1 : ""),
+      props.metalness ?? (kind === "standard" ? 0 : ""),
+      emissiveHex,
+      props.emissiveIntensity ?? 1,
+      props.side ?? THREE.FrontSide,
+      props.transparent ? 1 : 0,
+      props.opacity ?? 1,
+      props.flatShading ? 1 : 0,
+      props.toneMapped === false ? 0 : 1,
+      props.vertexColors ? 1 : 0
+    ].join("|");
+    if (!this._sharedMaterials.has(key)) {
+      const Ctor = kind === "lambert" ? THREE.MeshLambertMaterial : kind === "basic" ? THREE.MeshBasicMaterial : THREE.MeshStandardMaterial;
+      this._sharedMaterials.set(key, new Ctor(props));
+    }
+    return this._sharedMaterials.get(key);
+  }
+
+  _dedupeStaticMaterial(mat) {
+    if (!mat || mat.map || mat.emissiveMap || mat.normalMap || mat.roughnessMap || mat.alphaMap || mat.vertexColors) return mat;
+    if ((this.lanternGlowMats && this.lanternGlowMats.includes(mat)) ||
+        mat === this.taiSuiPlaqueMat ||
+        mat === this.offeringTableMaterials?.base ||
+        mat === this.offeringTableMaterials?.skirt) {
+      return mat;
+    }
+    const kind = mat.isMeshLambertMaterial ? "lambert" : mat.isMeshBasicMaterial ? "basic" : mat.isMeshStandardMaterial ? "standard" : null;
+    if (!kind) return mat;
+    const props = {
+      color: mat.color ? mat.color.getHex() : 0xffffff,
+      side: mat.side,
+      transparent: mat.transparent,
+      opacity: mat.opacity,
+      toneMapped: mat.toneMapped !== false
+    };
+    if (kind !== "basic" && mat.flatShading) props.flatShading = true;
+    if (kind === "standard") {
+      props.roughness = mat.roughness;
+      props.metalness = mat.metalness;
+      if (mat.emissive && mat.emissive.getHex() !== 0) {
+        props.emissive = mat.emissive.getHex();
+        props.emissiveIntensity = mat.emissiveIntensity;
+      }
+    } else if (kind === "lambert" && mat.emissive && mat.emissive.getHex() !== 0) {
+      props.emissive = mat.emissive.getHex();
+      props.emissiveIntensity = mat.emissiveIntensity;
+    }
+    return this.getSharedMaterial(kind, props);
+  }
+
+  _mergeStaticGeometries(meshes, invGroupMatrix) {
+    const baked = [];
+    let hasUv = true;
+    const localMat = new THREE.Matrix4();
+    for (const m of meshes) {
+      localMat.multiplyMatrices(invGroupMatrix, m.matrixWorld);
+      if (localMat.determinant() <= 0) continue;
+      const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+      if (!g.attributes.position || g.attributes.position.isInterleavedBufferAttribute) { g.dispose(); continue; }
+      if (!g.attributes.normal) g.computeVertexNormals();
+      if (!g.attributes.uv || g.attributes.uv.isInterleavedBufferAttribute) hasUv = false;
+      g.applyMatrix4(localMat);
+      baked.push(g);
+    }
+    if (!baked.length) return null;
+    const totalVerts = baked.reduce((sum, g) => sum + g.attributes.position.count, 0);
+    const pos = new Float32Array(totalVerts * 3);
+    const norm = new Float32Array(totalVerts * 3);
+    const uv = hasUv ? new Float32Array(totalVerts * 2) : null;
+    let o3 = 0, o2 = 0;
+    for (const g of baked) {
+      const pAttr = g.attributes.position, nAttr = g.attributes.normal;
+      const len3 = pAttr.count * 3;
+      if (pAttr.array.length === len3 && nAttr.array.length === len3) {
+        pos.set(pAttr.array, o3);
+        norm.set(nAttr.array, o3);
+      } else {
+        for (let i = 0; i < pAttr.count; i++) {
+          pos[o3 + i * 3] = pAttr.getX(i); pos[o3 + i * 3 + 1] = pAttr.getY(i); pos[o3 + i * 3 + 2] = pAttr.getZ(i);
+          norm[o3 + i * 3] = nAttr.getX(i); norm[o3 + i * 3 + 1] = nAttr.getY(i); norm[o3 + i * 3 + 2] = nAttr.getZ(i);
+        }
+      }
+      o3 += len3;
+      if (uv) {
+        const uAttr = g.attributes.uv, len2 = pAttr.count * 2;
+        if (uAttr.array.length === len2) uv.set(uAttr.array, o2);
+        else for (let i = 0; i < pAttr.count; i++) { uv[o2 + i * 2] = uAttr.getX(i); uv[o2 + i * 2 + 1] = uAttr.getY(i); }
+        o2 += len2;
+      }
+      g.dispose();
+    }
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    merged.setAttribute("normal", new THREE.BufferAttribute(norm, 3));
+    if (uv) merged.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    merged.computeBoundingSphere();
+    return merged;
+  }
+
+  // 將多種不同顏色的無貼圖靜態網格烘焙為頂點色幾何，供跨色合批與動態角色/錦鯉減量
+  mergeColoredMeshes(meshes, invGroupMatrix, material) {
+    const baked = [];
+    let hasUv = true;
+    const localMat = new THREE.Matrix4();
+    const fallbackColor = new THREE.Color(0xffffff);
+    for (const m of meshes) {
+      m.updateMatrixWorld(true);
+      localMat.multiplyMatrices(invGroupMatrix, m.matrixWorld);
+      if (localMat.determinant() <= 0) continue;
+      const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+      if (!g.attributes.position || g.attributes.position.isInterleavedBufferAttribute) { g.dispose(); continue; }
+      if (!g.attributes.normal) g.computeVertexNormals();
+      if (!g.attributes.uv || g.attributes.uv.isInterleavedBufferAttribute) hasUv = false;
+      g.applyMatrix4(localMat);
+      const col = m.material?.color || fallbackColor;
+      baked.push({ g, r: col.r, gn: col.g, b: col.b });
+    }
+    if (!baked.length) return null;
+    const totalVerts = baked.reduce((sum, item) => sum + item.g.attributes.position.count, 0);
+    const pos = new Float32Array(totalVerts * 3);
+    const norm = new Float32Array(totalVerts * 3);
+    const colArr = new Float32Array(totalVerts * 3);
+    const uv = hasUv ? new Float32Array(totalVerts * 2) : null;
+    let o3 = 0, o2 = 0;
+    for (const { g, r, gn, b } of baked) {
+      const pAttr = g.attributes.position, nAttr = g.attributes.normal;
+      const len3 = pAttr.count * 3;
+      if (pAttr.array.length === len3 && nAttr.array.length === len3) {
+        pos.set(pAttr.array, o3);
+        norm.set(nAttr.array, o3);
+      } else {
+        for (let i = 0; i < pAttr.count; i++) {
+          pos[o3 + i * 3] = pAttr.getX(i); pos[o3 + i * 3 + 1] = pAttr.getY(i); pos[o3 + i * 3 + 2] = pAttr.getZ(i);
+          norm[o3 + i * 3] = nAttr.getX(i); norm[o3 + i * 3 + 1] = nAttr.getY(i); norm[o3 + i * 3 + 2] = nAttr.getZ(i);
+        }
+      }
+      for (let i = 0; i < pAttr.count; i++) {
+        colArr[o3 + i * 3] = r;
+        colArr[o3 + i * 3 + 1] = gn;
+        colArr[o3 + i * 3 + 2] = b;
+      }
+      o3 += len3;
+      if (uv) {
+        const uAttr = g.attributes.uv, len2 = pAttr.count * 2;
+        if (uAttr.array.length === len2) uv.set(uAttr.array, o2);
+        else for (let i = 0; i < pAttr.count; i++) { uv[o2 + i * 2] = uAttr.getX(i); uv[o2 + i * 2 + 1] = uAttr.getY(i); }
+        o2 += len2;
+      }
+      g.dispose();
+    }
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    merged.setAttribute("normal", new THREE.BufferAttribute(norm, 3));
+    merged.setAttribute("color", new THREE.BufferAttribute(colArr, 3));
+    if (uv) merged.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    merged.computeBoundingSphere();
+    const out = new THREE.Mesh(merged, material);
+    return out;
+  }
+
+  _getVertexColorMaterial(mat) {
+    if (!mat || mat.map || mat.emissiveMap || mat.normalMap || mat.roughnessMap || mat.alphaMap || mat.vertexColors) return null;
+    if (mat.transparent || mat.opacity < 0.99 || mat.side !== THREE.FrontSide || mat.flatShading || mat.toneMapped === false) return null;
+    if (mat.isMeshBasicMaterial) {
+      return {
+        tag: "basic_vc",
+        material: this.getSharedMaterial("basic", { color: 0xffffff, vertexColors: true })
+      };
+    }
+    if (!mat.isMeshStandardMaterial) return null;
+    if (mat.emissive && mat.emissive.getHex() !== 0) return null;
+    const r = mat.roughness ?? 1, m = mat.metalness ?? 0;
+    if (m > 0.25) {
+      if (r < 0.45) {
+        return { tag: "std_gold", material: this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.3, metalness: 0.75, vertexColors: true }) };
+      }
+      return { tag: "std_metal", material: this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.52, metalness: 0.55, vertexColors: true }) };
+    }
+    if (r >= 0.72) {
+      return { tag: "std_dull", material: this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.82, metalness: 0.05, vertexColors: true }) };
+    }
+    return { tag: "std_satin", material: this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.48, metalness: 0.1, vertexColors: true }) };
+  }
+
+  // 將群組內「靜態且可安全合併」的零散網格依材質或頂點色桶合併，同時記錄原碰撞體以保持走道精準
+  batchStaticGroup(group, { skip = [], mergeNamed = false, preserveCollisions = true, useVertexColors = false } = {}) {
+    if (!group) return;
+    group.updateMatrixWorld(true);
+    const invGroup = group.matrixWorld.clone().invert();
+    const skipSet = new Set(skip.filter(Boolean));
+    const interactiveSet = new Set(this.interactiveObjects || []);
+    const box = new THREE.Box3();
+    const buckets = new Map();
+    const refMatrix = preserveCollisions ? group.matrixWorld.elements.slice() : null;
+
+    const isSkipped = (obj) => {
+      for (let p = obj; p && p !== group; p = p.parent) {
+        if (skipSet.has(p) || p.userData?.noBatch) return true;
+      }
+      return false;
+    };
+    const hasNoCollisionFlag = (obj) => {
+      for (let p = obj; p; p = p.parent) {
+        if (p.userData?.noCollision) return true;
+      }
+      return false;
+    };
+
+    group.traverse(m => {
+      if (m === group || !m.isMesh || m.isInstancedMesh || !m.geometry || !m.material || Array.isArray(m.material)) return;
+      if ((!mergeNamed && m.name) || interactiveSet.has(m) || isSkipped(m)) return;
+      if (m.material.visible === false || (m.material.transparent && m.material.opacity < 0.05)) return;
+      let colBox = null;
+      if (!hasNoCollisionFlag(m)) {
+        box.setFromObject(m);
+        if (!box.isEmpty() && box.max.y >= 0.45 && box.min.y <= 1.6 && m.geometry.type !== "TorusGeometry") {
+          if (!preserveCollisions) return;
+          colBox = {
+            minX: box.min.x, maxX: box.max.x,
+            minY: box.min.y, maxY: box.max.y,
+            minZ: box.min.z, maxZ: box.max.z,
+            name: m.name || m.geometry.type,
+            refMatrix
+          };
+        }
+      }
+      const vc = useVertexColors ? this._getVertexColorMaterial(m.material) : null;
+      if (vc) {
+        const key = `vc|${vc.tag}|cs${m.castShadow ? 1 : 0}`;
+        if (!buckets.has(key)) buckets.set(key, { mat: vc.material, useVC: true, castShadow: !!m.castShadow, receiveShadow: !!m.receiveShadow, meshes: [], colliders: [] });
+        const bucket = buckets.get(key);
+        if (m.receiveShadow) bucket.receiveShadow = true;
+        bucket.meshes.push(m);
+        if (colBox) bucket.colliders.push(colBox);
+      } else {
+        const mat = this._dedupeStaticMaterial(m.material);
+        if (mat !== m.material) m.material = mat;
+        const key = `${mat.uuid}|cs${m.castShadow ? 1 : 0}|rs${m.receiveShadow ? 1 : 0}`;
+        if (!buckets.has(key)) buckets.set(key, { mat, useVC: false, castShadow: !!m.castShadow, receiveShadow: !!m.receiveShadow, meshes: [], colliders: [] });
+        const bucket = buckets.get(key);
+        bucket.meshes.push(m);
+        if (colBox) bucket.colliders.push(colBox);
+      }
+    });
+
+    const addedColliders = [];
+    buckets.forEach(({ mat, useVC, castShadow, receiveShadow, meshes, colliders }) => {
+      if (meshes.length < 2) return;
+      const batched = useVC
+        ? this.mergeColoredMeshes(meshes, invGroup, mat)
+        : (() => {
+            const g = this._mergeStaticGeometries(meshes, invGroup);
+            return g ? new THREE.Mesh(g, mat) : null;
+          })();
+      if (!batched) return;
+      batched.castShadow = castShadow;
+      batched.receiveShadow = receiveShadow;
+      batched.userData.noCollision = true;
+      batched.userData.isBatched = true;
+      group.add(batched);
+      meshes.forEach(m => m.parent?.remove(m));
+      if (colliders.length) addedColliders.push(...colliders);
+    });
+    if (addedColliders.length) {
+      group.userData.batchedColliders = (group.userData.batchedColliders || []).concat(addedColliders);
+    }
+  }
+
+  // 跨建築分區合併靜態網格：以兩段 Z 軸視錐區間與 PBR 頂點色量化大量壓低 Draw Calls，並完整保留置換目標、碰撞盒與低畫質群組
+  batchZoneStatics(zoneId = "temple") {
+    const zoneGroup = this.worldGroups?.[zoneId];
+    if (!zoneGroup) return;
+    zoneGroup.updateMatrixWorld(true);
+    const invZone = zoneGroup.matrixWorld.clone().invert();
+    const interactiveSet = new Set(this.interactiveObjects || []);
+    const s = this.templeSurfaces || {};
+    const protectedMats = new Set([s.hallFloor, s.plazaInner, s.plazaOuter, s.path].filter(Boolean));
+    const liteSwapNames = new Set(["mainHallShell", "hallCeiling", "foodStall", "wishTree", "lotusSpring", "tabletShrine", "lampWall"]);
+    const protectedNames = new Set([
+      "heavenCenser", "stoneLionWest", "stoneLionEast", "muyu", "censer", "hallInterior",
+      "bwa_0", "bwa_1"
+    ]);
+    const skipRoots = new Set([
+      this.palanquinGroup, this.throneGroup, this.heavenCenser, this.censerGroup, this.muyuGroup,
+      this.offeringsGroup, this.peerTablesGroup, this.weatherGroup,
+      this.pondWater, this.pondBridgeDeck,
+      this.bellStrikerMesh, this.drumstickMesh, this.liangsanMesh,
+      this.taiSuiPlaqueMesh, this.taiSuiFlameMesh,
+      ...(this.koiFish || []).map(k => k.group),
+      ...(this.emaPlaques || []).map(p => p.group),
+      ...(this.puppetActors || []).map(a => a.doll),
+      ...(this.springRings || [])
+    ].filter(Boolean));
+
+    const classifyAncestor = (obj) => {
+      let lite = false;
+      for (let p = obj; p && p !== zoneGroup; p = p.parent) {
+        if (skipRoots.has(p) || protectedNames.has(p.name) || p.userData?.noBatch) return { skip: true, lite: false };
+        if (liteSwapNames.has(p.name) || p.userData?.liteSwap) lite = true;
+      }
+      return { skip: false, lite };
+    };
+    const hasNoCollisionFlag = (obj) => {
+      for (let p = obj; p; p = p.parent) {
+        if (p.userData?.noCollision) return true;
+      }
+      return false;
+    };
+
+    const box = new THREE.Box3();
+    const center = new THREE.Vector3();
+    const buckets = new Map();
+    const refMatrix = zoneGroup.matrixWorld.elements.slice();
+
+    const mergeIntoMap = (mapObj, key, mat, useVC, lite, castShadow, receiveShadow, m, colBox) => {
+      if (!mapObj.has(key)) mapObj.set(key, { mat, useVC, lite, castShadow, receiveShadow, meshes: [], colliders: [] });
+      const b = mapObj.get(key);
+      if (receiveShadow) b.receiveShadow = true;
+      b.meshes.push(m);
+      if (colBox) b.colliders.push(colBox);
+    };
+
+    zoneGroup.traverse(m => {
+      if (m === zoneGroup || !m.isMesh || m.isInstancedMesh || !m.geometry || !m.material || Array.isArray(m.material)) return;
+      if (m.name || m.visible === false || interactiveSet.has(m)) return;
+      const { skip, lite } = classifyAncestor(m);
+      if (skip) return;
+      if (m.material.visible === false || (m.material.transparent && m.material.opacity < 0.05)) return;
+      if (m.material.map || m.material.vertexColors || protectedMats.has(m.material)) return;
+
+      box.setFromObject(m);
+      if (box.isEmpty()) return;
+      box.getCenter(center);
+      const band = zoneId === "hostel"
+        ? (center.z < -18 ? "hn" : "hs")
+        : (center.z < 10 ? "n" : "s");
+      let colBox = null;
+      if (!hasNoCollisionFlag(m) && box.max.y >= 0.45 && box.min.y <= 1.6 && m.geometry.type !== "TorusGeometry") {
+        colBox = {
+          minX: box.min.x, maxX: box.max.x,
+          minY: box.min.y, maxY: box.max.y,
+          minZ: box.min.z, maxZ: box.max.z,
+          name: m.geometry.type,
+          refMatrix
+        };
+      }
+
+      const vc = (this.lanternGlowMats?.includes(m.material) ||
+                  m.material === this.taiSuiPlaqueMat ||
+                  m.material === this.offeringTableMaterials?.base ||
+                  m.material === this.offeringTableMaterials?.skirt)
+        ? null : this._getVertexColorMaterial(m.material);
+
+      if (vc) {
+        const key = `vc|${lite ? 1 : 0}|${band}|${vc.tag}|cs${m.castShadow ? 1 : 0}`;
+        mergeIntoMap(buckets, key, vc.material, true, lite, !!m.castShadow, !!m.receiveShadow, m, colBox);
+      } else {
+        const mat = this._dedupeStaticMaterial(m.material);
+        if (mat !== m.material) m.material = mat;
+        const key = `ex|${lite ? 1 : 0}|${band}|${mat.uuid}|cs${m.castShadow ? 1 : 0}`;
+        mergeIntoMap(buckets, key, mat, false, lite, !!m.castShadow, !!m.receiveShadow, m, colBox);
+      }
+    });
+
+    const addedColliders = [];
+    let liteBatchContainer = null;
+    buckets.forEach(({ mat, useVC, lite, castShadow, receiveShadow, meshes, colliders }) => {
+      if (meshes.length < 2) return;
+      let batched = null;
+      if (useVC) {
+        batched = this.mergeColoredMeshes(meshes, invZone, mat);
+      } else {
+        const mergedGeo = this._mergeStaticGeometries(meshes, invZone);
+        if (mergedGeo) batched = new THREE.Mesh(mergedGeo, mat);
+      }
+      if (!batched) return;
+      batched.castShadow = castShadow;
+      batched.receiveShadow = receiveShadow;
+      batched.userData.noCollision = true;
+      batched.userData.noBatch = true;
+      batched.userData.isBatched = true;
+      if (lite) {
+        batched.userData.liteSwap = true;
+        if (!liteBatchContainer) {
+          liteBatchContainer = new THREE.Group();
+          liteBatchContainer.userData.liteSwap = true;
+          liteBatchContainer.userData.noCollision = true;
+          zoneGroup.add(liteBatchContainer);
+        }
+        liteBatchContainer.add(batched);
+      } else {
+        zoneGroup.add(batched);
+      }
+      meshes.forEach(m => m.parent?.remove(m));
+      if (colliders.length) addedColliders.push(...colliders);
+    });
+    if (addedColliders.length) {
+      zoneGroup.userData.batchedColliders = (zoneGroup.userData.batchedColliders || []).concat(addedColliders);
+    }
   }
 
   getZoneConfig(zoneId = this.currentZone || "temple") {
@@ -298,8 +713,24 @@ class Temple3DScene {
     return true;
   }
 
+  invalidateInteractiveTargets() {
+    this._interactiveTargetsCache = null;
+  }
+
   getInteractiveTargets() {
-    return (this.interactiveObjects || []).filter(obj => this.isObjectInActiveZone(obj));
+    const activeZone = this.currentZone || "temple";
+    const count = (this.interactiveObjects || []).length;
+    if (this._interactiveTargetsCache && this._interactiveTargetsZone === activeZone && this._interactiveTargetsCount === count) {
+      return this._interactiveTargetsCache;
+    }
+    this._interactiveTargetsZone = activeZone;
+    this._interactiveTargetsCount = count;
+    this._interactiveTargetsCache = (this.interactiveObjects || []).filter(obj => this.isObjectInActiveZone(obj));
+    return this._interactiveTargetsCache;
+  }
+
+  markShadowsDirty() {
+    if (this.renderer?.shadowMap) this.renderer.shadowMap.needsUpdate = true;
   }
 
   // 切換場景分區（傳送骨架：隱藏非當前分區、重置導航與碰撞、重新定位角色與鏡頭）
@@ -307,6 +738,7 @@ class Temple3DScene {
     const config = this.getZoneConfig(zoneId);
     const targetZone = config.id;
     this.currentZone = targetZone;
+    this.invalidateInteractiveTargets();
 
     window.pilgrimage?.cancelRoute?.();
     this.getZoneGroup(targetZone);
@@ -339,6 +771,7 @@ class Temple3DScene {
       window.templeVisit?.renderMap?.();
       window.templeVisit?.updateMap?.();
     }
+    this.markShadowsDirty();
     window.dispatchEvent?.(new CustomEvent("temple:zonechange", { detail: { zone: targetZone } }));
     return targetZone;
   }
@@ -347,15 +780,12 @@ class Temple3DScene {
     this.ambientLight = new THREE.AmbientLight(0x7a3d2e, 1.3);
     this.scene.add(this.ambientLight);
 
-    // 大殿正上方金光
+    // 大殿正上方金光（由 sunMoonLight 統一投射主陰影，避免每幀跑兩輪陰影貼圖）
     this.mainSpot = new THREE.SpotLight(0xffdf88, 2.9);
     this.mainSpot.position.set(0, 8.5, 3.5);
     this.mainSpot.angle = Math.PI / 3.2;
     this.mainSpot.penumbra = 0.55;
-    this.mainSpot.castShadow = true;
-    this.mainSpot.shadow.mapSize.width = 1024;
-    this.mainSpot.shadow.mapSize.height = 1024;
-    this.mainSpot.shadow.bias = -0.001;
+    this.mainSpot.castShadow = false;
     this.addToZone(this.mainSpot, "temple");
 
     // 神龕後方金光
@@ -386,19 +816,12 @@ class Temple3DScene {
     // 繁星穹頂
     this.buildStarField();
 
-    // 燭台點光源
+    // 大殿燭火暖光（精簡為單一點光源覆蓋神案與前殿，大幅降低前向渲染片元負載）
     this.candleLights = [];
-    [
-      [-1.8, 1.8, -0.2],
-      [1.8, 1.8, -0.2],
-      [-2.6, 2.8, 1.5],
-      [2.6, 2.8, 1.5]
-    ].forEach(pos => {
-      const pLight = new THREE.PointLight(0xff7722, 1.4, 5);
-      pLight.position.set(...pos);
-      this.addToZone(pLight, "temple");
-      this.candleLights.push(pLight);
-    });
+    const hallWarmLight = new THREE.PointLight(0xff8833, 1.8, 10);
+    hallWarmLight.position.set(0, 2.8, 1.0);
+    this.addToZone(hallWarmLight, "temple");
+    this.candleLights.push(hallWarmLight);
   }
 
   // 拍攝目前場景高清畫面 (供拍立得與明信片使用)
@@ -695,6 +1118,17 @@ class Temple3DScene {
   }
 
   onMouseMove(e) {
+    const tooltipEl = (this._tooltipEl ||= document.getElementById("canvas3dTooltip"));
+    // 拖曳旋轉鏡頭時不做 3D 射線相交與 DOM 排版更新
+    if (e.buttons !== 0) {
+      if (this.renderer?.domElement) this.renderer.domElement.style.cursor = "grabbing";
+      if (tooltipEl && tooltipEl.style.display !== "none") tooltipEl.style.display = "none";
+      return;
+    }
+    const now = performance.now();
+    if (now - (this._lastHoverAt || 0) < 60) return;
+    this._lastHoverAt = now;
+
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -702,19 +1136,18 @@ class Temple3DScene {
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects(this.getInteractiveTargets());
 
-    const tooltipEl = document.getElementById("canvas3dTooltip");
     if (intersects.length > 0) {
       const obj = intersects[0].object;
       this.renderer.domElement.style.cursor = "pointer";
       if (tooltipEl && obj.userData?.tooltip) {
-        tooltipEl.innerText = obj.userData.tooltip;
+        if (tooltipEl.innerText !== obj.userData.tooltip) tooltipEl.innerText = obj.userData.tooltip;
         tooltipEl.style.display = "block";
         tooltipEl.style.left = `${e.clientX + 15}px`;
         tooltipEl.style.top = `${e.clientY + 15}px`;
       }
     } else {
       this.renderer.domElement.style.cursor = "default";
-      if (tooltipEl) tooltipEl.style.display = "none";
+      if (tooltipEl && tooltipEl.style.display !== "none") tooltipEl.style.display = "none";
     }
   }
 
@@ -908,7 +1341,7 @@ class Temple3DScene {
     }
 
     // 5. 浮塵上升
-    if (this.dustPoints) {
+    if (this.dustPoints && !this.reduceMotion) {
       const pos = this.dustPoints.geometry.attributes.position.array;
       for (let i = 1; i < pos.length; i += 3) {
         pos[i] += 0.002;
@@ -917,10 +1350,10 @@ class Temple3DScene {
       this.dustPoints.geometry.attributes.position.needsUpdate = true;
     }
 
-    // 6. 3D 香煙粒子
+    // 6. 3D 香煙粒子（共用幾何並適時回收材質，避免不斷配置 GPU 緩衝區）
     if (this.isIncenseLit) {
-      if (Math.random() < 0.4) {
-        const smokeGeo = new THREE.SphereGeometry(0.015, 6, 6);
+      if (Math.random() < 0.4 && this.smokeParticles.length < 32) {
+        const smokeGeo = (this._smokeGeo ||= new THREE.SphereGeometry(0.015, 6, 6));
         const smokeMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.6 });
         const particle = new THREE.Mesh(smokeGeo, smokeMat);
         const stickIdx = Math.floor(Math.random() * 3);
@@ -946,6 +1379,7 @@ class Temple3DScene {
 
         if (sp.life >= sp.maxLife) {
           (sp.mesh.parent || this.scene).remove(sp.mesh);
+          sp.mesh.material.dispose();
           this.smokeParticles.splice(i, 1);
         }
       }
@@ -960,6 +1394,8 @@ class Temple3DScene {
         rp.mesh.material.opacity = 0.9 * (1 - prog);
       } else {
         (rp.mesh.parent || this.scene).remove(rp.mesh);
+        rp.mesh.geometry?.dispose?.();
+        rp.mesh.material?.dispose?.();
         this.pondRipples.splice(i, 1);
       }
     }
@@ -973,6 +1409,8 @@ class Temple3DScene {
         fl.mesh.position.x += (Math.random() - 0.5) * 0.006;
       } else {
         (fl.mesh.parent || this.scene).remove(fl.mesh);
+        fl.mesh.geometry?.dispose?.();
+        fl.mesh.material?.dispose?.();
         this.flameParticles.splice(i, 1);
       }
     }
@@ -1027,6 +1465,8 @@ class Temple3DScene {
       fp.mesh.scale.multiplyScalar(0.96);
       if (fp.life >= fp.maxLife) {
         (fp.mesh.parent || this.scene).remove(fp.mesh);
+        fp.mesh.geometry?.dispose?.();
+        fp.mesh.material?.dispose?.();
         this.firecrackerParticles.splice(i, 1);
       }
     }
@@ -1083,6 +1523,8 @@ class Temple3DScene {
         ft.sprite.material.opacity = 1 - Math.pow(progress, 2);
       } else {
         (ft.sprite.parent || this.scene).remove(ft.sprite);
+        ft.sprite.material?.map?.dispose?.();
+        ft.sprite.material?.dispose?.();
         this.floatingTexts.splice(i, 1);
       }
     }
@@ -1101,6 +1543,15 @@ class Temple3DScene {
 
     // VR 中鏡頭由頭盔控制，不讓滑鼠視角控制器改動
     if (!this.isXR) this.controls.update();
+    // 按需更新陰影貼圖：靜止旋轉視角時僅極低頻補刷，角色移動／儀式動作時節流重繪
+    if (this.renderer.shadowMap?.enabled && !this.renderer.shadowMap.autoUpdate) {
+      const a = this.avatar;
+      const actorMoving = !!(a && (a.isMoving || (a.currentAction && a.currentAction !== "idle") || a.ritualMotion || (a.peers && a.peers.size > 0))) || this.isParading || this.isBwaTossing;
+      this._shadowTick = (this._shadowTick || 0) + 1;
+      if ((actorMoving && (this._shadowTick & 1) === 0) || this._shadowTick % 120 === 0) {
+        this.renderer.shadowMap.needsUpdate = true;
+      }
+    }
     this.renderer.render(this.scene, this.camera);
     window.templeQuality?.recordFrame(now);
     this.updatePuppetStage(time);

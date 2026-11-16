@@ -24,33 +24,49 @@ class AvatarCompanionsMixin {
       { name: "來還願的學生", color: 0x3a5a9a, pos: [-8.2, 0, 9.4], action: "bow" } // 神位小龕前
     ];
 
-    companionPresets.forEach(p => {
+    // 所有 NPC 的紅色蒲團固定在地面上，共用幾何材質與單一 InstancedMesh 繪製
+    const matGeo = new THREE.CylinderGeometry(0.3, 0.32, 0.06, 16);
+    const matMaterial = new THREE.MeshStandardMaterial({ color: 0x822020 });
+    const floorInst = new THREE.InstancedMesh(matGeo, matMaterial, companionPresets.length);
+    const fm = new THREE.Matrix4();
+    const bodyGeo = new THREE.CylinderGeometry(0.2, 0.28, 0.45, 12);
+    const headGeo = new THREE.SphereGeometry(0.2, 16, 16);
+    const npcVcMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, vertexColors: true });
+    const skinCol = new THREE.Color(0xffdfc4);
+    const bodyCol = new THREE.Color();
+    const buildNpcFigureGeo = (hex) => {
+      const b = bodyGeo.index ? bodyGeo.toNonIndexed() : bodyGeo.clone();
+      const h = headGeo.index ? headGeo.toNonIndexed() : headGeo.clone();
+      b.translate(0, 0.32, 0);
+      h.translate(0, 0.68, 0);
+      if (!b.attributes.normal) b.computeVertexNormals();
+      if (!h.attributes.normal) h.computeVertexNormals();
+      const bc = b.attributes.position.count, hc = h.attributes.position.count, tot = bc + hc;
+      const pos = new Float32Array(tot * 3), norm = new Float32Array(tot * 3), col = new Float32Array(tot * 3);
+      pos.set(b.attributes.position.array, 0); pos.set(h.attributes.position.array, bc * 3);
+      norm.set(b.attributes.normal.array, 0); norm.set(h.attributes.normal.array, bc * 3);
+      bodyCol.setHex(hex);
+      for (let i = 0; i < bc; i++) { col[i * 3] = bodyCol.r; col[i * 3 + 1] = bodyCol.g; col[i * 3 + 2] = bodyCol.b; }
+      for (let i = 0; i < hc; i++) { const o = (bc + i) * 3; col[o] = skinCol.r; col[o + 1] = skinCol.g; col[o + 2] = skinCol.b; }
+      b.dispose(); h.dispose();
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("normal", new THREE.BufferAttribute(norm, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+      geo.computeBoundingSphere();
+      return geo;
+    };
+
+    companionPresets.forEach((p, idx) => {
+      fm.makeTranslation(p.pos[0], 0.03, p.pos[2]);
+      floorInst.setMatrixAt(idx, fm);
+
       const npcGroup = new THREE.Group();
       npcGroup.position.set(...p.pos);
 
-      // 蒲團
-      const matMesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.3, 0.32, 0.06, 16),
-        new THREE.MeshStandardMaterial({ color: 0x822020 })
-      );
-      matMesh.position.y = 0.03;
-      npcGroup.add(matMesh);
-
-      // 身形
-      const body = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.2, 0.28, 0.45, 12),
-        new THREE.MeshStandardMaterial({ color: p.color })
-      );
-      body.position.y = 0.32;
+      // 身形 + 頭部合為單一頂點色網格，整個人形皆可點選互動
+      const body = new THREE.Mesh(buildNpcFigureGeo(p.color), npcVcMat);
       npcGroup.add(body);
-
-      // 頭部
-      const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.2, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0xffdfc4 })
-      );
-      head.position.y = 0.68;
-      npcGroup.add(head);
 
       // 稱號
       const canvas = document.createElement("canvas");
@@ -80,6 +96,9 @@ class AvatarCompanionsMixin {
       body.userData = { type: "npc", npcIndex, tooltip: `💬 ${p.name}：點我聊聊` };
       this.npcs.push({ group: npcGroup, action: p.action, offset: Math.random() * 5, name: p.name, hit: body });
     });
+    floorInst.instanceMatrix.needsUpdate = true;
+    this.scene.add(floorInst);
+    this.npcFloorInst = floorInst;
   }
 
   // ==========================================

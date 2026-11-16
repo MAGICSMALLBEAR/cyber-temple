@@ -83,6 +83,9 @@ class TemplePeerTablesMixin {
       this.peerTablesGroup.add(g);
     });
 
+    this.batchStaticGroup?.(this.peerTablesGroup, {
+      skip: this.peerTableSlots.map(s => s.dishesGroup)
+    });
     this.addToZone(this.peerTablesGroup);
   }
 
@@ -192,7 +195,9 @@ class TemplePeerTablesMixin {
     for (let i = this.interactiveObjects.length - 1; i >= 0; i--) {
       if (this.interactiveObjects[i].userData?.type === "peerAltarTable") this.interactiveObjects.splice(i, 1);
     }
+    this.invalidateInteractiveTargets?.();
     if (this.collisionBoxes) this.buildCollisionMap?.();
+    this.markShadowsDirty?.();
   }
 }
 

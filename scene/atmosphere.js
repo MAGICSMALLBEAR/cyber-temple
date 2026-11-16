@@ -111,12 +111,16 @@ class TempleAtmosphereMixin {
     if (!silent && window.templeAudio) {
       window.templeAudio.playShichenChime(actualKey);
     }
+    this.markShadowsDirty?.();
   }
 
   setLanternsIntensity(factor) {
     this.lanternLights.forEach(light => {
       light.intensity = 1.2 * factor;
       light.distance = 4.5 * factor;
+    });
+    (this.lanternGlowMats || []).forEach(mat => {
+      mat.emissiveIntensity = 0.75 * factor;
     });
   }
 
@@ -160,7 +164,7 @@ class TempleAtmosphereMixin {
     this.renderer.shadowMap.enabled = preset.shadows;
     this.renderer.shadowMap.type = shadowType;
     [[this.sunMoonLight, preset.sunShadowSize], [this.mainSpot, preset.spotShadowSize]].forEach(([light, size]) => {
-      if (!light || light.shadow.mapSize.width === size) return;
+      if (!light || !light.castShadow || light.shadow.mapSize.width === size) return;
       light.shadow.mapSize.set(size, size);
       // 舊的陰影貼圖要丟掉，three 才會以新尺寸重建
       if (light.shadow.map) {
@@ -178,6 +182,7 @@ class TempleAtmosphereMixin {
     this.applyVisualQuality?.(preset);
     this.applyParticleBudget();
     this.applyLightBudget();
+    this.markShadowsDirty?.();
   }
 
   // 粒子只畫前面一部分，不重建幾何

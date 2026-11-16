@@ -73,6 +73,7 @@ class TempleHallsMixin {
       tooltip: "⛩️ 祈願木牌閣 • 點擊掛上/查看木牌 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(this.emaRackGroup);
     this.addToZone(this.emaRackGroup);
 
     // 載入掛牌
@@ -113,19 +114,26 @@ class TempleHallsMixin {
     const group = new THREE.Group();
     group.position.set(x, y, 0.05);
 
-    // 掛繩
-    const rope = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.008, 0.008, 0.22, 6),
-      new THREE.MeshBasicMaterial({ color: 0xcc2222 })
-    );
+    // 掛繩 + 木牌本體共用幾何並依頂點色合為單一網格
+    this._emaRopeGeo ||= new THREE.CylinderGeometry(0.008, 0.008, 0.22, 6);
+    this._emaRopeMat ||= new THREE.MeshBasicMaterial({ color: 0xcc2222 });
+    this._emaBoardGeo ||= new THREE.BoxGeometry(0.32, 0.38, 0.02);
+    this._emaPlaqueMat ||= new THREE.MeshStandardMaterial({ color: 0xecd5ab, roughness: 0.6 });
+    const rope = new THREE.Mesh(this._emaRopeGeo, this._emaRopeMat);
     rope.position.y = 0.12;
-    group.add(rope);
-
-    // 木牌本體
-    const plaqueMat = new THREE.MeshStandardMaterial({ color: 0xecd5ab, roughness: 0.6 });
-    const board = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.38, 0.02), plaqueMat);
+    const board = new THREE.Mesh(this._emaBoardGeo, this._emaPlaqueMat);
     board.castShadow = true;
-    group.add(board);
+    group.add(rope, board);
+    if (this.mergeColoredMeshes) {
+      const emaVcMat = this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.6, vertexColors: true });
+      group.updateMatrixWorld(true);
+      const merged = this.mergeColoredMeshes([rope, board], group.matrixWorld.clone().invert(), emaVcMat);
+      if (merged) {
+        merged.castShadow = true;
+        group.remove(rope, board);
+        group.add(merged);
+      }
+    }
 
     // 木牌正面文字貼圖
     const canvas = document.createElement("canvas");
@@ -292,6 +300,7 @@ class TempleHallsMixin {
       tooltip: "🎓 文昌閣智慧殿 • 點智慧筆、求功名利祿 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(group);
     this.addToZone(group);
   }
 
@@ -327,11 +336,6 @@ class TempleHallsMixin {
     const roofBall = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), goldMat);
     roofBall.position.y = 4.9;
     group.add(roofBall);
-
-    // 粉紅暖光燈
-    const pLight = new THREE.PointLight(0xff6688, 1.8, 6.0);
-    pLight.position.set(0, 2.2, 0);
-    group.add(pLight);
 
     // 金字匾額 "月老閣 • 天賜良緣"
     const pCanvas = document.createElement("canvas");
@@ -376,6 +380,7 @@ class TempleHallsMixin {
       tooltip: "❤️ 月老天賜良緣閣 • 牽紅線、扣同心鎖、問良緣 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(group);
     this.addToZone(group);
   }
 
@@ -409,11 +414,6 @@ class TempleHallsMixin {
     const roof = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.35, 2.6), redMat);
     roof.position.set(0, 3.5, 0);
     group.add(roof);
-
-    // 洞內黃金寶光
-    const goldLight = new THREE.PointLight(0xffbb22, 2.4, 6.0);
-    goldLight.position.set(0, 1.6, 0.2);
-    group.add(goldLight);
 
     // 金字匾額 "財神殿 • 招財進寶"
     const pCanvas = document.createElement("canvas");
@@ -465,6 +465,7 @@ class TempleHallsMixin {
       tooltip: "💰 五路財神金庫 • 摸金元寶、請發財水、金虎爺咬錢 (按 [E] 亦可)"
     };
 
+    this.batchStaticGroup?.(group);
     this.addToZone(group);
   }
 
@@ -576,12 +577,6 @@ class TempleHallsMixin {
     dipperGroup.add(flame);
     this.taiSuiFlameMesh = flame;
 
-    // 斗燈神聖光源
-    const dipperLight = new THREE.PointLight(0xffaa22, 1.4, 5.5);
-    dipperLight.position.set(0, 0.45, 0);
-    dipperGroup.add(dipperLight);
-    this.taiSuiDipperLight = dipperLight;
-
     group.add(dipperGroup);
 
     // 7. 點擊與射線互動判定盒
@@ -594,6 +589,7 @@ class TempleHallsMixin {
       tooltip: "🏮 太歲殿 • 安奉太歲星君與元辰斗燈 (點擊或按 [E] 進入)"
     };
 
+    this.batchStaticGroup?.(group, { skip: [this.taiSuiPlaqueMesh, this.taiSuiFlameMesh] });
     this.addToZone(group);
   }
 
@@ -608,11 +604,11 @@ class TempleHallsMixin {
 
     const pos = new THREE.Vector3(-13.5, 1.8, 5.5);
 
-    // 金牌加持輝光
-    if (this.taiSuiDipperLight) {
-      this.taiSuiDipperLight.intensity = 3.2;
+    // 金牌與斗燈焰輝加持
+    if (this.taiSuiFlameMesh) {
+      this.taiSuiFlameMesh.scale.setScalar(1.8);
       setTimeout(() => {
-        if (this.taiSuiDipperLight) this.taiSuiDipperLight.intensity = 1.4;
+        if (this.taiSuiFlameMesh) this.taiSuiFlameMesh.scale.setScalar(1);
       }, 2500);
     }
 

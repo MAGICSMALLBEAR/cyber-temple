@@ -147,6 +147,7 @@ class TempleHostelMixin {
     step.name = `${name}Step`;
 
     this.addHostelHitBox(group, [2.4, 2.8, 1.3], [0, 1.4, 0.15], hitType, hitTooltip, extra, zoneId);
+    this.batchStaticGroup?.(group);
     this.addToZone(group, zoneId);
     return group;
   }
@@ -304,6 +305,7 @@ class TempleHostelMixin {
       hitTooltip: "🏛️ 山門回廊 • 點擊或走近按 E 返回神殿本殿",
       extra: { spotId: "hostelReturn" }
     });
+    this.batchStaticGroup?.(root);
   }
 
   claimHostelDaily(id) {

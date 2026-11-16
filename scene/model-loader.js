@@ -61,7 +61,10 @@ class TempleModelMixin {
         console.warn(`模型 ${entry?.file} 未載入，保留原本的程式模型：${e.message}`);
       }
     }
-    if (this.templeModels.some(m => m.status === "loaded" && !m.deity)) this.buildCollisionMap?.();
+    if (this.templeModels.some(m => m.status === "loaded" && !m.deity)) {
+      this.buildCollisionMap?.();
+      this.markShadowsDirty?.();
+    }
   }
 
   // 下載指定神尊的模型；同一尊只下載一次，失敗也不重試（保留程式神像）
@@ -193,6 +196,7 @@ class TempleModelMixin {
     this.deityModelMap?.forEach(holder => { holder.visible = holder === active; });
     if (this.deityModel) this.deityModel.visible = !active;
     if (!active) this.ensureDeityModel?.(id);
+    this.markShadowsDirty?.();
   }
 }
 

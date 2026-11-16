@@ -27,9 +27,15 @@ class TempleServiceMixin {
 
     // 同一服務處擴成供品鋪，商品陳列在原櫃台範圍內，不占中央通道。
     const awning = new THREE.Mesh(new THREE.BoxGeometry(2.65, 0.1, 1.25), red); awning.position.set(0, 2.63, -0.08); g.add(awning);
+    const fringes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.21, 0.18, 0.04), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 }), 11);
+    fringes.userData.noCollision = true;
+    const fm = new THREE.Matrix4(), fCol = new THREE.Color();
     for (let i = -5; i <= 5; i++) {
-      const fringe = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.18, 0.04), i % 2 ? wood : gold); fringe.position.set(i * 0.23, 2.5, 0.53); g.add(fringe);
+      fm.makeTranslation(i * 0.23, 2.5, 0.53); fringes.setMatrixAt(i + 5, fm);
+      fringes.setColorAt(i + 5, fCol.setHex(i % 2 ? 0x6b3a1f : 0xd4a034));
     }
+    fringes.instanceColor.needsUpdate = true;
+    g.add(fringes);
     const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.25), wood); shelf.position.set(0, 1.62, -0.26); g.add(shelf);
     ["goldIngot", "silverIngot", "treasureBowl"].forEach((id, i) => {
       const sample = this.createTreasureOffering(id); sample.scale.setScalar(1.5); sample.position.set((i - 1) * 0.55, 1.66, -0.26); sample.userData.noCollision = true; g.add(sample);
@@ -38,28 +44,40 @@ class TempleServiceMixin {
     // 桌上：一束清香、疊好的金紙、一盤水果
     const incense = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.45, 10), new THREE.MeshStandardMaterial({ color: 0xc0623a }));
     incense.position.set(-0.6, 1.25, 0);
+    incense.userData.noCollision = true;
     g.add(incense);
+    const papers = new THREE.InstancedMesh(new THREE.BoxGeometry(0.42, 0.04, 0.3), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.3 }), 4);
+    papers.userData.noCollision = true;
+    const pObj = new THREE.Object3D();
     for (let i = 0; i < 4; i++) {
-      const paper = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.3), new THREE.MeshStandardMaterial({ color: i % 2 ? 0xe6b422 : 0xf0c74a, metalness: 0.3 }));
-      paper.position.set(0.05, 1.05 + i * 0.045, 0);
-      paper.rotation.y = i * 0.12;
-      g.add(paper);
+      pObj.position.set(0.05, 1.05 + i * 0.045, 0);
+      pObj.rotation.set(0, i * 0.12, 0);
+      pObj.updateMatrix();
+      papers.setMatrixAt(i, pObj.matrix);
+      papers.setColorAt(i, fCol.setHex(i % 2 ? 0xe6b422 : 0xf0c74a));
     }
+    papers.instanceColor.needsUpdate = true;
+    g.add(papers);
     const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.05, 16), gold);
     plate.position.set(0.65, 1.05, 0);
+    plate.userData.noCollision = true;
     g.add(plate);
-    [[0, 0], [0.08, 0.05], [-0.07, 0.06]].forEach(([dx, dz]) => {
-      const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), new THREE.MeshStandardMaterial({ color: 0xff7a1a }));
-      fruit.position.set(0.65 + dx, 1.13, dz);
-      g.add(fruit);
+    const fruits = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 10, 10), new THREE.MeshStandardMaterial({ color: 0xff7a1a }), 3);
+    fruits.userData.noCollision = true;
+    [[0, 0], [0.08, 0.05], [-0.07, 0.06]].forEach(([dx, dz], idx) => {
+      fm.makeTranslation(0.65 + dx, 1.13, dz);
+      fruits.setMatrixAt(idx, fm);
     });
+    g.add(fruits);
 
     // 招牌：兩根柱子撐起「服務處」橫匾（文字在畫布上繪製）
-    [-1.05, 1.05].forEach(x => {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.3, 8), wood);
-      post.position.set(x, 1.15, -0.35);
-      g.add(post);
+    const posts = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05, 0.05, 2.3, 8), wood, 2);
+    posts.userData.noCollision = true;
+    [-1.05, 1.05].forEach((x, idx) => {
+      fm.makeTranslation(x, 1.15, -0.35);
+      posts.setMatrixAt(idx, fm);
     });
+    g.add(posts);
     const canvas = document.createElement("canvas");
     canvas.width = 512;
     canvas.height = 128;
@@ -92,6 +110,7 @@ class TempleServiceMixin {
     hit.userData = { type: "serviceDesk", tooltip: "🏮 供品鋪・服務處 • 供品、金銀元寶與香品（走近按 E）", noCollision: true };
     g.add(hit);
     this.interactiveObjects.push(hit);
+    this.batchStaticGroup?.(g);
   }
 }
 

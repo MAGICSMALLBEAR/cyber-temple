@@ -67,7 +67,17 @@ function createTempleDeity(id) {
     }
     head = face(skin, 1.83); hands(0.99);
     box("royal-crown", crown, [0, 2.19, 0.04], [0.58, 0.22, 0.47]); box("nine-tassel-board", gold, [0, 2.34, 0.08], [0.76, 0.07, 0.65]);
-    for (let i = 0; i < 9; i++) for (let j = 0; j < 4; j++) ball("crown-pearl", ivory, [(i - 4) * 0.077, 2.27 - j * 0.075, 0.4], [0.021, 0.024, 0.021]);
+    // 36 顆九旒冕珠簾：若保持獨立 Mesh 會佔 36 個 Draw Calls，改以單一 InstancedMesh 繪製（仍保留神像幾何總數 > 12 與完整釋放）
+    const pearlMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), ivory, 36);
+    pearlMesh.name = "crown-pearl"; pearlMesh.castShadow = true;
+    const pMat4 = new THREE.Matrix4(), pQuat = new THREE.Quaternion(), pScale = new THREE.Vector3(0.021, 0.024, 0.021);
+    let pIdx = 0;
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 4; j++) {
+      pMat4.compose(new THREE.Vector3((i - 4) * 0.077, 2.27 - j * 0.075, 0.4), pQuat, pScale);
+      pearlMesh.setMatrixAt(pIdx++, pMat4);
+    }
+    pearlMesh.instanceMatrix.needsUpdate = true;
+    group.add(pearlMesh);
     box("royal-stole", gold, [0, 1.02, 0.56], [0.16, 0.73, 0.035]); trim(0.73, 0.26);
   } else if (id === "wenchang") {
     const blue = mat(0x303f76); seat(gold, 0.65);
@@ -105,7 +115,19 @@ function createTempleDeity(id) {
     // 披巾包覆頭後，臉部保持開放。
     ball("white-veil", white, [0, 2.0, -0.15], [0.35, 0.49, 0.2]);
     mesh("bodhisattva-crown", new THREE.ConeGeometry(0.19, 0.33, 8), gold, [0, 2.38, 0]);
-    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const p = ball("lotus-petal", lotus, [Math.cos(a) * 0.49, 0.17, Math.sin(a) * 0.49], [0.15, 0.24, 0.12]); p.rotation.z = -Math.cos(a) * 0.6; p.rotation.x = Math.sin(a) * 0.6; }
+    const petalMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), lotus, 12);
+    petalMesh.name = "lotus-petal"; petalMesh.castShadow = true;
+    const lObj = new THREE.Object3D();
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * Math.PI * 2;
+      lObj.position.set(Math.cos(a) * 0.49, 0.17, Math.sin(a) * 0.49);
+      lObj.scale.set(0.15, 0.24, 0.12);
+      lObj.rotation.set(Math.sin(a) * 0.6, 0, -Math.cos(a) * 0.6);
+      lObj.updateMatrix();
+      petalMesh.setMatrixAt(i, lObj.matrix);
+    }
+    petalMesh.instanceMatrix.needsUpdate = true;
+    group.add(petalMesh);
     for (const s of [-1, 1]) ball("flowing-white-sleeve", white, [s * 0.33, 1.22, 0.1], [0.17, 0.42, 0.23]);
     ball("blessing-hand", skin, [-0.34, 1.57, 0.39], [0.08, 0.16, 0.07]); ball("vase-hand", skin, [0.31, 1.2, 0.39], [0.1, 0.11, 0.1]);
     mesh("purification-vase", new THREE.LatheGeometry([[0, 0], [0.1, 0.02], [0.12, 0.15], [0.04, 0.28], [0.04, 0.4], [0.07, 0.43]].map(p => new THREE.Vector2(...p)), 16), white, [0.32, 1.15, 0.5]);
@@ -170,6 +192,7 @@ class TempleDeitiesMixin {
     this.deityAccessories = group.children.filter(o => o !== body && o !== head);
     this.deityHalo.material.color.setHex(group.userData.halo); this.throneGroup.add(group);
     this.syncDeityModel?.();
+    this.markShadowsDirty?.();
   }
 }
 installTempleMixin(TempleDeitiesMixin);

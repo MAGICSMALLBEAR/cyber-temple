@@ -47,6 +47,7 @@ class TempleCourtyardMixin {
     this.interactiveObjects.push(bowl);
     bowl.userData = { type: "heavenCenser", tooltip: "🔥 點擊天公爐 或 走近按 [E]：敬拜天公 (行禮)" };
 
+    this.batchStaticGroup?.(this.heavenCenser);
     this.addToZone(this.heavenCenser);
   }
 
@@ -105,24 +106,34 @@ class TempleCourtyardMixin {
     goldPedestal.position.set(0, 0.45, 2.8);
     this.wishingPond.add(goldPedestal);
 
-    // 盛開蓮花瓣
+    // 盛開蓮花瓣 (InstancedMesh)
+    const petalInst = new THREE.InstancedMesh(new THREE.SphereGeometry(0.12, 8, 8), lotusMat, 10);
+    petalInst.userData.noCollision = true;
+    const pondDummy = new THREE.Object3D();
     for (let i = 0; i < 10; i++) {
       const angle = (i / 10) * Math.PI * 2;
-      const petal = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lotusMat);
-      petal.scale.set(0.6, 1.4, 0.3);
-      petal.rotation.x = 0.5;
-      petal.rotation.y = angle;
-      petal.position.set(Math.cos(angle) * 0.24, 0.6, 2.8 + Math.sin(angle) * 0.24);
-      this.wishingPond.add(petal);
+      pondDummy.scale.set(0.6, 1.4, 0.3);
+      pondDummy.rotation.set(0.5, angle, 0);
+      pondDummy.position.set(Math.cos(angle) * 0.24, 0.6, 2.8 + Math.sin(angle) * 0.24);
+      pondDummy.updateMatrix();
+      petalInst.setMatrixAt(i, pondDummy.matrix);
     }
+    petalInst.instanceMatrix.needsUpdate = true;
+    this.wishingPond.add(petalInst);
 
-    // 散落池面蓮葉
-    [[-1.8, 1.5], [1.9, -2.4], [-2.2, -1.8], [2.1, 2.2], [-1.2, 3.4]].forEach(([lx, lz]) => {
-      const pad = new THREE.Mesh(new THREE.CircleGeometry(0.35, 12), leafMat);
-      pad.rotation.x = -Math.PI / 2;
-      pad.position.set(lx, 0.36, lz);
-      this.wishingPond.add(pad);
+    // 散落池面蓮葉 (InstancedMesh)
+    const padCoords = [[-1.8, 1.5], [1.9, -2.4], [-2.2, -1.8], [2.1, 2.2], [-1.2, 3.4]];
+    const padInst = new THREE.InstancedMesh(new THREE.CircleGeometry(0.35, 12), leafMat, padCoords.length);
+    padInst.userData.noCollision = true;
+    pondDummy.scale.set(1, 1, 1);
+    pondDummy.rotation.set(-Math.PI / 2, 0, 0);
+    padCoords.forEach(([lx, lz], i) => {
+      pondDummy.position.set(lx, 0.36, lz);
+      pondDummy.updateMatrix();
+      padInst.setMatrixAt(i, pondDummy.matrix);
     });
+    padInst.instanceMatrix.needsUpdate = true;
+    this.wishingPond.add(padInst);
 
     // 錦鯉池水生生態 (Koi Fish Ecology)
     this.buildKoiFish();
@@ -130,6 +141,9 @@ class TempleCourtyardMixin {
     this.interactiveObjects.push(pondBase);
     pondBase.userData = { type: "wishingPond", tooltip: "🪙 點擊許願池 或 走近按 [E]：投擲金幣許願" };
 
+    this.batchStaticGroup?.(this.wishingPond, {
+      skip: [this.pondWater, this.pondBridgeDeck, petalInst, padInst, ...(this.koiFish || []).map(k => k.group)]
+    });
     this.addToZone(this.wishingPond);
   }
 
@@ -145,50 +159,68 @@ class TempleCourtyardMixin {
       { name: "kohaku3", color: 0xfef08a, spotColor: 0xe11d48 } // 緋白錦鯉
     ];
 
+    const bodyGeo = new THREE.ConeGeometry(0.07, 0.42, 8);
+    const spotGeo = new THREE.SphereGeometry(0.065, 8, 8);
+    const tailGeo = new THREE.PlaneGeometry(0.12, 0.16);
+    const finGeo = new THREE.PlaneGeometry(0.06, 0.09);
+    const koiBodyVcMat = this.getSharedMaterial
+      ? this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide, vertexColors: true })
+      : new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.1, side: THREE.DoubleSide, vertexColors: true });
+
     fishStyles.forEach((style, idx) => {
       const fishGroup = new THREE.Group();
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: style.color,
-        roughness: 0.35,
-        metalness: 0.1
-      });
-      const spotMat = new THREE.MeshStandardMaterial({
-        color: style.spotColor,
-        roughness: 0.3,
-        metalness: 0.2
-      });
+      fishGroup.userData.noCollision = true;
+      const bodyMat = this.getSharedMaterial
+        ? this.getSharedMaterial("standard", { color: style.color, roughness: 0.35, metalness: 0.1 })
+        : new THREE.MeshStandardMaterial({ color: style.color, roughness: 0.35, metalness: 0.1 });
+      const spotMat = this.getSharedMaterial
+        ? this.getSharedMaterial("standard", { color: style.spotColor, roughness: 0.3, metalness: 0.2 })
+        : new THREE.MeshStandardMaterial({ color: style.spotColor, roughness: 0.3, metalness: 0.2 });
+      const tailMat = this.getSharedMaterial
+        ? this.getSharedMaterial("standard", { color: style.spotColor, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
+        : new THREE.MeshStandardMaterial({ color: style.spotColor, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+      const finMat = this.getSharedMaterial
+        ? this.getSharedMaterial("standard", { color: style.color, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+        : new THREE.MeshStandardMaterial({ color: style.color, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
 
-      // 1. 流線形魚身
-      const body = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.42, 8), bodyMat);
+      // 1. 流線形魚身 + 斑紋 + 左右胸鰭合併為單一頂點色靜態網格
+      const staticParts = [];
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
       body.rotation.x = Math.PI / 2;
       body.scale.set(1.0, 1.0, 0.55);
-      fishGroup.add(body);
+      staticParts.push(body);
 
-      // 斑紋色塊
-      const spot = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), spotMat);
+      const spot = new THREE.Mesh(spotGeo, spotMat);
       spot.scale.set(0.9, 0.4, 1.4);
       spot.position.set(0, 0.02, 0.04);
-      fishGroup.add(spot);
+      staticParts.push(spot);
 
-      // 2. 擺動尾鰭
-      const tailFin = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.12, 0.16),
-        new THREE.MeshStandardMaterial({ color: style.spotColor, transparent: true, opacity: 0.85, side: THREE.DoubleSide })
-      );
-      tailFin.position.set(0, 0.02, -0.26);
-      fishGroup.add(tailFin);
-
-      // 3. 左右胸鰭
       [-0.07, 0.07].forEach(fx => {
-        const fin = new THREE.Mesh(
-          new THREE.PlaneGeometry(0.06, 0.09),
-          new THREE.MeshStandardMaterial({ color: style.color, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-        );
+        const fin = new THREE.Mesh(finGeo, finMat);
         fin.position.set(fx, 0, 0.08);
         fin.rotation.z = fx > 0 ? -0.4 : 0.4;
         fin.rotation.y = fx > 0 ? 0.3 : -0.3;
-        fishGroup.add(fin);
+        staticParts.push(fin);
       });
+
+      const bakedFish = this.mergeColoredMeshes
+        ? (() => {
+            staticParts.forEach(p => fishGroup.add(p));
+            fishGroup.updateMatrixWorld(true);
+            return this.mergeColoredMeshes(staticParts, fishGroup.matrixWorld.clone().invert(), koiBodyVcMat);
+          })()
+        : null;
+      if (bakedFish) {
+        staticParts.forEach(p => fishGroup.remove(p));
+        fishGroup.add(bakedFish);
+      } else {
+        if (!staticParts[0].parent) staticParts.forEach(p => fishGroup.add(p));
+      }
+
+      // 2. 擺動尾鰭
+      const tailFin = new THREE.Mesh(tailGeo, tailMat);
+      tailFin.position.set(0, 0.02, -0.26);
+      fishGroup.add(tailFin);
 
       // 初始游弋參數 (分佈於蓮花池中)
       const angle = (idx / fishStyles.length) * Math.PI * 2;
@@ -227,16 +259,16 @@ class TempleCourtyardMixin {
     furnaceBase.castShadow = true;
     this.jossFurnace.add(furnaceBase);
 
-    // 投紙口 (黑色拱洞 + 內部火光)
+    // 投紙口 (黑色拱洞 + 內部自發光火光)
     const archHole = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.55, 0.3), new THREE.MeshBasicMaterial({ color: 0x110202 }));
     archHole.position.set(0.9, 0.95, 0);
     archHole.rotation.y = Math.PI / 2;
     this.jossFurnace.add(archHole);
 
-    // 爐內常明火點光源
-    const furnaceLight = new THREE.PointLight(0xff5500, 2.6, 5);
-    furnaceLight.position.set(0.7, 0.95, 0);
-    this.jossFurnace.add(furnaceLight);
+    const emberGlow = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.34, 0.14), new THREE.MeshBasicMaterial({ color: 0xff6a1a }));
+    emberGlow.position.set(0.84, 0.85, 0);
+    emberGlow.rotation.y = Math.PI / 2;
+    this.jossFurnace.add(emberGlow);
 
     // 爐頂金色寶塔尖
     const roof = new THREE.Mesh(new THREE.ConeGeometry(1.4, 1.1, 8), roofMat);
@@ -250,6 +282,7 @@ class TempleCourtyardMixin {
     this.interactiveObjects.push(furnaceBase);
     furnaceBase.userData = { type: "jossFurnace", tooltip: "🔥 點擊金爐 或 走近按 [E]：焚燒金紙化寶" };
 
+    this.batchStaticGroup?.(this.jossFurnace);
     this.addToZone(this.jossFurnace);
   }
 
@@ -429,7 +462,7 @@ class TempleCourtyardMixin {
       transparent: true,
       opacity: 0.92,
       emissive: new THREE.Color(color),
-      emissiveIntensity: 0.5
+      emissiveIntensity: 0.78
     });
 
     const lanternMesh = new THREE.Mesh(lanternGeo, lanternMat);
@@ -442,10 +475,9 @@ class TempleCourtyardMixin {
     ring.rotation.x = Math.PI / 2;
     lanternGroup.add(ring);
 
-    // 內部金光燭火點光源
-    const fireLight = new THREE.PointLight(0xffaa22, 1.4, 6.0);
-    fireLight.position.set(0, 0.3, 0);
-    lanternGroup.add(fireLight);
+    const innerGlow = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffd066 }));
+    innerGlow.position.set(0, 0.25, 0);
+    lanternGroup.add(innerGlow);
 
     // 初始位置：信眾面前或廟埕中庭
     let startPos = new THREE.Vector3(0, 1.2, 12.0);
@@ -462,7 +494,7 @@ class TempleCourtyardMixin {
 
     this.skyLanterns.push({
       group: lanternGroup,
-      fireLight: fireLight,
+      fireLight: null,
       vy: 0.95 + Math.random() * 0.3,
       vx: 0.12 + (Math.random() - 0.5) * 0.15,
       vz: -0.22 + (Math.random() - 0.5) * 0.12,
@@ -523,13 +555,9 @@ class TempleCourtyardMixin {
     candle.position.y = 0.04;
     lanternGroup.add(candle);
 
-    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.05, 6), flameMat);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.06, 6), flameMat);
     flame.position.y = 0.09;
     lanternGroup.add(flame);
-
-    const candleLight = new THREE.PointLight(0xff9900, 0.9, 2.5);
-    candleLight.position.y = 0.1;
-    lanternGroup.add(candleLight);
 
     lanternGroup.position.set(12.5 + (Math.random() - 0.5) * 1.5, 0.36, 13.5 + 2.0);
     this.addToZone(lanternGroup);
@@ -540,7 +568,7 @@ class TempleCourtyardMixin {
 
     this.waterLanterns.push({
       group: lanternGroup,
-      candleLight: candleLight,
+      candleLight: null,
       vx: (Math.random() - 0.5) * 0.06,
       vz: (Math.random() - 0.5) * 0.06,
       birth: performance.now(),

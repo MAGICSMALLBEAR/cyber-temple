@@ -16,14 +16,35 @@ class TempleCollisionMixin {
       (this.avatar.npcs || []).forEach(n => n && n.group && skip.add(n.group));
     }
     const box = new THREE.Box3();
+    const invRef = new THREE.Matrix4();
+    const deltaMat = new THREE.Matrix4();
+    const matrixDiffers = (a, b) => {
+      for (let i = 0; i < 16; i++) if (Math.abs(a[i] - b[i]) > 1e-6) return true;
+      return false;
+    };
     const boxes = [];
     this.scene.updateMatrixWorld(true);
     this.scene.traverse(obj => {
-      if (!obj.isMesh || obj.userData.noCollision) return;
       // 往上找：被略過的群組、隱藏的物件都不算
       for (let a = obj; a; a = a.parent) {
         if (skip.has(a) || a.visible === false || a.userData.noCollision) return;
       }
+      if (obj.userData?.batchedColliders?.length) {
+        for (const c of obj.userData.batchedColliders) {
+          let minX = c.minX, maxX = c.maxX, minY = c.minY, maxY = c.maxY, minZ = c.minZ, maxZ = c.maxZ;
+          if (c.refMatrix && matrixDiffers(obj.matrixWorld.elements, c.refMatrix)) {
+            invRef.fromArray(c.refMatrix).invert();
+            deltaMat.multiplyMatrices(obj.matrixWorld, invRef);
+            box.min.set(minX, minY, minZ);
+            box.max.set(maxX, maxY, maxZ);
+            box.applyMatrix4(deltaMat);
+            minX = box.min.x; maxX = box.max.x; minY = box.min.y; maxY = box.max.y; minZ = box.min.z; maxZ = box.max.z;
+          }
+          if (maxY < COLLISION_BODY_MIN_Y || minY > COLLISION_BODY_MAX_Y) continue;
+          boxes.push({ minX, maxX, minZ, maxZ, name: c.name });
+        }
+      }
+      if (!obj.isMesh) return;
       const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
       if (mats.every(m => !m || m.visible === false || (m.transparent && m.opacity < 0.05))) return;
       // 拱門、圓環的外框會把中間的開口也算成實心（例如財神洞窟入口），不列入

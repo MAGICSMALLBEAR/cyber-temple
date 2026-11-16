@@ -2,11 +2,33 @@
 
 > **專案定位**：融合台灣傳統民間信仰儀式、現代賽博解壓文化，以及熱門 3D 虛擬寺廟（如《山寺 Sansatemple》）體驗的 3D WebGL 線上神殿平台。
 
-> 最近整理：2026-11-15（台灣時間）。目前程式版本 **v12.0.0**（推進中）、離線快取 **v32**；已發布 GitHub Pages 單機版 https://magicsmallbear.github.io/cyber-temple/ 。後續工作統一見 [TODO.md](TODO.md)。
+> 最近整理：2026-11-17（台灣時間，整理 11/16～11/17 凌晨進度）。目前程式版本 **v12.0.0**（持續推進）、離線快取 **v34**；已發布 GitHub Pages 單機版 https://magicsmallbear.github.io/cyber-temple/ 。後續工作統一見 [TODO.md](TODO.md)。
 
 ---
 
 ## 📅 版本迭代工作記錄
+
+### 2026-11-16 ～ 11-17 凌晨：全套回歸盤點、驗收清單補齊與鏡頭旋轉 3D 效能雙波最佳化
+
+針對 11/15 上線後啟動的「先測過一輪再提交部署」流程進行系統性整理，並解決實機旋轉鏡頭嚴重卡頓的渲染瓶頸：
+
+1. **驗收清單補齊與文件對齊（`tests/MANUAL-CHECKLIST.md`、`TODO.md`）**：
+   - 在 [tests/MANUAL-CHECKLIST.md](tests/MANUAL-CHECKLIST.md) 補齊第十六節「玩法主線化與 NPC／選單整理（2026-11-12）」與第十七節「場景分區傳送與清心香客大樓（2026-11-15）」。
+   - 更新 [TODO.md](TODO.md) 總表狀態並啟動本機測試伺服器，作為後續實機檢查基準。
+2. **第一波最佳化：鏡頭旋轉卡頓排除與 GPU／合成管線減壓**：
+   - **按需陰影更新與光源收斂（`scene/core.js`、`scene/architecture.js`、`scene/atmosphere.js`、`scene/courtyard.js`、`scene/halls.js`、`quality.js`）**：將 `renderer.shadowMap.autoUpdate` 改為 `false`，透過 `markShadowsDirty()` 在物件移動或切換時才排程更新（旋轉靜止鏡頭時陰影 Pass 降為 0）；關閉 `mainSpot.castShadow` 僅保留主方向光陰影；於 `init()` 尾端執行 `renderer.compile()` 預先編譯著色器。大殿燭台 4 顆點光源合一，並撤除燈道、吊燈、金爐、偏殿與天水燈冗餘 `PointLight`（大殿可見 `PointLight` 由 21 顆降至 1 顆），松樹／圍欄／攤位框架／元寶改採 `MeshLambertMaterial` 或停用非必要 `castShadow`。
+   - **射線與互動聯動優化（`scene/core.js`、`scene/deities.js`、`scene/model-loader.js`、`scene/altar.js`、`scene/peer-tables.js`）**：滑鼠拖曳旋轉視角（`e.buttons !== 0`）期間略過 `onMouseMove` 射線偵測與 tooltip 更新，加上 60ms 懸停節流與 `getInteractiveTargets()` 快取（模型替換或更新供品時透過 `invalidateInteractiveTargets()` 重整）。
+   - **粒子資源複用、品質自適應與 CSS 去模糊（`scene/core.js`、`quality.js`、`style.css`）**：為煙霧、水波、火花、鞭炮與浮字粒子共用幾何體、設定上限並補齊 `.dispose()`；中畫質停用裝飾點光源，自動畫質偵測視窗縮短為 `2500ms + 2500ms`；移除 3D 畫布上方 HUD 12 處全螢幕重繪昂貴的 `backdrop-filter: blur(...)`。
+3. **第二波最佳化：`InstancedMesh` 與靜態合批／PBR 頂點色合併（壓低 Draw Calls）**：
+   - **碰撞保留型合批與跨建築分區合批（`scene/core.js`、`scene/collision.js`）**：實作 `getSharedMaterial`、`_dedupeStaticMaterial`、頂點色烘焙 `mergeColoredMeshes`（4 階 PBR 粗糙／金屬桶量化）、群組級 `batchStaticGroup` 與分區級 `batchZoneStatics`（依 Z 軸分前後帶維持視錐剔除，排除 `pondWater`/`pondBridgeDeck`、動畫物件、`model-loader` 置換目標與貼圖物件）；合批可碰撞柱牆前先將個別 `Box3` 寫入 `userData.batchedColliders`，使 `buildCollisionMap()` 保持原有精確碰撞與拱橋步行高度。同時修正 `MeshBasicMaterial` 誤傳 `flatShading` 的警告。
+   - **建築、廟埕、法器與人物全面減量**：
+     - [scene/architecture.js](scene/architecture.js)、[scene/altar.js](scene/altar.js)、[scene/halls.js](scene/halls.js)、[scene/festival.js](scene/festival.js)、[scene/service.js](scene/service.js)、[scene/interior.js](scene/interior.js)、[scene/market.js](scene/market.js)、[scene/peer-tables.js](scene/peer-tables.js)、[scene/hostel.js](scene/hostel.js)：松樹／圍欄／燈道／千佛燈塔／28 支靈籤／繪馬架木牌／鐘鼓樓／神轎（保留涼傘動畫）／服務處／大殿內裝／布袋戲人偶／同行供席（保留 `dishesGroup` 與互動）改以 `InstancedMesh` 與靜態合批。
+     - [scene/temple-visuals.js](scene/temple-visuals.js) & [scene/temple-plaza.js](scene/temple-plaza.js)：大殿四片下簷與兩坡上簷分別合併、`308` 顆簷飾與 4 盞前廊燈籠合為 `InstancedMesh`；6 座美食攤位骨架跨攤實例化、蓮心淨泉 30 瓣蓮花單一 `InstancedMesh` 著色；`liteSwapMeshes` 與 `liteMaterial` 支援 `vertexColors` 與 `liteSwapBatch` 群組。
+     - [scene/courtyard.js](scene/courtyard.js)、[scene/deities.js](scene/deities.js)、[avatar/pet.js](avatar/pet.js)、[avatar/companions.js](avatar/companions.js)：蓮花池花瓣與荷葉實例化、6 尾錦鯉保留尾鰭擺動並烘焙魚身頂點色；媽祖 36 顆冕珠與觀音 12 片蓮瓣改 `InstancedMesh`（保留 `deityStatue`/`deityHead` 參考與 >12 釋放測試規範）；萌寵靜態部位合批（保留尾巴／光環動畫）；12 位 NPC 蒲團改為單一 `InstancedMesh` 並合併身軀頭部為單一可點選網格。
+   - **離線快取更新（`sw.js`）**：`CACHE_VERSION` 由 `"v32"` 經 `"v33"` 升級為 `"v34"`。
+4. **實測數據與完整測試驗證（最後一次改動後重跑）**：
+   - **場景剖面實測**：本殿顯示區實際 WebGL Draw Calls 從優化前 `1,225 visibleMeshes` 降至 **297**（全場景含主角與萌寵／天空粒子合計 **338**，含 47 組 `InstancedMesh` 共繪製 1,410 個元件；香客大樓分區僅 **62**），`castShadow` 網格 `328 → 81`，獨立標準材質 `370 → 148`，可見 `PointLight` `21 → 1`，碰撞盒維持 **207** 個。
+   - **完整自動化回歸（`node tests/run-all.js --full`）**：中途曾攔截並修復 `pondBridgeDeck`/`pondWater` 被合批影響拱橋高度與通行的問題；修正後重新完整跑過 **41 組、1,123 項檢查全部通過（耗時 908 秒）**，`quality.test.js` 軟體渲染參考幀率由低 15／高 5 提升至低 16／高 7。
 
 ### 2026-11-15：場景分區傳送架構與「清心香客大樓」新分區
 
@@ -894,6 +916,16 @@
 ---
 
 ## 🗒️ 每日工作摘要
+
+### 2026-11-16 ～ 11-17：鏡頭旋轉卡頓的兩波效能最佳化（尚未提交）
+
+- **起因**：實機旋轉鏡頭明顯卡頓。主因是陰影每幀重算、大殿 21 顆點光源、HUD 12 處全螢幕模糊濾鏡，以及上千個獨立網格各自繪製。
+- **第一波（少做不必要的工作）**：陰影改成物件有變動才重算；點光源減到 1 顆；拖曳鏡頭時不做滑鼠指向偵測；煙霧、火花等粒子共用並有上限；移除 HUD 模糊濾鏡。
+- **第二波（把東西合在一起畫）**：重複物件（松樹、圍欄、燈籠、簷飾、靈籤、蓮瓣、NPC 蒲團等）改為一次繪製多份；不會動的建築依區域合併。合併前先記下每塊柱牆的碰撞範圍，碰撞與拱橋步行高度維持不變；蓮花池水面與拱橋不合併（中途曾因合併壞掉拱橋高度，已修正）。
+- **成果**：本殿繪製呼叫 1,225 → 297（全場景 338，香客大樓 62），投影網格 328 → 81，材質 370 → 148，碰撞盒維持 207 個。軟體繪圖參考幀率低畫質 15 → 16、高畫質 5 → 7（實機幀率尚未量）。
+- **文件**：驗收清單補第十六節（11/12 主線化）、第十七節（11/15 香客大樓）；離線快取 v32 → v34。
+- **驗證**：當時紀錄為完整回歸 41 組 1,123 項全過（908 秒）。11/17 整理文件時另跑輕量 `npm test`：13 組 554 項全過；完整回歸本次未重跑。
+- **狀態**：26 個檔案的改動都還在工作區，**未提交、未推送、線上版未更新**。`libs/three.bundle.min.js` 顯示有改動，但只是換行符號（LF／CRLF）不同，內容沒變，提交時可還原。
 
 ### 2026-11-05（v11.6.0）：互動、導航、補給與私人紀錄
 

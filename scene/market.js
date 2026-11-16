@@ -18,6 +18,7 @@ class TempleMarketMixin {
     });
     const sign = this.makeHallSign("平安套圈圈", 2.25, 0.42); sign.position.set(0, 2.18, 0.78); stall.add(sign);
     this.hallHit(stall, [2.6, 2.5, 1.5], 1.25, "ringStall", "🎯 平安套圈圈 • 五圈挑戰，點擊或走近按 E");
+    this.batchStaticGroup?.(stall);
     this.addToZone(stall); this.ringStall = stall;
 
     const stage = new THREE.Group(); stage.name = "puppetStage"; stage.position.set(6.5, 0, 25.5);
@@ -28,13 +29,25 @@ class TempleMarketMixin {
     [-1.63, 1.63].forEach(x => box(stage, [0.45, 2.1, 0.12], [x, 2.2, 0.65], red));
     const title = this.makeHallSign("平安掌中戲", 3.4, 0.48); title.position.set(0, 3.24, 0.72); stage.add(title);
     this.puppetActors = [];
+    const dollVcMat = this.getSharedMaterial
+      ? this.getSharedMaterial("standard", { color: 0xffffff, roughness: 0.75, vertexColors: true })
+      : new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, vertexColors: true });
     [[-0.7, 0xc44939], [0.7, 0x42669b]].forEach(([x, color], i) => {
       const doll = new THREE.Group(); doll.position.set(x, 1.2, 0.1);
       const cloth = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
-      const body = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.68, 10), cloth); body.position.y = 0.35; doll.add(body);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffdfc4 })); head.position.y = 0.85; doll.add(head);
-      const hat = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.18, 8), i ? gold : cloth); hat.position.y = 1.06; doll.add(hat);
-      [-0.05, 0.05].forEach(dx => { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), wood); eye.position.set(dx, 0.87, 0.15); doll.add(eye); });
+      const staticDollParts = [];
+      const body = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.68, 10), cloth); body.position.y = 0.35; doll.add(body); staticDollParts.push(body);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffdfc4 })); head.position.y = 0.85; doll.add(head); staticDollParts.push(head);
+      const hat = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.18, 8), i ? gold : cloth); hat.position.y = 1.06; doll.add(hat); staticDollParts.push(hat);
+      [-0.05, 0.05].forEach(dx => { const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), wood); eye.position.set(dx, 0.87, 0.15); doll.add(eye); staticDollParts.push(eye); });
+      if (this.mergeColoredMeshes) {
+        doll.updateMatrixWorld(true);
+        const mergedDoll = this.mergeColoredMeshes(staticDollParts, doll.matrixWorld.clone().invert(), dollVcMat);
+        if (mergedDoll) {
+          staticDollParts.forEach(p => { doll.remove(p); p.geometry.dispose(); });
+          doll.add(mergedDoll);
+        }
+      }
       const arms = [];
       [-1, 1].forEach(side => {
         const arm = new THREE.Group(); arm.position.set(side * 0.20, 0.55, 0);
@@ -45,6 +58,7 @@ class TempleMarketMixin {
     });
     const caption = this.makeHallSign("借一把傘 · 還一份善意", 3.4, 0.38); caption.position.set(0, 0.92, 0.85); stage.add(caption);
     this.hallHit(stage, [4.3, 3.6, 1.8], 1.8, "puppetStage", "🎭 平安掌中戲 • 借傘記，點擊或走近按 E 觀賞");
+    this.batchStaticGroup?.(stage, { skip: (this.puppetActors || []).map(a => a.doll) });
     this.addToZone(stage); this.puppetStage = stage;
   }
 

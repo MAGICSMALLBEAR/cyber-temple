@@ -5,13 +5,13 @@ const QUALITY_KEY = "temple_quality";
 
 const QUALITY_PRESETS = {
   high:   { label: "高", maxPixelRatio: 2,   shadows: true,  softShadows: true,  sunShadowSize: 2048, spotShadowSize: 1024, particles: 1.0,  decorLights: true,  antialias: true },
-  medium: { label: "中", maxPixelRatio: 1.5, shadows: true,  softShadows: false, sunShadowSize: 1024, spotShadowSize: 512,  particles: 0.6,  decorLights: true,  antialias: true },
+  medium: { label: "中", maxPixelRatio: 1.5, shadows: true,  softShadows: false, sunShadowSize: 1024, spotShadowSize: 512,  particles: 0.6,  decorLights: false, antialias: true },
   low:    { label: "低", maxPixelRatio: 1,   shadows: false, softShadows: false, sunShadowSize: 512,  spotShadowSize: 512,  particles: 0.35, decorLights: false, antialias: false }
 };
 const QUALITY_ORDER = ["high", "medium", "low"];
 
-const FPS_WARMUP_MS = 5000;     // 剛載入時著色器編譯會卡，先不量
-const FPS_WINDOW_MS = 4000;
+const FPS_WARMUP_MS = 2500;     // 剛載入時著色器編譯會卡，先不量
+const FPS_WINDOW_MS = 2500;
 const FPS_LOW_THRESHOLD = 28;
 
 const templeQuality = {
